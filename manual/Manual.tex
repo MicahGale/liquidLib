@@ -1,0 +1,448 @@
+\documentclass{article}
+\usepackage{bm}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, linkcolor=blue]{hyperref}
+\usepackage[margin=1in]{geometry}
+\usepackage{multicol}
+\usepackage{color}
+
+\usepackage{listings}
+
+\lstdefinestyle{BashInputStyle}{
+	language=bash,
+	basicstyle=\small\sffamily,
+	numbersep=3pt,
+	frame=tb,
+	columns=fullflexible,
+}
+
+\begin{document}
+	\begin{figure}
+		\centering
+		\includegraphics[width=.9\textwidth]{./images/LiquidLib_logo.pdf}
+	\end{figure}
+{
+\centering
+\Large A comprehensive tool for post processing of liquid molecular dynamic simulations
+}
+\newpage
+
+\section{Introduction}
+\textit{LiquidLib} is a open source package to compute the following quantities:
+\begin{itemize}
+	\item \hyperref[sec::gofr]{Pair Distribution Function}
+	\item \hyperref[sec::sofk]{Structure Factor}
+	\item \hyperref[sec::Gofrt]{Self van Hove Correlation}
+	\item \hyperref[sec::MSD]{Mean Squared Displacement}
+	\item \hyperref[sec::alpha2]{Non-Gaussian Parameter}
+	\item \hyperref[sec::chi4]{Four Point Correlation}
+	\item \hyperref[sec::Fsqt]{Self Intermediate Scattering Function}
+	\item \hyperref[sec::VACF]{Velocity Auto Correlation}
+\end{itemize}
+
+\section{Acknowledgments}
+\textit{LiquidLib} is an open source code and is published under the MIT License.  The core contributers are Zhikun Cai, Abhishek Jaiswal, Nathan Walter, and Yang Zhang.   
+\\
+\\
+If you distribute a modified code or release any of the source code that includes \textit{LiquidLib} source files then it must also be open sourced.  Anyone is free to use modify or extend.  This has been a joint effort by Zhang research group at University of Illinois at Champaign-Urbana.  More information can be found at \url{http://zhang.npre.illinois.edu/}.  Contact information for any of the contributers can also be found at the former address, any issues, bugs, or other related material can be sent to us via our contact information listed at group webpage listed.
+\\
+\\
+Please cite as:\\
+\hspace*{1cm}Zhikun Cai, Abhishek Jaiswal, Nathan Walter, Yang Zhang. \textit{LiquidLib User Manual v0.1} \url{http://zhang-group.github.io/LiquidLib/} 
+
+\section{Installation}
+To make a quick and basic installation of \textit{LiquidLib}, begin by opening a terminal window.
+\begin{lstlisting}[style=BashInputStyle]
+$ mv liquidlib.tar.gz /installation/directory/
+$ cd /installation/directory/
+$ tar -zxvf liquidlib.tar.gz
+$ cd liquidlib
+$ make
+\end{lstlisting}
+This will create a directory /liquidlib/bin/ with all of the executables contained within it.
+\\
+\\
+To make a GROMACS compatible build, open Makefile and uncomment the lines beneath ``$\#\#$ Uncomment for Gromacs compatible build".  Follow the instructions in Makefile for linking the xdrfile headers. To make a build that can read trajectories that are dumped as .trr or .xtc binary files, such as GROMACS does, or .xtc for LAMMPS.  In order to read these file types, LiquidLib relies on the open source library libxdrfile.  The source code can be downloaded from the GROMACS website or the following link: \url{ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.1.tar.gz} Newer versions of the xdfile library should be compatible with LiquidLib, however, we recommend 1.1.1 as this is the version used for testing purposes.
+\\
+\\
+Once libxdrfile.a and xdrfile.h, xdrfile$\_$trr.h, and xdrfile$\_$xtc.h have been installed, open the \textit{LiquidLib} Makefile, and edit the lines contained in the comment section for the GROMACS build.  For compiling, the libxdrfile.a and xdrfile.h, xdrfile$\_$trr.h, and xdrfile$\_$xtc.h headers can be placed inside of the \textit{LiquidLib} include directory, or you can specify the location inside of the Makefile.  Recompile LiquidLib and the binaries should be compatible with GROMACS.
+\\
+\\
+To ensure successful compilation we recommend running computations on the provided test trajectory with the test scripts.
+\\
+\\
+To build parallelized OpenMP support, open Makefile in a text editor and uncomment the lines beneath ``$\#\#$ Uncomment for OpenMP".  Then recompile.
+
+
+\section{Description of Quantities}
+This section provides a brief overview of the quantities, including operating equations. Please refer to standard textbooks, journal articles for explanation of physical meaning, and how to interpret your results.
+
+\subsection{Pair Distribution Function: $g(r)$} \label{sec::gofr}
+For an isotropic and homogenous liquid system, the pair distribution function (PDF) or radial distribution function (RDF), depends only on the modulus of relative atomic distance and can be computed as follows:
+\begin{equation}
+g(r) = \frac{1}{4\pi r^2\rho N}\left\langle\sum\limits_{l\neq l'} \delta(\mathbf{r}-|\mathbf{r}_l-\mathbf{r}_{l'}|)\right\rangle.
+\end{equation}
+
+\subsection{Structure Factor: $S(k)$} \label{sec::sofk}
+The static structure factor $S(k)$ is a quantity that can be directly measured by scattering experiments such as with neutrons or X-rays. For an isotropic system there are no preferred orientation and hence the structure factor depends only on the modulus of the wave vector transfer $k$. The experimentally measured structure factor by neutrons is weighed by the proper coherent bound neutron scattering lengths `$b$' and needs to be factored in when computing the total $S(k)$ of the system as shown:
+\begin{equation}
+\label{eq:Sq1}
+S(k) = \frac{1}{N\langle b\rangle^2}\left\langle\sum_{l,l'=1}^{N} b_lb_{l'}\exp{\{-i\mathbf{k}\cdot[\mathbf{r}_l - \mathbf{r}_{l'}]\}}\right\rangle.
+\end{equation}
+A simplified representation of $S(k)$ is shown in Eq.~[\ref{eq:Sq2}]. In performing the computations of $S(k)$, the computational complexity of Eq.~[\ref{eq:Sq1}] is reduced to $\mathcal{O}(N)$ by performing angular average over many random angular directions.
+\begin{equation}
+\label{eq:Sq2}
+S(k) = \frac{1}{N\langle b\rangle^2}\left\langle\left[\sum_{l=1}^{N} b_l\cos(\mathbf{k}\cdot\mathbf{r}_l)\right]^2+\left[\sum_{l=1}^{N} b_l\sin(\mathbf{k}\cdot\mathbf{r}_l)\right]^2\right\rangle.
+\end{equation} 
+
+\subsection{Self van Hove Correlation: $G_s(r,t)$} \label{sec::Gofrt}
+Single particle's motion can be studied using the self-part of the van Hove correlation function. In the liquid state, the system is isotropic and hence these quantities depend only on the magnitude of displacements not their directions. The physical meaning of $G_s(r,t)$ is the probability of finding a particle $i$ in the vicinity of some distance `$r$' at some other time `$t$' given that it was at origin at $t = 0$.
+\begin{equation}
+\label{eq:gr}
+G_s(r,t) = \frac{1}{N}\left\langle\sum\limits_{l=1}^N \delta(\mathbf{r}+\mathbf{r}_l(0)-\mathbf{r}_l(t))\right\rangle.
+\end{equation}
+
+\subsection{Mean Squared Displacement: $\left<r^2(t)\right>$} \label{sec::MSD}
+The mean-squared displacement of particles at an elapsed time `t' is related to the second moment of the self van Hove correlation function. Typically for liquids, particle will show ballistic motions at very short times, followed by particle collisions resulting in a plateau, and eventually undergo random walk.
+\begin{equation}
+\langle r^2(t)\rangle = \frac{1}{N}\left\langle\sum\limits_{l=1}^N |\mathbf{r}_l(t) - \mathbf{r}_l(0)|^2\right\rangle = \int r^2G_s(\mathbf{r},t)d\mathbf{r}.
+\end{equation}
+
+\subsection{Non-Gaussian Parameter: $\alpha_2(t)$} \label{sec::alpha2}
+The non-Gaussian parameter measures the deviation from the gaussian behavior of particles. It is commonly used as a measure of dynamic heterogeneity in the system. For brownian diffusion $\alpha_2(t) = 0$. If all particles have same displacement then it takes the theoretical minimum of -2/5. When there is heterogeneity in particle displacements, then $\alpha_2(t) > 0$. It can be computed as follows:
+\begin{equation}
+\alpha_2(t) = \frac{3\left\langle\sum\limits_{l=1}^N[\mathbf{r}_l(t) - \mathbf{r}_l(0)]^4\right\rangle}{5\left\langle\sum\limits_{l=1}^N[\mathbf{r}_l(t) - \mathbf{r}_l(0)]^2\right\rangle^2} - 1.
+\end{equation}
+ 
+ \subsection{Four Point Correlation: $\chi_4(t)$} \label{sec::chi4}
+Direct quantification of a length scale characterizing correlated particles motion in liquids involves the motion of two or more particles, and hence are probed using a four-point, time-dependent density correlation functions that contain information about the density at two spatial points and two times. To capture the correlated motions between particles in liquids, we utilize a `coarse graining' approach by using an `overlap' function that measures overlap between configurations at time $t=0$ and a future time $t$.  The overlap function $w(|r_1~-~r_2|)$ is unity for $|r_1~-~r_2|~\leq~a$ and 0 otherwise. The distance parameter `$a$' is chosen to be larger than the square root of the plateau of $\left<r^2(t)\right>$.
+\begin{equation}
+\begin{split}
+\chi_4(t) &= \frac{V}{TN^2}[\langle Q_s^2(t)\rangle - \langle Q_s(t)\rangle^2],\\
+Q_s(t) &= \sum_{l=1}^N \textit{w}(|\mathbf{r}_l(t) - \mathbf{r}_l(0)|).
+\end{split}
+\end{equation}
+
+\subsection{Self Intermediate Scattering Function: $F_s(k,t)$} \label{sec::Fsqt}
+Self Intermediate Scattering Functions (SISF) is defined as the spatial Fourier transform of $G_s(r,t)$ to the reciprocal space, which can be measured either directly by correlation spectroscopy and neutron spin echo technique, or indirectly by inelastic scattering experiments. SISF characterizes the density fluctuations of the same particle in the system at time $t = 0$ and at another subsequent time $t$.
+\begin{equation}
+\label{eq:fsqt}
+F_s(k,t) = \frac{1}{N} \left\langle \sum_{l=1}^{N} \exp{\{-i\mathbf{k}\cdot[\mathbf{r}_l(t) - \mathbf{r}_l(0)]}\}\right\rangle.
+\end{equation} 
+
+\subsection{Velocity Auto Correlation: $C_{vv}(t)$} \label{sec::VACF}
+Velocity auto correlation function is a statistical correlation between particle velocities at two points in time, 0 and some later time `$t$'. It can be used to measure the self-diffusion coefficient or the vibrational properties of a given system.
+\begin{equation}
+\label{eq:vacf}
+ C_{vv}(t) = \langle \textbf{v}_i(0)\cdot \textbf{v}_i(t)\rangle
+\end{equation} 
+
+\section{Execution}
+\textit{LiquidLib} provides source code to several binaries.  Each binary is designed to calculate one quantity.  To calculate a quantity, one must provide an input file.  The input file contains all of the parameters, essential and optional, necessary for \textit{LiquidLib} to compute the respective quantity.  By default, \textit{LiquidLib} executables search the current directory for the input file with the abbreviation for the quantity with the file extension .in.  Similarly, when the quantity is written to file, the file is named by default the quantity abbreviation .txt, and is placed in the current directory.  The following list summarizes the default file names used.
+\begin{multicols}{2} \label{input_output}
+\begin{itemize}
+\item \textbf{Pair Distribution Function:}
+ \\g$\_$r.in
+ \\g$\_$r.txt
+\item \textbf{Structure Factor:}
+ \\S$\_$k.in
+ \\S$\_$k.txt
+ \item \textbf{Self van Hove Correlation:}
+ \\Gs$\_$rt.in
+ \\Gs$\_$rt.txt
+\item \textbf{Mean Squared Displacement:}
+ \\r2$\_$t.in
+ \\r2$\_$t.txt
+\item \textbf{Non-Gaussian Parameter:}
+ \\alpha2$\_$t.in
+ \\alpha2$\_$t.txt
+ \item \textbf{Four Point Correlation:}
+ \\chi4$\_$t.in
+ \\chi4$\_$t.txt
+\item \textbf{Self Intermediate Scattering Function:}
+ \\Fs$\_$kt.in
+ \\Fs$\_$kt.txt
+ \item \textbf{Velocity Auto Correlation:}
+ \\vacf$\_$t.in
+ \\vacf$\_$t.txt
+\end{itemize}
+\end{multicols}
+\noindent While these are the default files that will be used by \textit{LiquidLib}, the file names used are ultimately up to the user.  The user may use any input and output name they please.  To use a non-default input name, the file used must be specified during command line operation, and to use a non-default output name, the file used must be specified in the input file under the option outputfilename.  The command line operation to compute a quantity (for example MeanSquaredDisplacement) is as follows:  
+\begin{lstlisting}[style=BashInputStyle]
+$ cd /execution/directory/
+$ /installation/directory/bin/computeMeanSquaredDisplacement -i user_msd_file.in
+\end{lstlisting}
+where ``-i user\_msd\_file.in" is not needed if the input file is the default \textit{r2$\_$t.in}.  If execution is successful, the program will print ``Successfully computed Mean Squared Displacement".  If execution is not successful, various WARNINGS and ERRORS will be printed to screen. The user should refer to the \hyperref[sec::errors]{Common Errors} section for solutions to the problem.  For the options that may be used in the input file please refer to the \hyperref[sec::parameters]{Input Parameters}  section below.
+
+\section{Input Parameters} \label{sec::parameters}
+This section of the manual describes the potential options that can be used in the input files.  The first subsection \hyperref[sec::general_parameters]{Trajectory Parameters} shows the options that are universal to all of the codes, and the following sections show options that are special to that quantity.  Only options listed as \textit{mandatory} are required for operation of any given quantity.  All other inputs are optional since a default value is provided, however, its is recommended that the user set those values to their needs.
+\subsection{Trajectory Parameters} \label{sec::general_parameters}
+\begin{description}
+	\item[$\#$] \hfill \\
+	Marks a comment in the input file.  Entire lines or ends of lines may be comments.
+	
+	\item[$=$] \hfill \\
+	Can be used after a parameter name for aesthetic purposes.  A trailing space must be used after a = in order for the values to be correctly determined from the input file.
+	
+	\item[is$\_$wrapped] \hfill \\
+	- [default: false, optional] false, no, or 0 informs the program that the trajectory is unwrapped\\
+	- true, yes, or a non-zero number informs the program that the trajectory is wrapped in a periodic box and thus needs to be unwrapped in order to produce correct values for dynamic quantities.  If set to true, LiquidLib will unwrap the coordinates before computation.
+	
+	\item[start$\_$frame] \hfill \\
+	- [default: 0, optional] This value determines the first frame number to read from the trajectory.  If this option is set, \textit{LiquidLib} will skip the frames prior to this number.  This is useful when using an unequilibrated trajectory and the user wishes to skip the unequilibrated portion of the trajectory.
+	
+	\item[end$\_$frame] \hfill \\
+	- [default: 0, optional] This value determines when the last frame that will be read from the trajectory file.  This parameter is optional and will be overwritten by other parameters such as startframe, deltatimeorbase, and frameaverage during the computation.  User must provide either endframe or numberoftimepoints (preferred) in their scripts.
+	
+	\item[dimension] \hfill \\
+	- [default: 3, optional] This value determines the dimension of the trajectory.  LAMMPS can provide 2-d and 3-d trajectories.  GROMACS and VASP can provide 3-d trajectories.  However, \textit{LiquidLib} is capable of calculating the quantities in any finite dimension when supplied with a such a trajectory, such as the trajectories created by our groups' any dimensional md package. 
+	
+	\item[trajectory$\_$delta$\_$time] \hfill \\
+	- [default: 1, optional] This value determines the $\Delta t$ between frames in the trajectory.  For GROMACS, this value can be determined from the trajectory file.  However, for other programs, such as LAMMPS, VASP, or other trajectory sources, this parameter is not determined automatically from the trajectory.  Thus, for time dependent quantites, such as mean squared displacement or intermediate structure factor, the trajectory $\Delta t$ is required for proper output time$\_$scale provided by user.  If this parameter is not provided, the time step will be set to 1 (a.u.), or equivalently 1 step. 
+	
+	\item[output$\_$file$\_$name] \hfill \\
+	- [default: see \hyperref[input_output]{here} for defaults, optional] This value sets the name and location for the output data to be written to.  Only condition on the location of outputfile is the directory must exist prior to execution as \textit{LiquidLib} will not create the directory.
+	
+	\item[trajectory$\_$file$\_$name] \hfill \\
+	- [\textbf{mandatory}] This option sets the name and location of the trajectory file.  As of now, the only file types that are recognized for reading the trajectory are .trr, .xtc, .xyz, .dump, .atom, and XDATCAR.  dump and atom extensions are for LAMMPS trajectories and XDATCAR is for VASP.  .trr and .xtc can only be read if \textit{LiquidLib} is built in GROMACS compatible mode.
+	
+	\item[trajectory$\_$data$\_$type] \hfill \\
+	- [default: coordinate, optional] This sets the type of information that will be read from the trajectory file.  For .trr files, this will change how the file is read.  This needs to be set to velocity for VACF.  
+	
+	\item[gro$\_$file$\_$name] \hfill \\
+	- [\textbf{Conditionally Required in GROMACS mode}] This sets the name and location of the .gro file for GROMACS trajectories.  This is needed to determine the atom types and groups in the system.  If the trajectory is monatomic or one wishes to compute a quantity for the entire system, this does not need to be provided.  However, if the user wants to compute a quantity for a specific atom type or group from a GROMACS trajectory, this is required.
+	
+	\item[atom$\_$type] \hfill \\
+	- [default: ``all'', optional]  This sets the type of atom that will be focused on for the computation.  For example, if user wishes to compute the mean squared displacement of only hydrogen this can be set to H.   The atomtype value should be compatible with the types used in trajectory file. Can be a letter for GROMACS,  VASP,  LAMMPS trajectories, or a number for LAMMPS trajectories.  If no value is set, the computation will be conducted on the entire system.
+	
+	\item[atom$\_$group] \hfill \\
+	- [default: ``system'', optional]  Only useful for trajectories, where groups of atoms exists.  This parameter sets if the computation is performed on particular type(s) of atom from the whole system [default], or a sub group such as the solvent [solvent], or protein [protein] or, or non-solvent [non-solvent].
+	
+	\item[number$\_$of$\_$frames$\_$to$\_$average] \hfill \\
+	- [default: 1, optional] This parameter sets the number of frames that will be used to average with.  For example, if set to N frames, this quantity will use N unique frames to compute the value of the static quantities, i.e. will use N frames to calculate the radial distribution function.  Or, for dynamic quantites, N frames will be used to average the value at every time point, i.e. N frames will be used to average the mean squared displacement at each time point $t$.
+	
+	\item[output$\_$precision] \hfill \\
+	- [default: 15, optional] This parameter sets the scientific precision of the output file.
+	
+	
+\end{description}
+
+\subsection{Pair Distribution Function: $g(r)$} \label{sec::gofr_parm}
+\begin{description}	
+	\item[atom$\_$type] \hfill \\
+	- [default: ``all'', optional] This parameter sets the first atom type being studied.  By default, the program will calculate the pair distribution function for the entire system.  But this parameter can be set to the atom identifier used in the trajectory or .gro file, i.e. HW for hydrogen in water, or Li for lithium, or 1 if the atom type is numeric in the trajectory.
+	
+	\item[atom$\_$type2] \hfill \\
+	- [default: equal to atomtype, optional] The parameter sets the second type being studied.  If this parameter is not set, \textit{LiquidLib} will be default set to the value given to atomtype.  Thus, if not set, we will compute the pair distribution function of same type of atoms. However, the two options offer to get the pair distribution for all combinations of atom types in the system.
+	
+	\item[atom$\_$group] \hfill \\
+	- [default: ``system'', optional] This parameter can be set if user wants only the atomtype to be from a sub-group solvent[solvent].  The options available are system, solvent, and non-solvent
+	
+	\item[atom$\_$group2] \hfill \\
+	- [default: equal to atomgroup, optional] This parameter can be set if user wants only the atomtype2 to be from a sub-group solvent[solvent].  The options available are system, solvent, and non-solvent
+		
+	\item[number$\_$of$\_$bins] \hfill \\
+	- [default: 200, optional] This value sets the number of spatial ($|r|$) bins used between 0 and maxcutofflength.
+	
+	\item[max$\_$cutoff$\_$length] \hfill \\
+	- [default: half of the smallest box side] This value sets the max $|r|$ used for g(r).  By default this value will be set to the smallest boxlength in any dimension.  If a max value greater than half the smallest boxlength is provided, the value will be reset to the half the smallest boxlength as spatial correlations for values of $|r|$ greater than half of box length cannot be accurately determined and thus should not be used.
+	
+\end{description}
+
+
+\subsection{Structure Factor: $S(k)$} \label{sec::sofk_parm}
+\begin{description}		
+	\item[method$\_$of$\_$k$\_$sampling] \hfill \\
+	- [default: gaussian] This value determines the method for sampling the \textbf{k} vectors.
+	 	
+	- ``gaussian'' method samples unit \textbf{k} vectors in the x, y, and z directions from a gaussian distribution.  In this way, the intermediate scattering function is calculated from importance sampling with \textbf{k} vectors uniformly chosen over the entire solid angle distribution.
+	
+	- ``uniform'' method samples \textbf{k} vectors using two uniform distributions and transforms the distributions so that the \textbf{k} vectors are sampled uniformly over the solid angle.  This method is more efficient then ``gaussian'' but only works for two and three dimensions, higher dimensions must use ``gaussian''
+	
+	\item[k$\_$start$\_$index] \hfill \\
+	- [default: 0, optional] This value determines the first multiple of $\delta k$ used, where $\delta k = 2*\pi/\textbf{boxlength}$.  
+		
+	\item[number$\_$of$\_$bins] \hfill \\
+	- [default: 50, optional] This sets the number of multiples of $\delta k$ where structure factor will be computed starting from k$\_$start$\_$index and ending at k$\_$start$\_$index + number$\_$of$\_$bins. 
+	
+	\item[number$\_$of$\_$kvectors] \hfill \\
+	- [default: 50, optional] This value sets the number of directional \textbf{k} vectors sampled for ever value of $|\bm{k}|$.  
+	
+	\item[scattering$\_$lengths] \hfill \\
+	- [\textbf{mandatory}] This value sets the neutron or X-ray scattering lengths for each atom type in the system.  If this option is not included, the program assumes that the system is monatomic and therefore the scattering length is not needed.  If the system is not monoatomic, this parameter should be specified. An example for water system could be scatteringlengths = O 5.802 H -3.7390. The order is always atom type as defined in the trajectory file followed by the scattering length.
+
+\end{description}
+
+
+\subsection{Self van Hove Correlation: $G_s(r,t)$} \label{sec::Gofrt_parm}
+\begin{description}	
+	\item[number$\_$of$\_$time$\_$points]\hfill \\
+	- [default: 0, optional] This is the number of points that will be calculated for the self van Hove correlation function.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.
+	
+	\item[time$\_$scale] \hfill \\
+	- [default: linear, optional] This can be set to ``linear'' or ``'log''.  This sets the time scale of the output. Self van Hove correlation can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps).
+	
+	\item[frame$\_$interval] \hfill \\
+	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a timestep of .1 ps, and you wish for the self van Hove correlation function to be computed every .2 ps, this value should be set to 2. 
+	
+	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the self van Hove correlation function.   For example, if this value is set to 1.5, then the self van Hove correlation will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
+	
+	\item[number$\_$of$\_$bins] \hfill \\
+	- [default: 200, optional] This value determines the number of spatial ($|r|$) bins used between 0 and max$\_$cutoff$\_$length to sample the self van hove correlation.
+	
+	\item[max$\_$cutoff$\_$length] \hfill \\
+	- [default: half of the smallest box side] This value sets the max $|r|$ used for g(r).  By default this value will be set to the smallest boxlength in any dimension.  If a max value greater than half the smallest boxlength is provided, the value will be reset to the half the smallest boxlength as spatial correlations for values of $|r|$ greater than half of box length cannot be accurately determined and thus should not be used.
+\end{description}
+
+
+\subsection{Mean Squared Displacement: $\left<r^2(t)\right>$} \label{sec::MSD_parm}
+The binary to compute Mean Squared Displacement is /bin/computeMeanSquaredDisplacement.
+The options that can be included in the input file in addition to those listed in \hyperref[sec::general_parameters]{Trajectory Parameters} are as follows:
+\begin{description}	
+	\item[number$\_$of$\_$time$\_$points]\hfill \\
+	- [default: 0, optional] This is the number of points that will be calculated for the mean squared displacement.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.
+	
+	\item[time$\_$scale$\_$type] \hfill \\
+	- [default: linear, optional] This can be set to ``linear'' or ``'log''.  This sets the time scale of the output. Mean squared displacement can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps).
+	
+	\item[frame$\_$interval] \hfill \\
+	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater than or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a timestep of .1 ps, and you wish for the mean squared displacement to be computed every .2 ps, this value should be set to 2. 
+	
+	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the mean squared displacement.  For example, if this value is set to 1.5, then the mean squared displacement will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
+	
+\end{description}
+
+
+\subsection{Non-Gaussian Parameter: $\alpha_2(t)$} \label{sec::alpha2_parm}
+\begin{description}	
+	\item[number$\_$of$\_$time$\_$points]\hfill \\
+	- [default: 0, optional] This is the number of points that will be calculated for the non-Gaussian parameter.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.
+	
+	\item[time$\_$scale$\_$type] \hfill \\
+	- [default: linear, optional] This can be set to ``linear'' or ``'log''.  This sets the time scale of the output. Non-Gaussian parameter can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps).
+	
+	\item[frame$\_$interval] \hfill \\
+	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a timestep of .1 ps, and you wish for the non-Gaussian parameter to be computed every .2 ps, this value should be set to 2. 
+	
+	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the non-Gaussian parameter.   For example, if this value is set to 1.5, then the non-Gaussian parameter will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
+	
+\end{description}
+
+
+\subsection{Four Point Correlation: $\chi_4(t)$} \label{sec::chi4_parm}
+\begin{description}	
+	\item[number$\_$of$\_$time$\_$points]\hfill \\
+	- [default: 0, optional] This is the number of points that will be calculated for the four point correlation function.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.
+	
+	\item[time$\_$scale$\_$type] \hfill \\
+	- [default: linear, optional] This can be set to ``linear'' or ``'log''.  This sets the time scale of the output, four point correlation function can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps).
+	
+	\item[frame$\_$interval] \hfill \\
+	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a timestep of .1 ps, and you wish for the four point correlation function to be computed every .2 ps, this value should be set to 2. 
+	
+	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the four point correlation function.  For example, if this value is set to 1.5, then the four point correlation function will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
+	
+	\item[overlap$\_$length] \hfill \\
+	- [\textbf{mandatory}] This value sets the overlap length. It is usually set to the plateau of the mean squared displacement so as to filter out vibrations. For more information on this parameter and how to set the value, please refer to N. Lačević, F. W. Starr, T. B. Schroøder, S. C. Glotzer, ``Spatially heterogeneous dynamics investigated via a time-dependent four-point density correlation function,'' J. Chem. Phys. 119, 7372 (2003).
+\end{description}
+
+\subsection{Self Intermediate Scattering Function: $F_s(k,t)$} \label{sec::Fsqt_parm}
+\begin{description}	
+	\item[number$\_$of$\_$timevpoints]\hfill \\
+	- [default: 0, optional] This is the number of points that will be calculated for the self intermediate scattering function.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.
+	
+	\item[time$\_$scale$\_$type] \hfill \\
+	- [default: linear, optional] This can be set to ``linear'' or ``'log''.  This sets the time scale of the output. Self intermediate scattering function can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps).
+	
+	\item[frame$\_$interval] \hfill \\
+	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a timestep of .1 ps, and you wish for the self intermediate scattering function to be computed every .2 ps, this value should be set to 2. 
+	
+	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the self intermediate scattering function.  For example, if this value is set to 1.5, then the self intermediate scattering function will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
+	
+	\item[method$\_$of$\_$k$\_$sampling] \hfill \\
+	- [default: analytical] This value determines the method for sampling the reciprocal space \textbf{k} vectors.  The analytical method integrates the equation for the intermediate scattering function over k space exactly, and uses the analytical result to calculate the intermediate scattering function (recommended).
+	
+	- ``gaussian'' method samples unit \textbf{k} vectors in the x, y, and z directions from a gaussian distribution.  In this way, the intermediate scattering function is calculated from importance sampling with \textbf{k} vectors uniformly chosen over the entire solid angle distribution.
+	
+	- ``uniform'' method samples \textbf{k} vectors using two uniform distributions and transforms the distributions so that the \textbf{k} vectors are sampled uniformly over the solid angle.  This method is more efficient then ``gaussian'' but only works for three dimensions, higher dimensions must use ``gaussian''.
+	
+	\item[k$\_$start$\_$index] \hfill \\
+	- [default: 0, optional] This value determines the first multiple of $\delta k$ used, where $\delta k = 2*\pi/\textbf{boxlength}$.  
+	
+	\item[number$\_$of$\_$bins] \hfill \\
+	- [default: 50, optional] This sets the number of multiples of $\delta k$ where the self intermediate scattering function will be calculated at, starting from kstartindex and ending at kstartindex + numberofbins. 
+	
+	\item[number$\_$of$\_$k$\_$vectors] \hfill \\
+	- [default: 50, optional] This value determines the number of directional \textbf{k} vectors sampled for every value of $|\bm{k}|$.  Higher values provide better statistics but decrease speed of computation.	This option is not needed if the methodofksampling is set to ``analytical''.	
+	
+\end{description}
+
+
+\subsection{Velocity Auto Correlation: $C_{vv}(t)$} \label{sec::VACF_parm}
+\begin{description}	
+	\item[number$\_$of$\_$time$\_$points]\hfill \\
+	- [default: 0, optional] This is the number of points that will be calculated for the velocity auto correlation.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.
+	
+	\item[time$\_$scale$\_$type] \hfill \\
+	- [default: linear, optional] This can be set to ``linear'' or ``'log''.  This sets the time scale of the output. Velocity auto-correlation can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps). We recommend usage of linear scale for future Fourier transform needs.
+	
+	\item[frame$\_$interval] \hfill \\
+	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a timestep of .1 ps, and you wish for the velocity auto-correlation function to be computed every .2 ps, this value should be set to 2. 
+	
+	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the velocity auto-correlation function.  For example, if this value is set to 1.5, then the velocity auto-correlation will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
+	
+\end{description}
+
+
+\section{Common Errors} \label{sec::errors}
+\begin{description}		
+	\item[ERROR: the trajectory file: FILENAME does not exist.] \hfill \\
+	This means that the trajectory file provided in the input file failed to be opened.  Most likely this means the path was incorrectly provided, there is read protection on the file that prevents opening, or an incompatible file type was provided.
+	
+	\item[ERROR: the gro file: FILENAME does not exist.] \hfill \\
+	This means that the .gro file provided in the input file failed to be opened.  Most likely this means the path was incorrectly provided, there is read protection on the file that prevents opening, or an incompatible file type was provided..
+	
+	\item[ERROR: .trr files are not compatible in non GROMACS compatible version of LiquidLib.] \hfill \\
+	This means that a .trr or .xtc trajectory file was provided but \textit{LiquidLib} was not built with the neccessary header files and library provided.  If you attempted to build a GROMACS version and still obtained this error, this means that the paths provided in the Makefile are most likely incorrect and should be checked.
+	
+	\item[ERROR: The trajectory file type: .EXTENSION does not match any known type] \hfill \\
+	At this time, only .xtc, .trrm ,xyz, .dump, .atom, and XDATCAR files can be provided.  We use these extensions to determine how to read in the trajectory, so we require this extension type.  We plan to expand on this option in future releases.
+	
+	\item[ERROR: unrecognized atom type/group ``BLANK''] \hfill \\
+	This means that the string provided for the atomtype or atomgroup option in the input file did not match any type in the trajectory or .gro files provided.  At this point, only system, all, solvent, or non-solvent can be provided to the group option.  Maybe check the letter case for consistency or spelling.
+	
+	\item[ERROR: Failed to read trajectory, please check the total number of frames] \hfill \\
+	This occurs usually when the number of frames needed to be read exceeds the number of frames in the trajectory file.  If this occurs check the values of endframe, startframe, and numberofframestoaverage to see that they do not add to a value in excess of the number of frames in the trajectory.
+	
+	\item[ERROR: The amount of memory to store all of the frames exceeds memory allotment] \hfill \\
+	There is currently no fix to this problem other then to decrease the number of frames you are attempting to read in from a trajectory file and use for the computation.  Improvements for reading very large trajectory files will be made in future releases to mitigate such memory issues.
+	
+	\item[ERROR: Input file location, BLANK does not exist, please check input] \hfill \\
+	The input file provided at the command line does not exist.  Most likely this is an incorrect path problem.
+	
+	\item[ERROR: Output file for ``QUANTITY'': FILENAME could not be opened] \hfill \\
+	This means that the output file could not be opened.  This most likely occured due to inadequate write priviledge or the path to the file does not exists.  Liquidlib cannot create directories if they do not exist. Hence, the output file path must exist. 
+	
+	\item[ERROR: Require more information to proceed] \hfill \\
+	This error is to inform the user that program execution cannot continue without either mandatory parameters provided. For instance, frameend or numberoftimepoints provided in the input file for a time dependent quantity.  We need this to determine how many data points along the time dimension should be created.  One can be derived from the other, like wise, if both are provided numberoftimepoints will take precedence. 
+	
+	
+	
+	
+	\item[WARNING: no matching input type for: VARIABLE disregarding this variable] \hfill \\
+	This means one of the options in the input file does not match one of our check variables for the given quantity.  Most likely this would result from a typo or a case inconsistency, remember program requires use of all lower case letters. 
+	
+	\item[WARNING: time step of simulation could not be derived from trajectory] \hfill \\
+	This merely means that the time step was not provided in the input file and could not be extracted from the trajectory, thus program will set the trajectory $\Delta t$ to 1 arbitrary step or a.u.  This warning is to inform the user to be cautious with the output since the units are arbritary.
+	
+	\item[WARNING: number of frames required is greater then the number supplied] \hfill \\
+	This means that the number of frames needed to compute the numberoftimepoints specified is greater than that given by frameend and framestart. Thus program will change the value of endframe to allow for the necessary number of frames.  Note this may still lead to needing more frames then are in the trajectory and thus an error will be thrown in this instance.
+	
+	\item[WARNING: max cutoff is greater than half of the boxlength] \hfill \\
+	The pair distribution function cannot be computed for values of $|r|$ greater than half the boxlength, the statistics are not accurate past this point.  Thus program will reset the maxcutoff to be half of the smallest boxlength of all dimensions.
+	
+	
+\end{description}
+
+\end{document}

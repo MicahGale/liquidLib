@@ -26,3 +26,37 @@
 *.exe
 *.out
 *.app
+
+# emacs temporary files
+*~
+.DS_Store
+
+# binaries created
+bin/
+
+# xdrfile libraries
+include/xdrfile/
+*XDATCAR
+
+# ignore trajectories and txt files
+*.dump
+*.trr
+*.xtc
+*.gro
+*XDATCAR
+*.txt
+
+# ignore latex files
+*.aux
+*.log
+*.out
+*.gz
+
+# ignore xcode 
+DerivedData/
+Intermediates/
+Products/
+xdrfileinclude/
+xdrfilelib/
+
+possibleTodo

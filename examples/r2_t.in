@@ -1,0 +1,19 @@
+# This is a parse file for the compute MSD code
+number_of_time_points   	= 20   # This is the number of time points
+number_of_frames_to_average  	= 1
+
+dimension			= 3   # Dimension of the system
+
+time_scale_type			= log   # this puts the system into logscale
+trajectory_delta_time		= 0.005 #femtoseconds
+frame_interval			= 1.1052
+start_frame			= 0
+end_frame			= 1500
+
+trajectory_file_name		= md_unwrapped.trr
+gro_file_name			= npt.gro
+output_file_name		= MSD_newcode.txt
+is_wrapped			= no
+
+
+
