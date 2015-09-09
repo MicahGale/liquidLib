@@ -25,6 +25,7 @@ public:
     NonGaussianParameter();
     virtual ~NonGaussianParameter();
     
+    void set_output_file_name();
     void compute_alpha2_t();
     void write_alpha2_t();
     

@@ -40,6 +40,14 @@ NonGaussianParameter::~NonGaussianParameter()
 }
 
 
+void NonGaussianParameter::set_output_file_name()
+{
+    if (output_file_name_ == "r2_t.txt") {
+        output_file_name_ = "alpha2_t.txt";
+    }
+}
+
+
 void NonGaussianParameter::compute_alpha2_t()
 {
     if (is_wrapped_) {

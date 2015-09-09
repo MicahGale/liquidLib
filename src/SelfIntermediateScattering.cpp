@@ -398,12 +398,6 @@ void SelfIntermediateScattering::generate_k_vectors(vector< vector< double > > &
         return;
     }
     else if (method_of_k_sampling_ == "uniform") {
-        if (dimension_ > 3) {
-            cerr << "ERROR: uniform sampling can only be used for 2 or 3 dimensions";
-            cerr << endl;
-            exit(1);
-        }
-        
         random_device seed;
         default_random_engine generator(seed());
         uniform_real_distribution< double > random_number(0.0, 1.0); // (min, max)
@@ -421,11 +415,6 @@ void SelfIntermediateScattering::generate_k_vectors(vector< vector< double > > &
         return;
     }
     // add other sampling methods that are also generic in different dimensions
-    else {
-        cerr << "ERROR: Unrecognized sampling method for wavevector transfer k" << endl;
-        cerr << "     : Optional methods are \"analytical\", \"gaussian\", or \"uniform\"." << endl;
-        exit(1);
-    }
 }
 
 
@@ -562,6 +551,20 @@ void SelfIntermediateScattering::check_parameters() throw()
         number_of_k_vectors_ = 1;
         cout << "Note: Parameter \"number of k vectors\" is not needed for \"analytical\" k sampling and will be ignored" << endl;
         cout << endl;
+    }
+    
+    if (method_of_k_sampling_ != "analytical" && method_of_k_sampling_ != "gaussian" && method_of_k_sampling_ != "uniform") {
+        cerr << "ERROR: Unrecognized sampling method for wavevector transfer k" << endl;
+        cerr << "     : Optional methods are \"analytical\", \"gaussian\", or \"uniform\"." << endl;
+        exit(1);
+    }
+    
+    if (method_of_k_sampling_ == "uniform") {
+        if (dimension_ > 3) {
+            cerr << "ERROR: uniform sampling can only be used for 2 or 3 dimensions";
+            cerr << endl;
+            exit(1);
+        }
     }
 }
 

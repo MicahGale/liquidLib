@@ -27,6 +27,7 @@ int main(int argc, char * argv[])
     
     non_gaussian_parameter.read_command_inputs(argc, argv);
     non_gaussian_parameter.read_input_file();
+    non_gaussian_parameter.set_output_file_name();
     non_gaussian_parameter.read_trajectory();
     non_gaussian_parameter.compute_alpha2_t();
     non_gaussian_parameter.write_alpha2_t();

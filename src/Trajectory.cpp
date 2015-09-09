@@ -214,7 +214,7 @@ void Trajectory::compute_velocities()
     
 #pragma omp parallel
 {
-    for (size_t i_frame = 0; i_frame < end_frame_ - start_frame_; ++i_frame) {
+    for (size_t i_frame = 0; i_frame < end_frame_ - start_frame_ - 1; ++i_frame) {
 #pragma omp for
         for (size_t i_atom = 0; i_atom < number_of_system_atoms_; ++i_atom) {
             for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {

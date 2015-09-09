@@ -413,12 +413,6 @@ void StructureFactor::generate_k_vectors(vector< vector< double > > & k_vectors,
         return;
     }
     else if (method_of_k_sampling_ == "uniform") {
-        if (dimension_ > 3) {
-            cerr << "ERROR: uniform sampling can only be used for 2 or 3 dimensions";
-            cerr << endl;
-            exit(1);
-        }
-        
         random_device seed;
         default_random_engine generator(seed());
         uniform_real_distribution< double > random_number(0.0, 1.0); // (min, max)
@@ -436,11 +430,6 @@ void StructureFactor::generate_k_vectors(vector< vector< double > > & k_vectors,
         return;
     }
     // add other sampling methods that are also generic in different dimensions
-    else {
-        cerr << "ERROR: Unrecognized sampling method for wavevector transfer k" << endl;
-        cerr << "     : Optional methods are \"analytical\", \"gaussian\"." << endl;
-        exit(1);
-    }
 }
 
 
@@ -482,5 +471,19 @@ void StructureFactor::check_parameters() throw()
         cerr << "       Computation cannot proceed.";
         cerr << endl;
         exit(1);
+    }
+    
+    if (method_of_k_sampling_ != "gaussian" && method_of_k_sampling_ != "uniform") {
+        cerr << "ERROR: Unrecognized sampling method for wavevector transfer k" << endl;
+        cerr << "     : Optional methods are \"analytical\", \"gaussian\", or \"uniform\"." << endl;
+        exit(1);
+    }
+    
+    if (method_of_k_sampling_ == "uniform") {
+        if (dimension_ > 3) {
+            cerr << "ERROR: uniform sampling can only be used for 2 or 3 dimensions";
+            cerr << endl;
+            exit(1);
+        }
     }
 }
