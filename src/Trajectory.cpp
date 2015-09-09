@@ -135,7 +135,7 @@ void Trajectory::read_trajectory()
         read_dump_file();
         return;
     }
-    if (trajectory_file_name_.compare("XDATCAR") == 0) {
+    if (trajectory_file_name_.rfind("XDATCAR") != string::npos) {
         read_vasp_file();
         if (trajectory_data_type_ == "velocity") {
             compute_velocities();
