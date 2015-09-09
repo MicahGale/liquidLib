@@ -624,7 +624,7 @@ void Trajectory::read_vasp_file()
         }
         getline(trajectory_file, read_word);
         if (i_frame % 50 == 0) {
-            cout << "\r" << i_frame << " frames read" << endl;
+            cout << "\r" << i_frame << " frames read";
         }
     }
     cout << endl;
