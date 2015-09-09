@@ -177,7 +177,7 @@ void MeanSquaredDisplacement::read_input_file()
         }
         if (input_word == "output_file_name") {
             if (output_file_name_ != "") {
-                cerr << "ERROR: Please do not set output file by command line and input file,";
+                cerr << "ERROR: Please do not set output file by command line and input file,\n";
                 cerr << "     : we are unsure on which to prioritize.";
                 cerr << endl;
                 exit(1);
@@ -190,8 +190,8 @@ void MeanSquaredDisplacement::read_input_file()
             continue;
         }
         if (input_word == "trajectory_file_name") {
-            if (trajectory_file_name_ != "") {
-                cerr << "ERROR: Please do not set trajectory file by command line and input file,";
+            if (trajectory_file_name_ != "r2_t.txt") {
+                cerr << "ERROR: Please do not set trajectory file by command line and input file,\n";
                 cerr << "     : we are unsure on which to prioritize.";
                 cerr << endl;
                 exit(1);

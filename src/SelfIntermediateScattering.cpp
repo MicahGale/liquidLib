@@ -111,7 +111,7 @@ void SelfIntermediateScattering::read_input_file()
 		
 		//check if equal to member strings
         if (input_word == "output_file_name") {
-            if (output_file_name_ != "") {
+            if (output_file_name_ != "Fs_kt.txt") {
                 cerr << "ERROR: Please do not set output file by command line and input file,";
                 cerr << "     : we are unsure on which to prioritize.";
                 cerr << endl;
@@ -125,7 +125,7 @@ void SelfIntermediateScattering::read_input_file()
             continue;
         }
         if (input_word == "trajectory_file_name") {
-            if (trajectory_file_name_ != "") {
+            if (trajectory_file_name_ != "Fs_kt.txt") {
                 cerr << "ERROR: Please do not set trajectory file by command line and input file,";
                 cerr << "     : we are unsure on which to prioritize.";
                 cerr << endl;
