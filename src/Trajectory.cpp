@@ -536,10 +536,7 @@ void Trajectory::read_vasp_file()
         cerr << "ERROR: VASP trajectory only has three dimensions\n" << endl;
         exit(1);
     }
-    if (trajectory_data_type_ != "coordinate") {
-        cerr << "ERROR: VASP trajectory only has coordinate directories dimensions\n" << endl;
-        exit(1);
-    }
+
     
     ifstream trajectory_file(trajectory_file_name_);
     if (!trajectory_file) {

@@ -173,7 +173,7 @@ void FourPointCorrelation::read_input_file()
         }
         
         //check if equal to member strings
-        if (input_word == "time_scale_tyoe") {
+        if (input_word == "time_scale_type") {
             input_file >> input_word;
             if (input_word[0] == '=') {
                 input_file >> input_word;

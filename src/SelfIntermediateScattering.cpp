@@ -170,7 +170,7 @@ void SelfIntermediateScattering::read_input_file()
 			atom_group_ = input_word;
 			continue;
 		}
-		if (input_word == "time_scale_tyoe") {
+		if (input_word == "time_scale_type") {
 			input_file >> input_word;
 			if (input_word[0] == '=') {
 				input_file >> input_word;
