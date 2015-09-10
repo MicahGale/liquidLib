@@ -214,11 +214,14 @@ void Trajectory::compute_velocities()
     
 #pragma omp parallel
 {
+    double delta_r = 0.0;
     for (size_t i_frame = 0; i_frame < end_frame_ - start_frame_ - 1; ++i_frame) {
 #pragma omp for
         for (size_t i_atom = 0; i_atom < number_of_system_atoms_; ++i_atom) {
             for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-                trajectory_[i_frame][i_atom][i_dimension] = (trajectory_[i_frame+1][i_atom][i_dimension] - trajectory_[i_frame][i_atom][i_dimension])/trajectory_delta_time_;
+                delta_r = trajectory_[i_frame+1][i_atom][i_dimension] - trajectory_[i_frame][i_atom][i_dimension];
+                delta_r = delta_r - box_length_[i_frame][i_dimension]*round(delta_r/box_length_[i_frame][i_dimension]);
+                trajectory_[i_frame][i_atom][i_dimension] = delta_r/trajectory_delta_time_;
             }
         }
 #pragma omp barrier

@@ -500,6 +500,7 @@ void SelfIntermediateScattering::check_parameters() throw()
 		}
 		if (number_of_time_points_ == 0) {
             number_of_time_points_ = (end_frame_ - start_frame_ - number_of_frames_to_average_)/frame_interval_;
+            
 		}
 		if (number_of_time_points_*frame_interval_ + number_of_frames_to_average_ > end_frame_ - start_frame_) {
 			end_frame_ = start_frame_ + number_of_time_points_*frame_interval_ + number_of_frames_to_average_;
