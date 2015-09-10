@@ -176,6 +176,14 @@ void SelfVanHoveFunction::read_input_file()
 			time_scale_type_ = input_word;
 			continue;
 		}
+        if (input_word == "trajectory_data_type") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            trajectory_data_type_ = input_word;
+            continue;
+        }
 		
 		//check if equal to member ints
 		if (input_word == "start_frame") {
@@ -389,25 +397,47 @@ void SelfVanHoveFunction::write_Gs_rt()
 	
 	output_Gsrt_file << "# Self van Hove function for atom type: ";
 	output_Gsrt_file << atom_type_ << " in " << atom_group_ << endl;
-	output_Gsrt_file << "# Data structure:" << endl;
-	output_Gsrt_file << "# ---------------------------" << endl;
-	output_Gsrt_file << "#               t_1st_row    " << endl;
-	output_Gsrt_file << "#            ----------------" << endl;
-	output_Gsrt_file << "# r_1st_col | Gs(r, t)_matrix" << endl;
-	output_Gsrt_file << "# ---------------------------" << endl;
-	
-	output_Gsrt_file << setiosflags(ios::scientific) << setprecision(output_precision_);
-	output_Gsrt_file << "            ";
-	for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
-		output_Gsrt_file << "\t" << time_array_indexes_[time_point]*trajectory_delta_time_;
-	}
-	for (size_t i_bin = 0; i_bin < number_of_bins_; ++i_bin) {
-		output_Gsrt_file << endl;
-		output_Gsrt_file << r_values_[i_bin];
-		for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
-			output_Gsrt_file << "\t" << Gs_rt_[i_bin][time_point];
-		}
-	}
+
+    output_Gsrt_file << "# ---------------------------" << endl;
+    output_Gsrt_file << "#               t_1st_row    " << endl;
+    output_Gsrt_file << "#            ----------------" << endl;
+    output_Gsrt_file << "# r_1st_col | Gs(r, t)_matrix" << endl;
+    output_Gsrt_file << "# ---------------------------" << endl;
+    
+    output_Gsrt_file << setiosflags(ios::scientific) << setprecision(output_precision_);
+    output_Gsrt_file << "#" << endl;
+    output_Gsrt_file << "# t values" << endl;
+    for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+        output_Gsrt_file << time_array_indexes_[time_point]*trajectory_delta_time_ << endl;
+    }
+    output_Gsrt_file << "#" << endl;
+    output_Gsrt_file << "# r | Gs(r, t)" << endl;
+    for (size_t i_bin = 0; i_bin < number_of_bins_; ++i_bin) {
+        output_Gsrt_file << r_values_[i_bin];
+        for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+            output_Gsrt_file << "\t" << Gs_rt_[i_bin][time_point];
+        }
+        output_Gsrt_file << endl;
+    }
+    
+//	output_Gsrt_file << "# ---------------------------" << endl;
+//	output_Gsrt_file << "#               t_1st_row    " << endl;
+//	output_Gsrt_file << "#            ----------------" << endl;
+//	output_Gsrt_file << "# r_1st_col | Gs(r, t)_matrix" << endl;
+//	output_Gsrt_file << "# ---------------------------" << endl;
+//	
+//	output_Gsrt_file << setiosflags(ios::scientific) << setprecision(output_precision_);
+//	output_Gsrt_file << "            ";
+//	for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+//		output_Gsrt_file << "\t" << time_array_indexes_[time_point]*trajectory_delta_time_;
+//	}
+//	for (size_t i_bin = 0; i_bin < number_of_bins_; ++i_bin) {
+//		output_Gsrt_file << endl;
+//		output_Gsrt_file << r_values_[i_bin];
+//		for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+//			output_Gsrt_file << "\t" << Gs_rt_[i_bin][time_point];
+//		}
+//	}
 	
 	output_Gsrt_file.close();
 }

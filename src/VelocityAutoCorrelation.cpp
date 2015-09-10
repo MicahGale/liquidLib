@@ -87,6 +87,24 @@ void VelocityAutoCorrelation::read_input_file()
             continue;
         }
         
+        //check for memeber bools
+        if (input_word == "is_wrapped") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            if (input_word == "true" || input_word == "yes") {
+                is_wrapped_ = true;
+            }
+            else if(input_word == "false" || input_word == "no") {
+                is_wrapped_ = false;
+            }
+            else {
+                is_wrapped_ = stoi(input_word);
+            }
+            continue;
+        }
+        
         //check if equal to member ints
         if (input_word ==  "number_of_time_points") {
             input_file >> input_word;
@@ -216,6 +234,14 @@ void VelocityAutoCorrelation::read_input_file()
             atom_group_ = input_word;
             continue;
         }
+        if (input_word == "trajectory_data_type") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            trajectory_data_type_ = input_word;
+            continue;
+        }
         if (input_word == "output_precision") {
             input_file >> input_word;
             if (input_word[0] == '=') {
@@ -224,6 +250,7 @@ void VelocityAutoCorrelation::read_input_file()
             output_precision_ = stod(input_word);
             continue;
         }
+
         
         //check for everything else
         cerr << "WARNING: no matching input type for: ";
@@ -241,6 +268,13 @@ void VelocityAutoCorrelation::read_input_file()
 
 void VelocityAutoCorrelation::compute_vacf_t()
 {
+    if (trajectory_data_type_ == "coordinate") {
+        cerr << "Warning: Velocity data is not available or not provided." << endl;
+        cerr << "       : Velocities will be computed from coordinate data by forward finite difference." << endl;
+        compute_velocities();
+        end_frame_--;
+    }
+    
     vacf_t_.resize(number_of_time_points_);
     
     // Form Array of time index values for a given type of timescale computation

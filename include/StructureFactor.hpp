@@ -14,6 +14,7 @@
 
 #include <vector>
 #include <string>
+#include <random>
 
 #include "Trajectory.hpp"
 
@@ -34,7 +35,7 @@ protected:
 private:
 // private member functions
     void check_parameters() throw();
-    void generate_k_vectors(vector< vector< double > > & k_vectors, double const & k_absolute_value);
+    inline void generate_k_vector(double const & k_absolute_value, vector< double > & k_vector);
 	
 // private member variables
     string input_file_name_;
@@ -52,6 +53,8 @@ private:
     vector< double > k_values_;
     vector< double > scattering_lengths_;
     vector< double > S_k_;
+    
+    default_random_engine generator_;
 };
 
 #endif // defined (LiquidLib_StructureFactor_hpp)

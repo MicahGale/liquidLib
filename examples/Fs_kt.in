@@ -1,8 +1,8 @@
 # This is a parse file for computing Fs_kt_
 
-trajectory_file_name    	= ../trajFiles/md_unwrapped.trr
+trajectory_file_name    	= ../../trajFiles/md_unwrapped.trr
 is_wrapped              	= no
-gro_file_name          		= ../trajFiles/md.gro
+gro_file_name          		= ../../trajFiles/md.gro
 output_file_name         	= Fs_kt_analy.txt
 
 # atomtype in atomgroup
@@ -12,15 +12,15 @@ atom_group               	= system
 start_frame              	= 0
 end_frame                	= 4000
 dimension               	= 3
-number_of_frames_to_average 	= 500
+number_of_frames_to_average 	= 50
 
-time_scale_type               	= log
+time_scale_type             = log
 frame_interval	         	= 1.2
-number_of_time_points      	= 40
+number_of_time_points      	= 20
 
 k_start_index             	= 7
 number_of_bins            	= 5
-number_of_k_vectors        	= 100
+number_of_k_vectors        	= 50
 method_of_k_sampling       	= analytical
 
 #trajectory_delta_time		= 2
