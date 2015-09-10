@@ -14,6 +14,7 @@
 
 #include <vector>
 #include <string>
+#include <random>
 
 #include "Trajectory.hpp"
 
@@ -35,7 +36,7 @@ private:
 // private member functions
     void check_parameters() throw();
     void compute_time_array();
-    void generate_k_vectors(vector< vector< double > > & k_vectors, double const & k_absolute_value);
+    void inline generate_k_vector(double const & k_absolute_value, vector< double > & k_vector);
     
 // private member variables
     string input_file_name_;
@@ -56,6 +57,8 @@ private:
     vector< double > k_values_;
 	vector< unsigned int > time_array_indexes_;
     vector< vector< double > > Fs_kt_;
+    
+    default_random_engine generator;
 };
 
 #endif // defined (LiquidLib_SelfIntermediateScattering_hpp)

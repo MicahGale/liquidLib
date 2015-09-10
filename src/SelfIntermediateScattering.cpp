@@ -325,9 +325,12 @@ void SelfIntermediateScattering::compute_Fs_kt()
     
     int status = 0;
     
-    vector< vector < double > > k_vectors(number_of_k_vectors_, vector< double >(dimension_, 0.0));
+    vector< double > k_vector(dimension_, 0.0);
     
-#pragma omp parallel for firstprivate(k_vectors)
+    random_device seed;
+    generator.seed(seed());
+    
+#pragma omp parallel for firstprivate(k_vector)
     for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {
         for (size_t k_index = 0; k_index < number_of_bins_; ++k_index) {
             double sum_of_individual_terms = 0.0;
@@ -348,13 +351,13 @@ void SelfIntermediateScattering::compute_Fs_kt()
                     }
                 }
                 else {
-                    generate_k_vectors(k_vectors, k_values_[k_index]);
                     for (size_t i_k_vector = 0; i_k_vector < number_of_k_vectors_; ++i_k_vector) {
+                        generate_k_vector(k_values_[k_index], k_vector);
                         for (vector< unsigned int >::iterator i_atom = atom_type_indexes.begin(); i_atom != atom_type_indexes.end(); ++i_atom) {
                             double kr_vector_product = 0.0;
                             for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
                                 double delta_x = trajectory_[current_frame][*i_atom][i_dimension] - trajectory_[initial_frame][*i_atom][i_dimension];
-                                kr_vector_product += k_vectors[i_k_vector][i_dimension] * delta_x;
+                                kr_vector_product += k_vector[i_dimension] * delta_x;
                             }
                             sum_of_individual_terms += cos(kr_vector_product);
                         }
@@ -377,41 +380,32 @@ void SelfIntermediateScattering::compute_Fs_kt()
 }
 
 
-void SelfIntermediateScattering::generate_k_vectors(vector< vector< double > > & k_vectors, double const & k_absolute_value)
+void inline SelfIntermediateScattering::generate_k_vector(double const & k_absolute_value, vector< double >& k_vector)
 {
     if (method_of_k_sampling_ == "gaussian") {
-        random_device seed;
-        default_random_engine generator(seed());
         normal_distribution< double > distribution(0.0, 1.0);
-        vector< double > random_vector(dimension_, 0.0);
-        for (size_t i_k_vector = 0; i_k_vector < number_of_k_vectors_; ++i_k_vector) {
-            double vector_length = 0.0;
-            for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-                random_vector[i_dimension] = distribution(generator);
-                vector_length += random_vector[i_dimension] * random_vector[i_dimension];
-            }
-            vector_length = sqrt(vector_length);
-            for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-                k_vectors[i_k_vector][i_dimension] = k_absolute_value * random_vector[i_dimension] / vector_length;
-            }
+        double vector_length = 0.0;
+        for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+            k_vector[i_dimension] = distribution(generator);
+            vector_length += k_vector[i_dimension] * k_vector[i_dimension];
+        }
+        vector_length = sqrt(vector_length);
+        for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+            k_vector[i_dimension] = k_absolute_value * k_vector[i_dimension] / vector_length;
         }
         return;
     }
     else if (method_of_k_sampling_ == "uniform") {
-        random_device seed;
-        default_random_engine generator(seed());
         uniform_real_distribution< double > random_number(0.0, 1.0); // (min, max)
         double phi, theta, x, y, z;
-        for (size_t i_k_vector = 0; i_k_vector < number_of_k_vectors_; ++i_k_vector) {
-            phi = 2.0*M_PI*random_number(generator);
-            theta = acos(1.0 - 2.0*random_number(generator));
-            x = sin(theta)*cos(phi);
-            y = sin(theta)*sin(phi);
-            z = cos(theta);
-            k_vectors[i_k_vector][0] = x * k_absolute_value;
-            k_vectors[i_k_vector][1] = y * k_absolute_value;
-            k_vectors[i_k_vector][2] = z * k_absolute_value;
-        }
+        phi = 2.0*M_PI*random_number(generator);
+        theta = acos(1.0 - 2.0*random_number(generator));
+        x = sin(theta)*cos(phi);
+        y = sin(theta)*sin(phi);
+        z = cos(theta);
+        k_vector[0] = x * k_absolute_value;
+        k_vector[1] = y * k_absolute_value;
+        k_vector[2] = z * k_absolute_value;
         return;
     }
     // add other sampling methods that are also generic in different dimensions
