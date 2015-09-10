@@ -34,6 +34,11 @@
 			<key>orderHint</key>
 			<integer>3</integer>
 		</dict>
+		<key>computeStructureFactor.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>7</integer>
+		</dict>
 		<key>computeVelocityAutoCorrelation.xcscheme</key>
 		<dict>
 			<key>orderHint</key>
@@ -73,6 +78,11 @@
 			<true/>
 		</dict>
 		<key>D88D4D141B7A75DC009A16E8</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>D8C1D9F41B8D1BAF005B23B2</key>
 		<dict>
 			<key>primary</key>
 			<true/>

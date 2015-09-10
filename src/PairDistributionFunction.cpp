@@ -164,6 +164,14 @@ void PairDistributionFunction::read_input_file()
 			atom_group2_ = input_word;
 			continue;
 		}
+        if (input_word == "trajectory_data_type") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            trajectory_data_type_ = input_word;
+            continue;
+        }
 		
 		//check if equal to member ints
 		if (input_word == "start_frame") {

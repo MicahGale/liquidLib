@@ -235,6 +235,14 @@ void MeanSquaredDisplacement::read_input_file()
             atom_group_ = input_word;
             continue;
         }
+        if (input_word == "trajectory_data_type") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            trajectory_data_type_ = input_word;
+            continue;
+        }
         if (input_word == "output_precision") {
             input_file >> input_word;
             if (input_word[0] == '=') {

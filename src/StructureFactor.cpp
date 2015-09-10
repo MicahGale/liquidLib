@@ -166,6 +166,14 @@ void StructureFactor::read_input_file()
 			atom_group_ = input_word;
 			continue;
 		}
+        if (input_word == "trajectory_data_type") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            trajectory_data_type_ = input_word;
+            continue;
+        }
         
         // Read scattering lengths provided by user
 		if (input_word == "scattering_lengths") {
@@ -309,19 +317,23 @@ void StructureFactor::compute_S_k()
         total_number_of_atoms += atom_type_indexes[i_atom_type].size();
     }
     double normalization_factor = total_number_of_atoms / (number_of_frames_to_average_ * average_scattering * average_scattering * number_of_k_vectors_);
-        
+    
+    // initialize random number generator
+    random_device seed;
+    generator_.seed(seed());
+    
     int status = 0;
     
     // Perform frame averaging for S_k_
 #pragma omp parallel
 {
-    vector< vector < double > > k_vectors(number_of_k_vectors_, vector< double >(dimension_, 0.0));
+    vector < double > k_vector(dimension_, 0.0);
 
     for (size_t frame_number = 0; frame_number < number_of_frames_to_average_; ++frame_number) {
 #pragma omp for
         for (size_t k_index = 0; k_index < number_of_bins_; ++k_index) {
-            generate_k_vectors(k_vectors, k_values_[k_index]);
             for (size_t i_k_vector = 0; i_k_vector < number_of_k_vectors_; ++i_k_vector) {
+                generate_k_vector(k_values_[k_index], k_vector);
                 double sum_cos_term = 0.0;
                 double sum_sin_term = 0.0;
                 for (size_t i_atom_type = 0; i_atom_type < user_atom_types_.size(); ++i_atom_type) {
@@ -329,7 +341,7 @@ void StructureFactor::compute_S_k()
                         size_t atom_index = atom_type_indexes[i_atom_type][i_atom];
                         double k_dot_r = 0.0;
                         for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-                            k_dot_r += k_vectors[i_k_vector][i_dimension] * trajectory_[frame_number][atom_index][i_dimension];
+                            k_dot_r += k_vector[i_dimension] * trajectory_[frame_number][atom_index][i_dimension];
                         }
                         sum_cos_term += scattering_lengths_[i_atom_type] * cos(k_dot_r);
                         sum_sin_term += scattering_lengths_[i_atom_type] * sin(k_dot_r);
@@ -392,41 +404,32 @@ void StructureFactor::write_S_k()
 }
 
 
-void StructureFactor::generate_k_vectors(vector< vector< double > > & k_vectors, double const & k_absolute_value)
+inline void StructureFactor::generate_k_vector(double const & k_absolute_value, vector< double > & k_vector)
 {
     if (method_of_k_sampling_ == "gaussian") {
-        random_device seed;
-        default_random_engine generator(seed());
         normal_distribution< double > random_number(0.0, 1.0); // (Mean, Stdev)
-        vector< double > random_vector(dimension_, 0.0);
-        for (size_t i_k_vector = 0; i_k_vector < number_of_k_vectors_; ++i_k_vector) {
-            double vector_length = 0.0;
-            for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-                random_vector[i_dimension] = random_number(generator);
-                vector_length += random_vector[i_dimension] * random_vector[i_dimension];
-            }
-            vector_length = sqrt(vector_length);
-            for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-                k_vectors[i_k_vector][i_dimension] = k_absolute_value * random_vector[i_dimension] / vector_length;
-            }
+        double vector_length = 0.0;
+        for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+            k_vector[i_dimension] = random_number(generator_);
+            vector_length += k_vector[i_dimension] * k_vector[i_dimension];
+        }
+        vector_length = sqrt(vector_length);
+        for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+            k_vector[i_dimension] = k_absolute_value * k_vector[i_dimension] / vector_length;
         }
         return;
     }
     else if (method_of_k_sampling_ == "uniform") {
-        random_device seed;
-        default_random_engine generator(seed());
         uniform_real_distribution< double > random_number(0.0, 1.0); // (min, max)
         double phi, theta, x, y, z;
-        for (size_t i_k_vector = 0; i_k_vector < number_of_k_vectors_; ++i_k_vector) {
-            phi = 2.0*M_PI*random_number(generator);
-            theta = acos(1.0 - 2.0*random_number(generator));
-            x = sin(theta)*cos(phi);
-            y = sin(theta)*sin(phi);
-            z = cos(theta);
-            k_vectors[i_k_vector][0] = x * k_absolute_value;
-            k_vectors[i_k_vector][1] = y * k_absolute_value;
-            k_vectors[i_k_vector][2] = z * k_absolute_value;
-        }
+        phi = 2.0*M_PI*random_number(generator_);
+        theta = acos(1.0 - 2.0*random_number(generator_));
+        x = sin(theta)*cos(phi);
+        y = sin(theta)*sin(phi);
+        z = cos(theta);
+        k_vector[0] = x * k_absolute_value;
+        k_vector[1] = y * k_absolute_value;
+        k_vector[2] = z * k_absolute_value;
         return;
     }
     // add other sampling methods that are also generic in different dimensions
@@ -475,7 +478,7 @@ void StructureFactor::check_parameters() throw()
     
     if (method_of_k_sampling_ != "gaussian" && method_of_k_sampling_ != "uniform") {
         cerr << "ERROR: Unrecognized sampling method for wavevector transfer k" << endl;
-        cerr << "     : Optional methods are \"analytical\", \"gaussian\", or \"uniform\"." << endl;
+        cerr << "     : Optional methods are \"gaussian\", or \"uniform\"." << endl;
         exit(1);
     }
     

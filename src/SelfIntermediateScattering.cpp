@@ -186,6 +186,14 @@ void SelfIntermediateScattering::read_input_file()
             method_of_k_sampling_ = input_word;
             continue;
         }
+        if (input_word == "trajectory_data_type") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            trajectory_data_type_ = input_word;
+            continue;
+        }
 		
 		//check if equal to member ints
 		if (input_word == "start_frame") {
@@ -444,45 +452,40 @@ void SelfIntermediateScattering::write_Fs_kt()
     output_Fskt_file << "# using " << time_scale_type_ << " time scale, ";
     output_Fskt_file << method_of_k_sampling_ << " k sampling" << endl;
     
-//	output_Fskt_file << "# Data structure:" << endl;
-//	output_Fskt_file << "# ---------------------------" << endl;
-//	output_Fskt_file << "#               t_1st_row    " << endl;
-//	output_Fskt_file << "#            ----------------" << endl;
-//	output_Fskt_file << "# k_1st_col | Fs(k, t)_matrix" << endl;
-//	output_Fskt_file << "# ---------------------------" << endl;
-//	
-//	output_Fskt_file << setiosflags(ios::scientific) << setprecision(6);
-//	output_Fskt_file << "            ";
-//	for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
-//		output_Fskt_file << "\t" << time_array_indexes_[time_point]*trajectory_delta_time_;
-//	}
-//	for (size_t k_index = 0; k_index < number_of_bins_; ++k_index) {
-//		output_Fskt_file << endl;
-//		output_Fskt_file << k_values_[k_index];
-//		for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
-//			output_Fskt_file << "\t" << Fs_kt_[k_index][time_point];
-//		}
-//	}
-    
-    output_Fskt_file << "# Data structure:" << endl;
-    output_Fskt_file << "# ---------------------------" << endl;
-    output_Fskt_file << "#               k_1st_row    " << endl;
-    output_Fskt_file << "#            ----------------" << endl;
-    output_Fskt_file << "# t_1st_col | Fs(k, t)_matrix" << endl;
-    output_Fskt_file << "# ---------------------------" << endl;
-    
     output_Fskt_file << setiosflags(ios::scientific) << setprecision(output_precision_);
-	output_Fskt_file << "            ";
+    output_Fskt_file << "#" << endl;
+    output_Fskt_file << "# k values" << endl;
     for (size_t k_index = 0; k_index < k_values_.size(); ++k_index) {
-		output_Fskt_file << "\t" << k_values_[k_index];
-	}
-	for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
-		output_Fskt_file << endl;
+        output_Fskt_file << k_values_[k_index] << endl;
+    }
+    output_Fskt_file << "#" << endl;
+    output_Fskt_file << "# t | Fs(k, t)" << endl;
+    for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
         output_Fskt_file << time_array_indexes_[time_point]*trajectory_delta_time_;
-		for (size_t k_index = 0; k_index < k_values_.size(); ++k_index) {
-			output_Fskt_file << "\t" << Fs_kt_[k_index][time_point];
-		}
-	}
+        for (size_t k_index = 0; k_index < k_values_.size(); ++k_index) {
+            output_Fskt_file << "\t" << Fs_kt_[k_index][time_point];
+        }
+        output_Fskt_file << endl;
+    }
+    
+    //    output_Fskt_file << "# ---------------------------" << endl;
+    //    output_Fskt_file << "#               k_1st_row    " << endl;
+    //    output_Fskt_file << "#            ----------------" << endl;
+    //    output_Fskt_file << "# t_1st_col | Fs(k, t)_matrix" << endl;
+    //    output_Fskt_file << "# ---------------------------" << endl;
+    //
+    //    output_Fskt_file << setiosflags(ios::scientific) << setprecision(output_precision_);
+    //	output_Fskt_file << "            ";
+    //    for (size_t k_index = 0; k_index < k_values_.size(); ++k_index) {
+    //		output_Fskt_file << "\t" << k_values_[k_index];
+    //	}
+    //	for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+    //		output_Fskt_file << endl;
+    //        output_Fskt_file << time_array_indexes_[time_point]*trajectory_delta_time_;
+    //		for (size_t k_index = 0; k_index < k_values_.size(); ++k_index) {
+    //			output_Fskt_file << "\t" << Fs_kt_[k_index][time_point];
+    //		}
+    //	}
     
 	output_Fskt_file.close();
 }

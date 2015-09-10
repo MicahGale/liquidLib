@@ -137,9 +137,6 @@ void Trajectory::read_trajectory()
     }
     if (trajectory_file_name_.rfind("XDATCAR") != string::npos) {
         read_vasp_file();
-        if (trajectory_data_type_ == "velocity") {
-            compute_velocities();
-        }
         return;
     }
     
@@ -534,6 +531,11 @@ void Trajectory::read_vasp_file()
 {
     if (dimension_ != 3) {
         cerr << "ERROR: VASP trajectory only has three dimensions\n" << endl;
+        exit(1);
+    }
+    
+    if (trajectory_data_type_ != "coordinate") {
+        cerr << "ERROR: VASP trajectory only contains coordinates.";
         exit(1);
     }
 
