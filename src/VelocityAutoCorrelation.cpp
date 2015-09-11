@@ -269,10 +269,7 @@ void VelocityAutoCorrelation::read_input_file()
 void VelocityAutoCorrelation::compute_vacf_t()
 {
     if (trajectory_data_type_ == "coordinate") {
-        cerr << "Warning: Velocity data is not available or not provided." << endl;
-        cerr << "       : Velocities will be computed from coordinate data by forward finite difference." << endl;
         compute_velocities();
-        end_frame_--;
     }
     
     vacf_t_.resize(number_of_time_points_);
@@ -384,7 +381,7 @@ void VelocityAutoCorrelation::check_parameters() throw()
         }
         if (number_of_time_points_*frame_interval_ + number_of_frames_to_average_ > end_frame_ - start_frame_) {
             end_frame_ = start_frame_ + number_of_time_points_*frame_interval_ + number_of_frames_to_average_;
-            cerr << "WARNING: the number of frames required is greater then the number supplied\n";
+            cerr << "WARNING: the number of frames required is greater than the number supplied\n";
             cerr << "       : setting end frame to minimum value allowed: ";
             cerr << end_frame_;
             cerr << endl;
@@ -398,9 +395,9 @@ void VelocityAutoCorrelation::check_parameters() throw()
         if (end_frame_ == 0) {
             end_frame_ = start_frame_ + pow(frame_interval_,number_of_time_points_)  + number_of_frames_to_average_;
         }
-        if (number_of_time_points_*frame_interval_ + number_of_frames_to_average_ > end_frame_ - start_frame_) {
-            end_frame_ = start_frame_ + pow(frame_interval_,number_of_time_points_)  + number_of_frames_to_average_;
-            cerr << "WARNING: the number of frames required is greater then the number supplied\n";
+        if (static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5) + number_of_frames_to_average_ > end_frame_ - start_frame_) {
+            end_frame_ = start_frame_ + static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5)  + number_of_frames_to_average_;
+            cerr << "WARNING: the number of frames required is greater than the number supplied\n";
             cerr << "         setting end frame to minimum value allowed: ";
             cerr << end_frame_;
             cerr << endl;
@@ -414,6 +411,28 @@ void VelocityAutoCorrelation::check_parameters() throw()
         cerr << "ERROR: Illegal time scale specified. Must be one of (linear/log)\n" << endl;
         exit(1);
     }
+    
+    if (trajectory_data_type_ == "coordinate") {
+        cerr << "WARNING: Velocity data is not available or not provided." << endl;
+        cerr << "       : Velocities will be computed from coordinate data using forward finite difference." << endl;
+        
+        // (number of frames possessing velocity) = end_frame - 1 - start_frame
+        if (time_scale_type_ == "linear") {
+            if (number_of_time_points_*frame_interval_ + number_of_frames_to_average_ > end_frame_ - 1 - start_frame_) {
+                number_of_time_points_--;
+                cerr << "WARNING: the number of frames required is greater than the number supplied\n";
+                cerr << "       : decreasing number of time points by one" << endl;
+            }
+        }
+        else if (time_scale_type_ == "log") {
+            if (static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5) + number_of_frames_to_average_ > end_frame_ - 1 - start_frame_) {
+                number_of_time_points_--;
+                cerr << "WARNING: the number of frames required is greater than the number supplied\n";
+                cerr << "       : decreasing number of time points by one " << endl;
+            }
+        }
+    }
+
 }
 
 
