@@ -397,12 +397,6 @@ void SelfVanHoveFunction::write_Gs_rt()
 	
 	output_Gsrt_file << "# Self van Hove function for atom type: ";
 	output_Gsrt_file << atom_type_ << " in " << atom_group_ << endl;
-
-    output_Gsrt_file << "# ---------------------------" << endl;
-    output_Gsrt_file << "#               t_1st_row    " << endl;
-    output_Gsrt_file << "#            ----------------" << endl;
-    output_Gsrt_file << "# r_1st_col | Gs(r, t)_matrix" << endl;
-    output_Gsrt_file << "# ---------------------------" << endl;
     
     output_Gsrt_file << setiosflags(ios::scientific) << setprecision(output_precision_);
     output_Gsrt_file << "#" << endl;

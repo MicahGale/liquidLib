@@ -336,7 +336,7 @@ void SelfIntermediateScattering::compute_Fs_kt()
     vector< double > k_vector(dimension_, 0.0);
     
     random_device seed;
-    generator.seed(seed());
+    generator_.seed(seed());
     
 #pragma omp parallel for firstprivate(k_vector)
     for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {
@@ -388,13 +388,13 @@ void SelfIntermediateScattering::compute_Fs_kt()
 }
 
 
-void inline SelfIntermediateScattering::generate_k_vector(double const & k_absolute_value, vector< double >& k_vector)
+inline void SelfIntermediateScattering::generate_k_vector(double const & k_absolute_value, vector< double >& k_vector)
 {
     if (method_of_k_sampling_ == "gaussian") {
         normal_distribution< double > distribution(0.0, 1.0);
         double vector_length = 0.0;
         for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-            k_vector[i_dimension] = distribution(generator);
+            k_vector[i_dimension] = distribution(generator_);
             vector_length += k_vector[i_dimension] * k_vector[i_dimension];
         }
         vector_length = sqrt(vector_length);
@@ -406,8 +406,8 @@ void inline SelfIntermediateScattering::generate_k_vector(double const & k_absol
     else if (method_of_k_sampling_ == "uniform") {
         uniform_real_distribution< double > random_number(0.0, 1.0); // (min, max)
         double phi, theta, x, y, z;
-        phi = 2.0*M_PI*random_number(generator);
-        theta = acos(1.0 - 2.0*random_number(generator));
+        phi = 2.0*M_PI*random_number(generator_);
+        theta = acos(1.0 - 2.0*random_number(generator_));
         x = sin(theta)*cos(phi);
         y = sin(theta)*sin(phi);
         z = cos(theta);

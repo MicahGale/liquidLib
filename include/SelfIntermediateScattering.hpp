@@ -36,7 +36,7 @@ private:
 // private member functions
     void check_parameters() throw();
     void compute_time_array();
-    void inline generate_k_vector(double const & k_absolute_value, vector< double > & k_vector);
+    inline void generate_k_vector(double const & k_absolute_value, vector< double > & k_vector);
     
 // private member variables
     string input_file_name_;
@@ -58,7 +58,7 @@ private:
 	vector< unsigned int > time_array_indexes_;
     vector< vector< double > > Fs_kt_;
     
-    default_random_engine generator;
+    default_random_engine generator_;
 };
 
 #endif // defined (LiquidLib_SelfIntermediateScattering_hpp)

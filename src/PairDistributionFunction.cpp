@@ -36,7 +36,7 @@ PairDistributionFunction::PairDistributionFunction() :
 	atom_group_("system"),
 	atom_group2_(""),
 	number_of_bins_(200),
-	number_of_frames_to_average_(1),
+	number_of_frames_to_average_(0),
 	max_cutoff_length_(0.0)
 {
 }
@@ -393,18 +393,42 @@ void PairDistributionFunction::write_g_r()
 
 void PairDistributionFunction::check_parameters() throw()
 {
-    // check the number of frames to average
-    if (number_of_frames_to_average_ > end_frame_ - start_frame_) {
-        cerr << "WARNING: Not enough frames to average" << endl;
-        cerr << "       : Reset the number of frames to average to the total number of frames available";
+    // Neither parameters exists
+    if (number_of_frames_to_average_ == 0 && end_frame_ == 0) {
+        cerr << "\n";
+        cerr << "ERROR: Either 'number_of_frames_to_average' or 'end_frame' is not specified in input file.\n";
+        cerr << "       Not enough information to read trajectory\n" << endl;
+        exit(1);
+    }
+    
+    // Both parameters exist
+    if (number_of_frames_to_average_ > 0 && end_frame_ > 0) {
+        cerr << "\n";
+        cerr << "WARNING: Both 'end_frame' and 'number_of_frames_to_average' values set in input file.\n";
+        cerr << "         'number_of_frames_to_average' is used for reading necessary frames and for computation.\n";
+        cerr << endl;
+        end_frame_ = start_frame_ + number_of_frames_to_average_;
+    }
+    
+    // number_of_frames_to_average doesn't exist
+    if (number_of_frames_to_average_ == 0) {
+        cout << "\n'number_of_frames_to_average = end_frame - start_frame' is set for reading and computation.\n" << endl;
         number_of_frames_to_average_ = end_frame_ - start_frame_;
     }
     
+    // end_frame doesn't exist
+    if (end_frame_ == 0) {
+        cout << "\n'end_frame = start_frame + number_of_frames_to_average' is set for reading and computation.\n" << endl;
+        end_frame_ = start_frame_ + number_of_frames_to_average_;
+    }
+    
     if (atom_type2_ == "") {
+        cerr << "\nWARNING: 'atom_type2' not specifed. It is set the same as 'atom_type'.\n" << endl;
         atom_type2_ = atom_type_;
     }
     
     if (atom_group2_ == "") {
+        cerr << "\nWARNING: 'atom_group2' not specifed. It is set the same as 'atom_group'.\n" << endl;
         atom_group2_ = atom_group_;
     }
 }

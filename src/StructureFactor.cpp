@@ -39,7 +39,7 @@ StructureFactor::StructureFactor() :
     number_of_bins_(50),
     k_start_index_(0),
     number_of_k_vectors_(50),
-	number_of_frames_to_average_(1)
+	number_of_frames_to_average_(0)
 {
 }
 
@@ -303,7 +303,7 @@ void StructureFactor::compute_S_k()
     k_values_.resize(number_of_bins_, 0.0);
     
     for (size_t k_index = 0; k_index < number_of_bins_; ++k_index) {
-        k_values_[k_index] = delta_k * (k_index);
+        k_values_[k_index] = delta_k * (k_index + k_start_index_);
     }
     S_k_.resize(number_of_bins_, 0.0);
     
@@ -365,6 +365,8 @@ void StructureFactor::compute_S_k()
     for (size_t k_index = 0; k_index < number_of_bins_; ++k_index) {
         S_k_[k_index] *= normalization_factor;
     }
+    
+    cout << '\n' << endl;
 }
 
 
@@ -399,7 +401,6 @@ void StructureFactor::write_S_k()
         output_Sk_file << "\n";
 	}
     
-	cout << "Structure factor printing complete. \n" << endl;
 	output_Sk_file.close();
 }
 
@@ -441,50 +442,54 @@ inline void StructureFactor::generate_k_vector(double const & k_absolute_value, 
 // not have with needing enough data points
 void StructureFactor::check_parameters() throw()
 {
-    if (end_frame_ == 0) {
-        end_frame_ = number_of_frames_to_average_;
+    // Neither parameters exists
+    if (number_of_frames_to_average_ == 0 && end_frame_ == 0) {
+        cerr << "\n";
+        cerr << "ERROR: Either 'number_of_frames_to_average' or 'end_frame' is not specified in input file.\n";
+        cerr << "       Not enough information to read trajectory\n" << endl;
+        exit(1);
     }
     
-    if (number_of_frames_to_average_ == 1 && end_frame_ == 0) {
-        cerr << "WARNING: frameend and number_of_frames_to_average\n";
-        cerr << "         values not set in input file.\n";
-        cerr << "         1 frame average will be done.";
+    // Both parameters exist
+    if (number_of_frames_to_average_ > 0 && end_frame_ > 0) {
+        cerr << "\n";
+        cerr << "WARNING: Both 'end_frame' and 'number_of_frames_to_average' values set in input file.\n";
+        cerr << "         'number_of_frames_to_average' is used for reading necessary frames and for computation.\n";
         cerr << endl;
-        end_frame_ = 1;
+        end_frame_ = start_frame_ + number_of_frames_to_average_;
     }
     
-    if (number_of_frames_to_average_ > 1 && end_frame_ > 0) {
-        cerr << "WARNING: Both 'frameend' and 'number_of_frames_to_average'\n";
-        cerr << "         values set in input file.\n";
-        cerr << "         'number_of_frames_to_average' will be used.";
-        cerr << endl;
-        end_frame_ = number_of_frames_to_average_ - 1;
-    }
-    
-    if (number_of_frames_to_average_ == 1 && end_frame_ > 0) {
-        cerr << "WARNING: number_of_frames_to_average not defined\n";
-        cerr << "         in input file.\n";
-        cerr << "         Value will not be set to 'frameend' - 'framestart'.";
-        cerr << endl;
+    // number_of_frames_to_average doesn't exist
+    if (number_of_frames_to_average_ == 0) {
+        cout << "\n'number_of_frames_to_average = end_frame - start_frame' is set for reading and computation.\n" << endl;
         number_of_frames_to_average_ = end_frame_ - start_frame_;
     }
     
+    // end_frame doesn't exist
+    if (end_frame_ == 0) {
+        cout << "\n'end_frame = start_frame + number_of_frames_to_average' is set for reading and computation.\n" << endl;
+        end_frame_ = start_frame_ + number_of_frames_to_average_;
+    }
+    
     if (user_atom_types_.empty() || scattering_lengths_.empty()) {
+        cerr << "\n";
         cerr << "ERROR: No atom types and scattering lengths specified.\n";
-        cerr << "       Computation cannot proceed.";
+        cerr << "       Computation cannot proceed.\n";
         cerr << endl;
         exit(1);
     }
     
     if (method_of_k_sampling_ != "gaussian" && method_of_k_sampling_ != "uniform") {
+        cerr << "\n";
         cerr << "ERROR: Unrecognized sampling method for wavevector transfer k" << endl;
-        cerr << "     : Optional methods are \"gaussian\", or \"uniform\"." << endl;
+        cerr << "        Optional methods are \"gaussian\", or \"uniform\".\n" << endl;
         exit(1);
     }
     
     if (method_of_k_sampling_ == "uniform") {
         if (dimension_ > 3) {
-            cerr << "ERROR: uniform sampling can only be used for 2 or 3 dimensions";
+            cerr << "\n";
+            cerr << "ERROR: uniform sampling can only be used for 2 or 3 dimensions\n";
             cerr << endl;
             exit(1);
         }

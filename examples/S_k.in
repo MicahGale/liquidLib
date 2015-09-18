@@ -1,0 +1,24 @@
+# This is a parse file for computing S_k
+
+# input & output
+trajectory_file_name        = ../../1bar_300K/md.trr
+is_wrapped                  = yes
+gro_file_name               = ../../1bar_300K/md.gro
+output_file_name            = Sk_1bar_300K.txt
+
+# select atoms
+atom_group                  = system
+scattering_lengths          = OW 1.0
+
+# reading parameters
+dimension                   = 3
+start_frame                 = 0
+#end_frame                   = 20
+number_of_frames_to_average = 1000
+
+# wavevector parameters
+k_start_index               = 5
+number_of_bins              = 50
+number_of_k_vectors         = 50
+method_of_k_sampling        = gaussian
+

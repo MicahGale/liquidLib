@@ -1,23 +1,26 @@
 # This is a parse file for computing g_r
 # g_r code works for both wrapped and unwrapped trajectories.
 
-trajectory_file_name		= nvt_unwrapped.trr
-gro_file_name			= npt.gro
-output_file_name		= g_r_H_H.txt
-is_wrapped			= no
+# input & output
+trajectory_file_name        = ../../1bar_300K/md.trr
+gro_file_name               = ../../1bar_300K/md.gro
+output_file_name            = gr_OO_1bar_300K.txt
 
-# atomtype1 in atomgroup1
-atom_type   			= HW
-atom_group			= system
+# atomtype in atomgroup
+atom_type                   = OW
+atom_group                  = system
 
 # atomtype2 in atomgroup2
-atom_type2   			= H
-atom_group2			= system
+atom_type2                  = OW
+atom_group2                 = system
 
-dimension   			= 3
-start_frame  			= 0
-end_frame    			= 400
-number_of_frames_to_average 	= 400
+# reading parameters
+dimension                   = 3
+start_frame                 = 0
+#end_frame                   = 600
+number_of_frames_to_average = 1000
 
-number_of_bins    		= 400
-max_cutoff_length 		= 1.0
+# computation parameters
+max_cutoff_length           = 1.2
+number_of_bins              = 400
+

@@ -41,7 +41,7 @@ private:
     string input_file_name_;
     string output_file_name_;
     string atom_group_;
-    string method_of_k_sampling_;       // gaussian, ...
+    string method_of_k_sampling_;       // gaussian, uniform, ...
 
     unsigned int number_of_bins_;       // bin spacing = 2*M_PI/average_box_length
     unsigned int k_start_index_;        // in unit of 2*M_PI/average_box_length

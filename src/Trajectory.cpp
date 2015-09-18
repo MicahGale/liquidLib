@@ -455,7 +455,7 @@ void Trajectory::read_trr_file()
 			
             save_frame(i_frame, time, box, coordinate);
             
-            if (i_frame % 50 == 0) {
+            if (i_frame % 50 == 0 || 1 == 1) {
                 cout << "\r" << i_frame << " frames read";
                 cout.flush();
             }
