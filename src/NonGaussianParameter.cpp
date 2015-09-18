@@ -70,6 +70,7 @@ void NonGaussianParameter::compute_alpha2_t()
     cout << setprecision(4);
     
     int status = 0;
+    cout << "Computing ..." << endl;
     
     // Perform time averaging of Non Gaussian Parameter
 #pragma omp parallel for
@@ -92,14 +93,16 @@ void NonGaussianParameter::compute_alpha2_t()
         r2_t_[time_point] = total_squared_displacement * normalization_factor;
         alpha2_t_[time_point] = 3.0 * total_bisquared_displacement/ (5.0 * total_squared_displacement * total_squared_displacement * normalization_factor) - 1.0;
         
+        if (is_run_mode_verbose_) {
 #pragma omp critical
-{
-        ++status;
-        cout << "\rcurrent progress of calculating non-gaussian parameter is: ";
-        cout << status * 100.0/number_of_time_points_;
-        cout << " \%";
-        cout << flush;
-}
+            {
+                ++status;
+                cout << "\rcurrent progress of calculating non-gaussian parameter is: ";
+                cout << status * 100.0/number_of_time_points_;
+                cout << " \%";
+                cout << flush;
+            }
+        }
     }
     
     cout << endl;

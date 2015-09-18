@@ -51,16 +51,26 @@ StructureFactor::~StructureFactor()
 
 void StructureFactor::read_command_inputs(int argc, char * argv[])
 {
-    for (int input = 0; input < argc; ++input) {
+    for (int input = 1; input < argc; ++input) {
         if (strcmp(argv[input], "-i") == 0) {
             input_file_name_ = argv[++input];
+            continue;
         }
         if (strcmp(argv[input], "-o") == 0) {
             output_file_name_ = argv[++input];
+            continue;
         }
         if (strcmp(argv[input], "-t") == 0) {
             trajectory_file_name_ = argv[++input];
+            continue;
         }
+        if (strcmp(argv[input], "-v") == 0) {
+            is_run_mode_verbose_ = true;
+            continue;
+        }
+        
+        cerr << "\nERROR: Unrecognized flag '" << argv[input] << "' from command inputs.\n";
+        exit(1);
     }
 }
 
@@ -96,6 +106,22 @@ void StructureFactor::read_input_file()
 		}
 		
 		//check for memeber bools
+        if (input_word == "is_run_mode_verbose") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            if (input_word == "true" || input_word == "yes") {
+                is_run_mode_verbose_ = true;
+            }
+            else if(input_word == "false" || input_word == "no") {
+                is_run_mode_verbose_ = false;
+            }
+            else {
+                is_run_mode_verbose_ = stoi(input_word);
+            }
+            continue;
+        }
 		if (input_word == "is_wrapped") {
 			input_file >> input_word;
 			if (input_word[0] == '=') {
@@ -281,7 +307,7 @@ void StructureFactor::read_input_file()
 	}
 	check_parameters();
 	
-	cout << "\nInput file reading complete" << endl;
+	cout << "\nInput file reading complete\n" << endl;
 	input_file.close();
 }
 
@@ -323,6 +349,7 @@ void StructureFactor::compute_S_k()
     generator_.seed(seed());
     
     int status = 0;
+    cout << "Computing ..." << endl;
     
     // Perform frame averaging for S_k_
 #pragma omp parallel
@@ -350,13 +377,16 @@ void StructureFactor::compute_S_k()
                 S_k_[k_index] += (sum_cos_term * sum_cos_term + sum_sin_term * sum_sin_term);
             }
         }
+
+        if (is_run_mode_verbose_) {
 #pragma omp single
-        {
-            ++status;
-            cout << "\rcurrent progress of calculating structure factor is: ";
-            cout << static_cast< double >(status) * 100.0/number_of_frames_to_average_;
-            cout << " \%";
-            cout << flush;
+            {
+                ++status;
+                cout << "\rcurrent progress of calculating structure factor is: ";
+                cout << static_cast< double >(status) * 100.0/number_of_frames_to_average_;
+                cout << " \%";
+                cout << flush;
+            }
         }
 #pragma omp barrier
     }
@@ -446,7 +476,7 @@ void StructureFactor::check_parameters() throw()
     if (number_of_frames_to_average_ == 0 && end_frame_ == 0) {
         cerr << "\n";
         cerr << "ERROR: Either 'number_of_frames_to_average' or 'end_frame' is not specified in input file.\n";
-        cerr << "       Not enough information to read trajectory\n" << endl;
+        cerr << "       Not enough information to read trajectory" << endl;
         exit(1);
     }
     
@@ -454,20 +484,20 @@ void StructureFactor::check_parameters() throw()
     if (number_of_frames_to_average_ > 0 && end_frame_ > 0) {
         cerr << "\n";
         cerr << "WARNING: Both 'end_frame' and 'number_of_frames_to_average' values set in input file.\n";
-        cerr << "         'number_of_frames_to_average' is used for reading necessary frames and for computation.\n";
+        cerr << "         'number_of_frames_to_average' is used for reading necessary frames and for computation.";
         cerr << endl;
         end_frame_ = start_frame_ + number_of_frames_to_average_;
     }
     
     // number_of_frames_to_average doesn't exist
     if (number_of_frames_to_average_ == 0) {
-        cout << "\n'number_of_frames_to_average = end_frame - start_frame' is set for reading and computation.\n" << endl;
+        cout << "\n'number_of_frames_to_average = end_frame - start_frame' is set for reading and computation." << endl;
         number_of_frames_to_average_ = end_frame_ - start_frame_;
     }
     
     // end_frame doesn't exist
     if (end_frame_ == 0) {
-        cout << "\n'end_frame = start_frame + number_of_frames_to_average' is set for reading and computation.\n" << endl;
+        cout << "\n'end_frame = start_frame + number_of_frames_to_average' is set for reading and computation." << endl;
         end_frame_ = start_frame_ + number_of_frames_to_average_;
     }
     

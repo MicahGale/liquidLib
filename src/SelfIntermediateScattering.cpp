@@ -53,16 +53,26 @@ SelfIntermediateScattering::~SelfIntermediateScattering()
 
 void SelfIntermediateScattering::read_command_inputs(int argc, char * argv[])
 {
-    for (int input = 0; input < argc; ++input) {
+    for (int input = 1; input < argc; ++input) {
         if (strcmp(argv[input], "-i") == 0) {
             input_file_name_ = argv[++input];
+            continue;
         }
         if (strcmp(argv[input], "-o") == 0) {
             output_file_name_ = argv[++input];
+            continue;
         }
         if (strcmp(argv[input], "-t") == 0) {
             trajectory_file_name_ = argv[++input];
+            continue;
         }
+        if (strcmp(argv[input], "-v") == 0) {
+            is_run_mode_verbose_ = 1;
+            continue;
+        }
+        
+        cerr << "\nERROR: Unrecognized flag '" << argv[input] << "' from command inputs.\n";
+        exit(1);
     }
 }
 
@@ -92,6 +102,22 @@ void SelfIntermediateScattering::read_input_file()
 		}
 		
 		//check for memeber bools
+        if (input_word == "is_run_mode_verbose") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            if (input_word == "true" || input_word == "yes") {
+                is_run_mode_verbose_ = true;
+            }
+            else if(input_word == "false" || input_word == "no") {
+                is_run_mode_verbose_ = false;
+            }
+            else {
+                is_run_mode_verbose_ = stoi(input_word);
+            }
+            continue;
+        }
 		if (input_word == "is_wrapped") {
 			input_file >> input_word;
 			if (input_word[0] == '=') {
@@ -330,13 +356,14 @@ void SelfIntermediateScattering::compute_Fs_kt()
     Fs_kt_.resize(number_of_bins_, vector< double >(time_array_indexes_.size(), 1.0));   // initialize with value 1.0 since Fs(k, t = 0) = 1.0
 
     double normalization_factor = 1.0/(number_of_frames_to_average_ * atom_type_indexes.size() * number_of_k_vectors_);
-    
-    int status = 0;
-    
+
     vector< double > k_vector(dimension_, 0.0);
     
     random_device seed;
     generator_.seed(seed());
+    
+    int status = 0;
+    cout << "Computing ..." << endl;
     
 #pragma omp parallel for firstprivate(k_vector)
     for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {
@@ -375,15 +402,20 @@ void SelfIntermediateScattering::compute_Fs_kt()
             }
             Fs_kt_[k_index][time_point] = sum_of_individual_terms * normalization_factor;
         }
+        
+        if (is_run_mode_verbose_) {
 #pragma omp critical
-{
-        ++status;
-        cout << "\rcurrent progress of calculating self intermediate scattering is: ";
-        cout << status * 100.0/number_of_time_points_;
-        cout << " \%";
-        cout << flush;
-}
+            {
+                ++status;
+                cout << "\rcurrent progress of calculating self intermediate scattering is: ";
+                cout << status * 100.0/number_of_time_points_;
+                cout << " \%";
+                cout << flush;
+            }
+        }
     }
+    
+    cout << endl;
 	
 }
 

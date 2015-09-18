@@ -49,16 +49,26 @@ PairDistributionFunction::~PairDistributionFunction()
 
 void PairDistributionFunction::read_command_inputs(int argc, char * argv[])
 {
-    for (int input = 0; input < argc; ++input) {
+    for (int input = 1; input < argc; ++input) {
         if (strcmp(argv[input], "-i") == 0) {
             input_file_name_ = argv[++input];
+            continue;
         }
         if (strcmp(argv[input], "-o") == 0) {
             output_file_name_ = argv[++input];
+            continue;
         }
         if (strcmp(argv[input], "-t") == 0) {
             trajectory_file_name_ = argv[++input];
+            continue;
         }
+        if (strcmp(argv[input], "-v") == 0) {
+            is_run_mode_verbose_ = 1;
+            continue;
+        }
+        
+        cerr << "\nERROR: Unrecognized flag '" << argv[input] << "' from command inputs.\n";
+        exit(1);
     }
 }
 
@@ -86,7 +96,42 @@ void PairDistributionFunction::read_input_file()
 			getline(input_file, input_word);
 			continue;
 		}
-		
+
+        
+        //check for memeber bools
+        if (input_word == "is_run_mode_verbose") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            if (input_word == "true" || input_word == "yes") {
+                is_run_mode_verbose_ = true;
+            }
+            else if(input_word == "false" || input_word == "no") {
+                is_run_mode_verbose_ = false;
+            }
+            else {
+                is_run_mode_verbose_ = stoi(input_word);
+            }
+            continue;
+        }
+        if (input_word == "is_wrapped") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            if (input_word == "true" || input_word == "yes") {
+                is_wrapped_ = true;
+            }
+            else if(input_word == "false" || input_word == "no") {
+                is_wrapped_ = false;
+            }
+            else {
+                is_wrapped_ = stoi(input_word);
+            }
+            continue;
+        }
+        
 		//check if equal to member strings
         if (input_word == "output_file_name") {
             if (output_file_name_ != "g_r.txt") {
@@ -277,6 +322,7 @@ void PairDistributionFunction::compute_g_r()
 	g_r_.resize(number_of_bins_, 0.0);
 	
     int status = 0;
+    cout << "Computing ..." << endl;
     
 	if (atom_type_ == atom_type2_ && atom_group_ == atom_group2_) {
 #pragma omp parallel for
@@ -292,15 +338,18 @@ void PairDistributionFunction::compute_g_r()
                     histogram_g_r(frame_number, *i_atom1, *i_atom2, delta_r);
 				}
 			}
+            
+            if (is_run_mode_verbose_) {
 #pragma omp critical
-{
-            ++status;
-            cout << "\rcurrent progress of calculating the pair distribution function is: ";
-            cout << status * 100.0/number_of_frames_to_average_;
-            cout << " \%";
-            cout << flush;
-}
-		}
+                {
+                    ++status;
+                    cout << "\rcurrent progress of calculating the pair distribution function is: ";
+                    cout << status * 100.0/number_of_frames_to_average_;
+                    cout << " \%";
+                    cout << flush;
+                }
+            }
+        }
 	}
 	else {
 #pragma omp parallel for
@@ -316,14 +365,17 @@ void PairDistributionFunction::compute_g_r()
                     histogram_g_r(frame_number, *i_atom1, *i_atom2, delta_r);
 				}
 			}
+            
+            if (is_run_mode_verbose_) {
 #pragma omp critical
-{
-            ++status;
-            cout << "\rcurrent progress of calculating the pair distribution function is: ";
-            cout << status * 100.0/number_of_frames_to_average_;
-            cout << " \%";
-            cout << flush;
-}
+                {
+                    ++status;
+                    cout << "\rcurrent progress of calculating the pair distribution function is: ";
+                    cout << status * 100.0/number_of_frames_to_average_;
+                    cout << " \%";
+                    cout << flush;
+                }
+            }
 		}
 	}
     cout << endl;

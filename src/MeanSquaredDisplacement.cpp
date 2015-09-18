@@ -50,16 +50,26 @@ MeanSquaredDisplacement::~MeanSquaredDisplacement()
 
 void MeanSquaredDisplacement::read_command_inputs(int argc, char * argv[])
 {
-    for (int input = 0; input < argc; ++input) {
+    for (int input = 1; input < argc; ++input) {
         if (strcmp(argv[input], "-i") == 0) {
             input_file_name_ = argv[++input];
+            continue;
         }
         if (strcmp(argv[input], "-o") == 0) {
             output_file_name_ = argv[++input];
+            continue;
         }
         if (strcmp(argv[input], "-t") == 0) {
             trajectory_file_name_ = argv[++input];
+            continue;
         }
+        if (strcmp(argv[input], "-v") == 0) {
+            is_run_mode_verbose_ = 1;
+            continue;
+        }
+        
+        cerr << "\nERROR: Unrecognized flag '" << argv[input] << "' from command inputs.\n";
+        exit(1);
     }
 }
 
@@ -89,6 +99,22 @@ void MeanSquaredDisplacement::read_input_file()
         }
         
         //check for memeber bools
+        if (input_word == "is_run_mode_verbose") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            if (input_word == "true" || input_word == "yes") {
+                is_run_mode_verbose_ = true;
+            }
+            else if(input_word == "false" || input_word == "no") {
+                is_run_mode_verbose_ = false;
+            }
+            else {
+                is_run_mode_verbose_ = stoi(input_word);
+            }
+            continue;
+        }
         if (input_word == "is_wrapped") {
             input_file >> input_word;
             if (input_word[0] == '=') {
@@ -288,6 +314,7 @@ void MeanSquaredDisplacement::compute_r2_t()
     cout << setprecision(4);
     
     int status = 0;
+    cout << "Computing ..." << endl;
     
     // Perform time averaging of Mean Squared Displacement
 #pragma omp parallel for
@@ -305,14 +332,16 @@ void MeanSquaredDisplacement::compute_r2_t()
         }
         r2_t_[time_point] = total_squared_distance*normalization_factor;
         
+        if (is_run_mode_verbose_) {
 #pragma omp critical
-{
-        ++status;
-        cout << "\rcurrent progress of calculating mean squared displacement is: ";
-        cout << status * 100.0/number_of_time_points_;
-        cout << " \%";
-        cout << flush;
-}
+            {
+                ++status;
+                cout << "\rcurrent progress of calculating mean squared displacement is: ";
+                cout << status * 100.0/number_of_time_points_;
+                cout << " \%";
+                cout << flush;
+            }
+        }
     }
     
     cout << endl;

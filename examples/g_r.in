@@ -1,6 +1,9 @@
 # This is a parse file for computing g_r
 # g_r code works for both wrapped and unwrapped trajectories.
 
+# program run mode
+is_run_mode_verbose         = yes
+
 # input & output
 trajectory_file_name        = ../../1bar_300K/md.trr
 gro_file_name               = ../../1bar_300K/md.gro

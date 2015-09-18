@@ -49,16 +49,26 @@ FourPointCorrelation::~FourPointCorrelation()
 
 void FourPointCorrelation::read_command_inputs(int argc, char * argv[])
 {
-    for (int input = 0; input < argc; ++input) {
+    for (int input = 1; input < argc; ++input) {
         if (strcmp(argv[input], "-i") == 0) {
             input_file_name_ = argv[++input];
+            continue;
         }
         if (strcmp(argv[input], "-o") == 0) {
             output_file_name_ = argv[++input];
+            continue;
         }
         if (strcmp(argv[input], "-t") == 0) {
             trajectory_file_name_ = argv[++input];
+            continue;
         }
+        if (strcmp(argv[input], "-v") == 0) {
+            is_run_mode_verbose_ = 1;
+            continue;
+        }
+        
+        cerr << "\nERROR: Unrecognized flag '" << argv[input] << "' from command inputs.\n";
+        exit(1);
     }
 }
 
@@ -87,6 +97,22 @@ void FourPointCorrelation::read_input_file()
         }
         
         //check for member bools
+        if (input_word == "is_run_mode_verbose") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            if (input_word == "true" || input_word == "yes") {
+                is_run_mode_verbose_ = true;
+            }
+            else if(input_word == "false" || input_word == "no") {
+                is_run_mode_verbose_ = false;
+            }
+            else {
+                is_run_mode_verbose_ = stoi(input_word);
+            }
+            continue;
+        }
         if (input_word == "is_wrapped") {
             input_file >> input_word;
             if (input_word[0] == '=') {
@@ -293,6 +319,7 @@ void FourPointCorrelation::compute_chi4_t()
     cout << setprecision(4);
     
     int status = 0;
+    cout << "Computing ..." << endl;
     
     // Perform time averaging of Four Point Correlation Function
 #pragma omp parallel for
@@ -315,14 +342,16 @@ void FourPointCorrelation::compute_chi4_t()
         chi4_t_[time_point][0] += q_self * normalization_factor;
         chi4_t_[time_point][1] += q_self * q_self * normalization_factor / number_of_frames_to_average_;
         
+        if (is_run_mode_verbose_) {
 #pragma omp critical
-{
-        ++status;
-        cout << "\rcurrent progress of calculating chi4 is: ";
-        cout << status * 100.0/number_of_time_points_;
-        cout << " \%";
-        cout << flush;
-}
+            {
+                ++status;
+                cout << "\rcurrent progress of calculating chi4 is: ";
+                cout << status * 100.0/number_of_time_points_;
+                cout << " \%";
+                cout << flush;
+            }
+        }
     }
     cout << endl;
 }

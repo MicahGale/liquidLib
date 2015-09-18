@@ -185,15 +185,19 @@ This section of the manual describes the potential options that can be used in t
 	\item[$=$] \hfill \\
 	Can be used after a parameter name for aesthetic purposes.  A trailing space must be used after a = in order for the values to be correctly determined from the input file.
 	
+	\item[is$\_$run$\_$mode$\_$verbose] \hfill \\
+	- [default: false, optional] false, no, or 0 informs the program to run in a concise mode.\\
+	- true, yes, or a non-zero number informs the program to run in a verbose mode and keep flushing the progresses of reading trajectory and computation. One can also turn on the verbose mode by adding a flag ``-v'' behind the execution command. The value in input file will overwrite this ``-v'' option, if they disagree.
+	
 	\item[is$\_$wrapped] \hfill \\
-	- [default: false, optional] false, no, or 0 informs the program that the trajectory is unwrapped\\
+	- [default: false, optional] false, no, or 0 informs the program that the trajectory is unwrapped.\\
 	- true, yes, or a non-zero number informs the program that the trajectory is wrapped in a periodic box and thus needs to be unwrapped in order to produce correct values for dynamic quantities.  If set to true, LiquidLib will unwrap the coordinates before computation.
 	
 	\item[start$\_$frame] \hfill \\
 	- [default: 0, optional] This value determines the first frame number to read from the trajectory.  If this option is set, \textit{LiquidLib} will skip the frames prior to this number.  This is useful when using an unequilibrated trajectory and the user wishes to skip the unequilibrated portion of the trajectory.
 	
 	\item[end$\_$frame] \hfill \\
-	- [default: 0, optional] This value determines when the last frame that will be read from the trajectory file.  This parameter is optional and will be overwritten by other parameters such as startframe, deltatimeorbase, and frameaverage during the computation.  User must provide either endframe or numberoftimepoints (preferred) in their scripts.
+	- [default: 0, optional] This value determines when the last frame that will be read from the trajectory file.  This parameter is optional and will be overwritten by other parameters such as start\_frame, frame\_interval, and number\_of\_frames\_to\_average during the computation.  User must provide either end\_frame or number\_of\_frames\_to\_average (preferred) in their scripts.
 	
 	\item[dimension] \hfill \\
 	- [default: 3, optional] This value determines the dimension of the trajectory.  LAMMPS can provide 2-d and 3-d trajectories.  GROMACS and VASP can provide 3-d trajectories.  However, \textit{LiquidLib} is capable of calculating the quantities in any finite dimension when supplied with a such a trajectory, such as the trajectories created by our groups' any dimensional md package. 

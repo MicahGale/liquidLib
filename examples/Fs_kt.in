@@ -1,5 +1,8 @@
 # This is a parse file for computing Fs_kt
 
+# program run mode
+is_run_mode_verbose         = yes
+
 # input & output
 trajectory_file_name        = ../../1bar_300K/md_unwrapped.trr
 is_wrapped                  = no

@@ -35,6 +35,7 @@ using namespace std;
 
 // default constructor
 Trajectory::Trajectory():
+    is_run_mode_verbose_(false),
     is_wrapped_(false),
     start_frame_(0),
     end_frame_(0),
@@ -147,7 +148,7 @@ void Trajectory::read_trajectory()
         cerr << trajectory_file_name_.substr(period_location);
         cerr << "\033[0m";
         cerr << " does not match any known type\n";
-        cerr << "     : Please provide .xtc, .trr, .dump, XDATCAR";
+        cerr << "     : Please provide .trr, .xtc, .dump, XDATCAR";
         cerr << endl;
         exit(1);
     }
@@ -258,6 +259,7 @@ void Trajectory::select_atoms(vector< unsigned int > & selected_atom_indexes, st
             }
             // add more atom_group types OR add more selection features here
             else {
+                cerr << "\n";
                 cerr << "ERROR: Unrecognized atom group \"" << atom_group_to_select << "\"" << endl;
                 cerr << "     : Options for atom group: system, solvent, non-solvent" << endl;
                 exit(1);
@@ -265,13 +267,14 @@ void Trajectory::select_atoms(vector< unsigned int > & selected_atom_indexes, st
         }
     }
     if (selected_atom_indexes.empty()) {
+        cerr << "\n";
         cerr << "ERROR: Unrecognized atom type \"" << atom_type_to_select << "\"" << endl;
         cerr << "     : Atom types are provided in GROMACS .gro file (3rd column, e.g., OW, HW) \n";
         cerr << "     : or in LAMMPS trajectory file (e.g., 1, 2) \n" << endl;
         exit(1);
     }
     
-    cout << "Selected atoms: " << endl;
+    cout << "\nSelected atoms: " << endl;
     cout << atom_type_to_select << " in " << atom_group_to_select << ", " << selected_atom_indexes.size() << endl;
     cout << endl;
 }
@@ -295,7 +298,7 @@ void Trajectory::read_gro_file()
     
     
     string line;
-    getline(gro_file, line); 	// discard first two lines
+    getline(gro_file, line); 	// discard first two lines: 'system name' and 'number of atoms'
     getline(gro_file, line);
         
     for (size_t i_atom = 0; i_atom < number_of_system_atoms_ && !gro_file.eof(); ++i_atom) {
@@ -349,6 +352,7 @@ void Trajectory::read_xtc_file()
         bool is_file_read = !read_xtc(trajectory_file, tmp_number_of_system_atoms, &step_number, &time, box, coordinate, &output_precision);
         
         if (!is_file_read) {
+            cerr << "\n";
             cerr << "ERROR: Failed to read trajectory" << endl;
             cerr << "     : Please check the total number of frames in your trajectory first\n" << endl;
             exit(1);
@@ -362,10 +366,17 @@ void Trajectory::read_xtc_file()
         cerr << "WARNING: trajectory delta time not known since only one frame is read\n" << endl;
     }
     
+    // report reading progress every 5 percent read
+    unsigned int frame_gap_to_report = static_cast<unsigned int>(0.05 * (end_frame_ - start_frame_));
+    if (frame_gap_to_report < 1) {
+        frame_gap_to_report = 1;
+    }
+    
     for (size_t i_frame = 0; i_frame < end_frame_ - start_frame_; ++i_frame) {
         bool is_file_read = !read_xtc(trajectory_file, tmp_number_of_system_atoms, &step_number, &time, box, coordinate, &output_precision);
         
         if (!is_file_read) {
+            cerr << "\n";
             cerr << "ERROR: Failed to read trajectory" << endl;
             cerr << "     : Please check the total number of frames in your trajectory first\n" << endl;
             exit(1);
@@ -373,13 +384,16 @@ void Trajectory::read_xtc_file()
         
         save_frame(i_frame, time, box, coordinate);
         
-        if (i_frame % 50 == 0) {
-            cout << "\r" << i_frame << " frames read";
-            cout.flush();
+        if (is_run_mode_verbose_) {
+            if ((i_frame + 1) % frame_gap_to_report == 0) {
+                cout << "\r" << (i_frame + 1) << " frames read";
+                cout.flush();
+            }
         }
     }
-    cout << endl;
+    cout << "\r" << (end_frame_ - start_frame_) << " frames read";
     cout.flush();
+    cout << endl;
     
     // normalize averaged box lengths
     for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
@@ -428,6 +442,7 @@ void Trajectory::read_trr_file()
 		bool is_file_read = !read_trr(trajectory_file, tmp_number_of_system_atoms, &step_number, &time, &lambda, box, NULL, NULL, NULL);
         
         if (!is_file_read) {
+            cerr << "\n";
 			cerr << "ERROR: Failed to read trajectory" << endl;
 			cerr << "     : Please check the total number of frames in your trajectory first\n" << endl;
 			exit(1);
@@ -441,6 +456,12 @@ void Trajectory::read_trr_file()
 		cerr << "WARNING: trajectory delta time not known since only one frame is read\n" << endl;
 	}
 	
+    // report reading progress every 5 percent read
+    unsigned int frame_gap_to_report = static_cast<unsigned int>(0.05 * (end_frame_ - start_frame_));
+    if (frame_gap_to_report < 1) {
+        frame_gap_to_report = 1;
+    }
+    
 	if (trajectory_data_type_ == "coordinate") {
 		rvec * coordinate = new rvec[tmp_number_of_system_atoms];
 
@@ -448,6 +469,7 @@ void Trajectory::read_trr_file()
 			bool is_file_read = !read_trr(trajectory_file, tmp_number_of_system_atoms, &step_number, &time, &lambda, box, coordinate, NULL, NULL);
             
             if (!is_file_read) {
+                cerr << "\n";
                 cerr << "ERROR: Failed to read trajectory" << endl;
                 cerr << "     : Please check the total number of frames in your trajectory first\n" << endl;
                 exit(1);
@@ -455,12 +477,14 @@ void Trajectory::read_trr_file()
 			
             save_frame(i_frame, time, box, coordinate);
             
-            if (i_frame % 50 == 0 || 1 == 1) {
-                cout << "\r" << i_frame << " frames read";
-                cout.flush();
+            if (is_run_mode_verbose_) {
+                if ((i_frame + 1) % frame_gap_to_report == 0) {
+                    cout << "\r" << (i_frame + 1) << " frames read";
+                    cout.flush();
+                }
             }
         }
-        cout << endl;
+        cout << "\r" << (end_frame_ - start_frame_) << " frames read";
         cout.flush();
         delete [] coordinate;
 	}
@@ -471,6 +495,7 @@ void Trajectory::read_trr_file()
 			bool is_file_read = !read_trr(trajectory_file, tmp_number_of_system_atoms, &step_number, &time, &lambda, box, NULL, velocity, NULL);
             
             if (!is_file_read) {
+                cerr << "\n";
                 cerr << "ERROR: Failed to read trajectory" << endl;
                 cerr << "     : Please check the total number of frames in your trajectory first\n" << endl;
                 exit(1);
@@ -478,12 +503,14 @@ void Trajectory::read_trr_file()
             
             save_frame(i_frame, time, box, velocity);
             
-            if (i_frame % 50 == 0) {
-                cout << "\r" << i_frame << " frames read";
-                cout.flush();
+            if (is_run_mode_verbose_) {
+                if ((i_frame + 1) % frame_gap_to_report == 0) {
+                    cout << "\r" << (i_frame + 1) << " frames read";
+                    cout.flush();
+                }
             }
 		}
-        cout << endl;
+        cout << "\r" << (end_frame_ - start_frame_) << " frames read";
         cout.flush();
         delete [] velocity;
 	}
@@ -494,6 +521,7 @@ void Trajectory::read_trr_file()
 			bool is_file_read = !read_trr(trajectory_file, tmp_number_of_system_atoms, &step_number, &time, &lambda, box, NULL, NULL, force);
 
             if (!is_file_read) {
+                cerr << "\n";
                 cerr << "ERROR: Failed to read trajectory" << endl;
                 cerr << "     : Please check the total number of frames in your trajectory first\n" << endl;
                 exit(1);
@@ -501,16 +529,19 @@ void Trajectory::read_trr_file()
             
             save_frame(i_frame, time, box, force);
             
-            if (i_frame % 50 == 0) {
-                cout << "\r" << i_frame << " frames read";
-                cout.flush();
+            if (is_run_mode_verbose_) {
+                if ((i_frame + 1) % frame_gap_to_report == 0) {
+                    cout << "\r" << (i_frame + 1) << " frames read";
+                    cout.flush();
+                }
             }
 		}
-        cout << endl;
+        cout << "\r" << (end_frame_ - start_frame_) << " frames read";
         cout.flush();
         delete [] force;
     }
     else {
+        cerr << "\n";
         cerr << "ERROR: Use of unrecognized trajectory data type: ";
         cerr << "\033[1;25m";
         cerr << trajectory_data_type_;
@@ -518,8 +549,9 @@ void Trajectory::read_trr_file()
         cerr << "     : please check input file\n" << endl;
         exit(1);
     }
-    
-	// normalize averaged box lengths
+    cout << endl;
+	
+    // normalize averaged box lengths
 	for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
 		average_box_length_[i_dimension] /= end_frame_ - start_frame_;
 	}
@@ -541,7 +573,6 @@ void Trajectory::read_vasp_file()
         cerr << "ERROR: VASP trajectory only contains coordinates.";
         exit(1);
     }
-
     
     ifstream trajectory_file(trajectory_file_name_);
     if (!trajectory_file) {
@@ -615,8 +646,14 @@ void Trajectory::read_vasp_file()
         }
     }
     
+    // report reading progress every 5 percent read
+    unsigned int frame_gap_to_report = static_cast<unsigned int>(0.05 * (end_frame_ - start_frame_));
+    if (frame_gap_to_report < 1) {
+        frame_gap_to_report = 1;
+    }
+    
     // read frames from start_frame_ to end_frame_
-    for (size_t i_frame = 0; i_frame < end_frame_-start_frame_; ++i_frame) {
+    for (size_t i_frame = 0; i_frame < end_frame_ - start_frame_; ++i_frame) {
         getline(trajectory_file, read_word);
         for (size_t i_atom = 0; i_atom < number_of_system_atoms_; ++i_atom) {
             for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
@@ -625,12 +662,17 @@ void Trajectory::read_vasp_file()
             }
         }
         getline(trajectory_file, read_word);
-        if (i_frame % 50 == 0) {
-            cout << "\r" << i_frame << " frames read";
+        
+        if (is_run_mode_verbose_) {
+            if ((i_frame + 1) % frame_gap_to_report == 0) {
+                cout << "\r" << (i_frame + 1) << " frames read";
+                cout.flush();
+            }
         }
     }
-    cout << endl;
+    cout << "\r" << (end_frame_ - start_frame_) << " frames read";
     cout.flush();
+    cout << endl;
     
     trajectory_file.close();
 }
@@ -753,7 +795,7 @@ void Trajectory::read_dump_file()
                     trajectory_file >> atom_number_index >> tmp_atom_type_variable;
                 }
                 for (size_t dimension_index = 0; dimension_index < dimension_; ++dimension_index) {
-                    trajectory_file >> trajectory_[i_frame][atom_number_index - 1][dimension_index];
+                    trajectory_file >> trajectory_[i_frame - start_frame_][atom_number_index - 1][dimension_index];
                 }
             }
         }
@@ -768,7 +810,7 @@ void Trajectory::read_dump_file()
                 }
                 for (size_t dimension_index = 0; dimension_index < dimension_; ++dimension_index) {
                     trajectory_file >> trajectory_[i_frame][atom_number_index - 1][dimension_index];
-                    trajectory_[i_frame][atom_number_index - 1][dimension_index] *= box_length_[i_frame][dimension_index];
+                    trajectory_[i_frame - start_frame_][atom_number_index - 1][dimension_index] *= box_length_[i_frame][dimension_index];
                 }
             }
         }
@@ -776,7 +818,7 @@ void Trajectory::read_dump_file()
         getline(trajectory_file, line_stream);
         
         if (i_frame % 50 == 0) {
-            cout << "\r" << i_frame << " frames read";
+            cout << "\r" << (i_frame + 1) << " frames read";
             cout.flush();
         }
     }
