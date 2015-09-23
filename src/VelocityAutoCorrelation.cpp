@@ -272,6 +272,7 @@ void VelocityAutoCorrelation::compute_vacf_t()
         cerr << "Warning: Velocity data is not available or not provided." << endl;
         cerr << "       : Velocities will be computed from coordinate data by forward finite difference." << endl;
         compute_velocities();
+        end_frame_--;
         check_parameters();
     }
     

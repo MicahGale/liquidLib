@@ -36,7 +36,7 @@ PairDistributionFunction::PairDistributionFunction() :
 	atom_group_("system"),
 	atom_group2_(""),
 	number_of_bins_(200),
-	number_of_frames_to_average_(1),
+	number_of_frames_to_average_(0),
 	max_cutoff_length_(0.0)
 {
 }
@@ -397,6 +397,10 @@ void PairDistributionFunction::check_parameters() throw()
     if (number_of_frames_to_average_ > end_frame_ - start_frame_) {
         cerr << "WARNING: Not enough frames to average" << endl;
         cerr << "       : Reset the number of frames to average to the total number of frames available";
+        number_of_frames_to_average_ = end_frame_ - start_frame_;
+    }
+    
+    if (number_of_frames_to_average_ == 0) {
         number_of_frames_to_average_ = end_frame_ - start_frame_;
     }
     
