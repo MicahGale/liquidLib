@@ -180,7 +180,7 @@ void StructureFactor::read_input_file()
 #else
 		if (input_word == "gro_file_name") {
 			cerr << "ERROR: gro files cannot be used in non gromacs";
-			cerr << "compatible version of LiquidLib\n";
+			cerr << "     : compatible version of LiquidLib\n";
 			cerr << endl;
 		}
 #endif
@@ -476,7 +476,7 @@ void StructureFactor::check_parameters() throw()
     if (number_of_frames_to_average_ == 0 && end_frame_ == 0) {
         cerr << "\n";
         cerr << "ERROR: Either 'number_of_frames_to_average' or 'end_frame' is not specified in input file.\n";
-        cerr << "       Not enough information to read trajectory" << endl;
+        cerr << "     : Not enough information to read trajectory" << endl;
         exit(1);
     }
     
@@ -484,7 +484,7 @@ void StructureFactor::check_parameters() throw()
     if (number_of_frames_to_average_ > 0 && end_frame_ > 0) {
         cerr << "\n";
         cerr << "WARNING: Both 'end_frame' and 'number_of_frames_to_average' values set in input file.\n";
-        cerr << "         'number_of_frames_to_average' is used for reading necessary frames and for computation.";
+        cerr << "       : 'number_of_frames_to_average' is used for reading necessary frames and for computation.";
         cerr << endl;
         end_frame_ = start_frame_ + number_of_frames_to_average_;
     }
@@ -502,7 +502,7 @@ void StructureFactor::check_parameters() throw()
     if (user_atom_types_.empty() || scattering_lengths_.empty()) {
         cerr << "\n";
         cerr << "ERROR: No atom types and scattering lengths specified.\n";
-        cerr << "       Computation cannot proceed.\n";
+        cerr << "     : Computation cannot proceed.\n";
         cerr << endl;
         exit(1);
     }
@@ -510,7 +510,7 @@ void StructureFactor::check_parameters() throw()
     if (method_of_k_sampling_ != "gaussian" && method_of_k_sampling_ != "uniform") {
         cerr << "\n";
         cerr << "ERROR: Unrecognized sampling method for wavevector transfer k" << endl;
-        cerr << "        Optional methods are \"gaussian\", or \"uniform\".\n" << endl;
+        cerr << "     : Optional methods are \"gaussian\", or \"uniform\".\n" << endl;
         exit(1);
     }
     

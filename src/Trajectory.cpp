@@ -589,13 +589,15 @@ void Trajectory::read_vasp_file()
     getline(trajectory_file, read_word);
     getline(trajectory_file, read_word);
     
-    vector< double > temp_average_box_length_ (dimension_, 0.0);
+    double scaling_factor = stod(read_word);
+    
+    vector< double > temp_average_box_length (dimension_, 0.0);
     
     for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
         for (size_t lines_to_read = 0; lines_to_read <= i_dimension; ++lines_to_read) {
             trajectory_file >> read_word;
         }
-        temp_average_box_length_[i_dimension] = stod(read_word);
+        temp_average_box_length[i_dimension] = stod(read_word)*scaling_factor;
         getline(trajectory_file, read_word);
     }
     
@@ -626,10 +628,10 @@ void Trajectory::read_vasp_file()
         }
     }
     
-    // resize _trajectory, box_length_, average_box_length_
+    // resize trajectory_, box_length_, average_box_length_
     allocate_memory();
     
-    average_box_length_ = temp_average_box_length_;
+    average_box_length_ = temp_average_box_length;
     
 #pragma omp parallel for
     for (size_t i_frame = 0; i_frame < end_frame_ - start_frame_; ++i_frame) {
@@ -651,14 +653,25 @@ void Trajectory::read_vasp_file()
     if (frame_gap_to_report < 1) {
         frame_gap_to_report = 1;
     }
+
+    bool is_direct_coord = false;
     
     // read frames from start_frame_ to end_frame_
     for (size_t i_frame = 0; i_frame < end_frame_ - start_frame_; ++i_frame) {
         getline(trajectory_file, read_word);
+        is_direct_coord = false;
+        if (read_word[0] == 'D' || read_word[0] == 'd') {
+            is_direct_coord = true;
+        }
         for (size_t i_atom = 0; i_atom < number_of_system_atoms_; ++i_atom) {
             for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
                 trajectory_file >> read_word;
-                trajectory_[i_frame][i_atom][i_dimension] = stod(read_word);
+                if (is_direct_coord) {
+                    trajectory_[i_frame][i_atom][i_dimension] = stod(read_word)*average_box_length_[i_dimension];
+                }
+                else {
+                    trajectory_[i_frame][i_atom][i_dimension] = stod(read_word);
+                }
             }
         }
         getline(trajectory_file, read_word);
