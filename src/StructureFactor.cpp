@@ -39,7 +39,7 @@ StructureFactor::StructureFactor() :
     number_of_bins_(50),
     k_start_index_(0),
     number_of_k_vectors_(50),
-	number_of_frames_to_average_(1)
+	number_of_frames_to_average_(0)
 {
 }
 
@@ -445,12 +445,11 @@ void StructureFactor::check_parameters() throw()
         end_frame_ = number_of_frames_to_average_;
     }
     
-    if (number_of_frames_to_average_ == 1 && end_frame_ == 0) {
-        cerr << "WARNING: frameend and number_of_frames_to_average\n";
-        cerr << "         values not set in input file.\n";
-        cerr << "         1 frame average will be done.";
+    if (number_of_frames_to_average_ == 0 && end_frame_ == 0) {
+        cerr << "ERROR: frameend and number_of_frames_to_average\n";
+        cerr << "     : values not set in input file.\n";
         cerr << endl;
-        end_frame_ = 1;
+        exit(1);
     }
     
     if (number_of_frames_to_average_ > 1 && end_frame_ > 0) {
@@ -458,10 +457,10 @@ void StructureFactor::check_parameters() throw()
         cerr << "         values set in input file.\n";
         cerr << "         'number_of_frames_to_average' will be used.";
         cerr << endl;
-        end_frame_ = number_of_frames_to_average_ - 1;
+        end_frame_ = number_of_frames_to_average_;
     }
     
-    if (number_of_frames_to_average_ == 1 && end_frame_ > 0) {
+    if (number_of_frames_to_average_ == 0 && end_frame_ > 0) {
         cerr << "WARNING: number_of_frames_to_average not defined\n";
         cerr << "         in input file.\n";
         cerr << "         Value will not be set to 'frameend' - 'framestart'.";
