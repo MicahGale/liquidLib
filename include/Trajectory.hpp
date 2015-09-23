@@ -40,7 +40,7 @@ protected:
                       string const & atom_group_to_select = "system");
     
 // protected variables
-    bool is_run_mode_verbose_;                // run program in a verbose mdoe or not
+    bool is_run_mode_verbose_;                // sets if run output should be verbose
     bool is_wrapped_;
     
     unsigned int start_frame_;

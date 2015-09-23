@@ -491,13 +491,11 @@ void StructureFactor::check_parameters() throw()
     
     // number_of_frames_to_average doesn't exist
     if (number_of_frames_to_average_ == 0) {
-        cout << "\n'number_of_frames_to_average = end_frame - start_frame' is set for reading and computation." << endl;
         number_of_frames_to_average_ = end_frame_ - start_frame_;
     }
     
     // end_frame doesn't exist
     if (end_frame_ == 0) {
-        cout << "\n'end_frame = start_frame + number_of_frames_to_average' is set for reading and computation." << endl;
         end_frame_ = start_frame_ + number_of_frames_to_average_;
     }
     

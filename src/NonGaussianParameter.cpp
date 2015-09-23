@@ -31,7 +31,6 @@ using namespace std;
 NonGaussianParameter::NonGaussianParameter()
 {
     input_file_name_ = "alpha2_t.in";
-    output_file_name_ = "alpha2_t.txt";
 }
 
 

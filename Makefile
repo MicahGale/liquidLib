@@ -37,13 +37,13 @@ BASE_OBJECTS=./src/Trajectory.o ./src/MeanSquaredDisplacement.o
 
 ## Uncomment following lines for gromacs version
 #
-CCFLAGS:=$(CCFLAGS) -DGROMACS
+#CCFLAGS:=$(CCFLAGS) -DGROMACS
 #
 # add directory with libxdrfile.a in it, for an example the following lines are what we
 # used for a directory structure
 #
-CCFLAGS:=$(CCFLAGS) -I./xdrfileinclude/
-MAINFLAGS:=$(MAINFLAGS) -lxdrfile -L./xdrfilelib/
+#CCFLAGS:=$(CCFLAGS) -I./xdrfileinclude/
+#MAINFLAGS:=$(MAINFLAGS) -lxdrfile -L./xdrfilelib/
 #
 ##
 
