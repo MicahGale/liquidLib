@@ -209,7 +209,7 @@ void FourPointCorrelation::read_input_file()
             continue;
         }
         if (input_word == "output_file_name") {
-            if (output_file_name_ != "chi4_t.in") {
+            if (output_file_name_ != "chi4_t.txt") {
                 cerr << "ERROR: Please do not set output file by command line and input file,\n";
                 cerr << "     : we are unsure on which to prioritize.";
                 cerr << endl;
@@ -313,8 +313,13 @@ void FourPointCorrelation::compute_chi4_t()
     
     vector< unsigned int > atom_type_indexes;
     select_atoms(atom_type_indexes, atom_type_, atom_group_);
-    
-    double const normalization_factor = 1.0/(atom_type_indexes.size() * atom_type_indexes.size() * number_of_frames_to_average_);
+
+    // Normalization factor
+    double const normalization_factor = 1.0/(atom_type_indexes.size() * number_of_frames_to_average_);
+    double system_volume = 1.0;
+    for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+        system_volume *= average_box_length_[i_dimension];
+    }
     
     cout << setiosflags(ios::fixed);
     cout << setprecision(4);
@@ -326,23 +331,29 @@ void FourPointCorrelation::compute_chi4_t()
 #pragma omp parallel for
     for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
         double q_self = 0.0;
+        double q_self2 = 0.0;
         for (size_t initial_frame = 0; initial_frame <  number_of_frames_to_average_; ++initial_frame) {
             size_t current_frame = initial_frame + time_array_indexes_[time_point];
+            double q_self_tmp = 0.0;
             for (size_t i_atom = 0; i_atom < atom_type_indexes.size(); ++i_atom) {
                 size_t atom_index = atom_type_indexes[i_atom];
                 double r_squared = 0.0;
                 for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
                     double delta_r = trajectory_[current_frame][atom_index][i_dimension] - trajectory_[initial_frame][atom_index][i_dimension];
                     r_squared += delta_r * delta_r;
-                    }
+                }
                 if (sqrt(r_squared) <= overlap_length_) {
-                    q_self += 1.0;
+                    q_self_tmp += 1.0;
                 }
             }
+            q_self += q_self_tmp;
+            q_self2 += q_self_tmp * q_self_tmp;
         }
-        chi4_t_[time_point][0] += q_self * normalization_factor;
-        chi4_t_[time_point][1] += q_self * q_self * normalization_factor / number_of_frames_to_average_;
         
+        // Normalization
+        chi4_t_[time_point][0] = q_self * normalization_factor;
+        chi4_t_[time_point][1] = system_volume * (q_self2 * normalization_factor / atom_type_indexes.size() - chi4_t_[time_point][0] * chi4_t_[time_point][0]);
+
         if (is_run_mode_verbose_) {
 #pragma omp critical
             {
@@ -380,22 +391,10 @@ void FourPointCorrelation::write_chi4_t()
     output_chi4_t_file << "#using " << time_scale_type_ << "scale\n";
     output_chi4_t_file << "#time        q_self_t        chi4_t \n";
     
-    //Compute volume for normalization
-    double system_volume = 1.0;
-    for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-        system_volume *= average_box_length_[i_dimension];
-    }
-    
-    vector< unsigned int > atom_type_indexes;
-    select_atoms(atom_type_indexes, atom_type_, atom_group_);
-    
     for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
-        double q_self  = chi4_t_[time_point][0];
-        double q_self2 = chi4_t_[time_point][1];
-        double chi4 = system_volume * ( q_self2 - q_self * q_self * atom_type_indexes.size() * atom_type_indexes.size() );
         output_chi4_t_file << time_array_indexes_[time_point] * trajectory_delta_time_ << "        ";
-        output_chi4_t_file << q_self << "        ";
-        output_chi4_t_file << chi4 << "\n";
+        output_chi4_t_file << chi4_t_[time_point][0] << "        ";
+        output_chi4_t_file << chi4_t_[time_point][1] << "\n";
     }
     
     output_chi4_t_file.close();
