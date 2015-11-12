@@ -26,6 +26,7 @@
 *.exe
 *.out
 *.app
+*/depends.mk
 
 # emacs temporary files
 *~

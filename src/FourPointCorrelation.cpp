@@ -87,6 +87,7 @@ void FourPointCorrelation::read_input_file()
         exit(1);
     }
     
+    
     string input_word;
     
     while (input_file >> input_word) {
