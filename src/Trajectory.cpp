@@ -234,13 +234,13 @@ void Trajectory::compute_velocities()
 void Trajectory::select_atoms(vector< unsigned int > & selected_atom_indexes, string const & atom_type_to_select, string const & atom_group_to_select)
 {
     //check if selected_atom_indexes are empty, otherwise using push_back later may cause problem
-    if (selected_atom_indexes.empty()) {
+    if (!selected_atom_indexes.empty()) {
         selected_atom_indexes.clear();
     }
     for (unsigned int i_atom = 0; i_atom < atom_types_.size(); ++i_atom) {
         // compare atom types using strings of equal length
         // this helps distringuish atoms at different levels, e.g., H vs HW vs HW1,HW2
-        if ( atom_types_[i_atom].compare(0, atom_type_to_select.size(), atom_type_to_select) == 0 || atom_type_to_select == "all") {
+        if (atom_types_[i_atom].compare(0, atom_type_to_select.size(), atom_type_to_select) == 0 || atom_type_to_select == "all") {
             if (atom_group_to_select == "system") {
                 selected_atom_indexes.push_back(i_atom);
                 continue;

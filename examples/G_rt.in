@@ -1,0 +1,32 @@
+# This is a parse file for computing G_rt
+# G_rt code requires unwrapped trajectories.
+
+# program run mode
+is_run_mode_verbose         = yes
+
+# input & output
+trajectory_file_name        = ../../trajFiles/md.trr
+is_wrapped                  = yes
+gro_file_name               = ../../trajFiles/md.gro
+output_file_name            = G_rt.txt
+
+# atomtype in atomgroup
+atom_group                  = system
+atom_types                  = OW
+scattering_lengths          = 1.0
+
+# reading parameters
+dimension                   = 3
+start_frame                 = 0
+end_frame                   = 4000
+
+# time parameters
+time_scale_type             = log
+frame_interval              = 2
+number_of_time_points       = 5
+number_of_frames_to_average = 500
+#trajectory_delta_time	    = 0.02
+
+# distance parameters
+max_cutoff_length           = 1.2
+number_of_bins              = 400

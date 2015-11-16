@@ -25,7 +25,7 @@ MAINFLAGS =
 
 # Set to “yes” if OpenMP or xdrfile library should be used
 USE_OMP    = no
-USE_XDRLIB = no
+USE_XDRLIB = yes
 
 ## Include OpenMP headers and flags
 ifeq ($(USE_OMP), yes)
