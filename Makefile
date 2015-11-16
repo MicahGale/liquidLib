@@ -1,5 +1,29 @@
 SHELL=/bin/bash
 
+##########################
+## USER OPTION SETTINGS ##
+##########################
+# Set to “yes” if OpenMP or xdrfile library should be used
+USE_OMP    = no
+USE_XDRLIB = yes
+
+# Locations of the xdrfile library if USE_XDRLIB is yes
+ifeq ($(USE_XDRLIB), yes)
+	XDRHEAD = ./xdrfileinclude/
+	XDRLIB  = ./xdrfilelib/
+endif
+
+######################
+## END USER OPTIONS ##
+######################
+
+
+#######################
+## DEVELOPER OPTIONS ##
+#######################
+# These sections do not need to be edited, 
+# unless you wish to change compiler options
+
 # Set important directories
 SRC     = ./src
 INCLUDE = ./include
@@ -23,10 +47,6 @@ MAINFLAGS =
 ## OPTIONAL COMPONENTS ##
 #########################
 
-# Set to “yes” if OpenMP or xdrfile library should be used
-USE_OMP    = no
-USE_XDRLIB = yes
-
 ## Include OpenMP headers and flags
 ifeq ($(USE_OMP), yes)
 	CXXFLAGS  := $(CXXFLAGS) -DOMP -fopenmp
@@ -41,8 +61,8 @@ ifeq ($(USE_XDRLIB), yes)
 	# add directory with libxdrfile.a in it, for an example we placed the header files in 
 	# “./xdrfileinclude” and the library file in “./xdrfilelib”
 	#
-	CXXFLAGS  := $(CXXFLAGS) -I./xdrfileinclude/
-	MAINFLAGS := $(MAINFLAGS) -lxdrfile -L./xdrfilelib/
+	CXXFLAGS  := $(CXXFLAGS) -I$(XDRHEAD)
+	MAINFLAGS := $(MAINFLAGS) -lxdrfile -L$(XDRLIB)
 endif
 ##
 

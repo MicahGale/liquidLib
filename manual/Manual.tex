@@ -63,13 +63,13 @@ $ make
 This will create a directory /liquidlib/bin/ with all of the executables contained within it.
 \\
 \\
-To make a GROMACS compatible build, open Makefile and in the optional components section change "USE_XDRLIB" to "yes".  This will add the apporpriate flags for \textit{LiquidLib} to be built to read .xtc and .trr trajectory files.  Follow the instructions in Makefile for linking the xdrfile headers. To make a build that can read trajectories that are dumped as .trr or .xtc binary files, such as GROMACS does, or .xtc for LAMMPS.  In order to read these file types, LiquidLib relies on the open source library libxdrfile.  The source code can be downloaded from the GROMACS website or the following link: \url{ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.1.tar.gz} Newer versions of the xdfile library should be compatible with LiquidLib, however, we recommend 1.1.1 as this is the version used for testing purposes.
+To make a GROMACS compatible build, open Makefile and in the optional components section change "USE$\_$XDRLIB" to "yes".  This will add the apporpriate flags for \textit{LiquidLib} to be built to read .xtc and .trr trajectory files.  Follow the instructions in Makefile for linking the xdrfile headers. To make a build that can read trajectories that are dumped as .trr or .xtc binary files, such as GROMACS does, or .xtc for LAMMPS.  In order to read these file types, LiquidLib relies on the open source library libxdrfile.  The source code can be downloaded from the GROMACS website or the following link: \url{ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.1.tar.gz} Newer versions of the xdfile library should be compatible with LiquidLib, however, we recommend 1.1.1 as this is the version used for testing purposes.
 \\
 \\
 Once libxdrfile.a and xdrfile.h, xdrfile$\_$trr.h, and xdrfile$\_$xtc.h have been installed, open the \textit{LiquidLib} Makefile, and edit the lines contained in the comment section for the GROMACS build.  For compiling, the libxdrfile.a and xdrfile.h, xdrfile$\_$trr.h, and xdrfile$\_$xtc.h headers can be placed inside of the \textit{LiquidLib} include directory, or you can specify the location inside of the Makefile.  Recompile LiquidLib and the binaries should be compatible with GROMACS.
 \\
 \\
-To build parallelized OpenMP support, open Makefile in a text editor and in the optional compoents section change "USE_OMP" to "yes.  This will add the apporpriate flags for \textit{LiquidLib} to be built with OpenMP support included.  Then recompile.
+To build parallelized OpenMP support, open Makefile in a text editor and in the optional compoents section change "USE$\_$OMP" to "yes.  This will add the apporpriate flags for \textit{LiquidLib} to be built with OpenMP support included.  Then recompile.
 
 
 \section{Description of Quantities}
