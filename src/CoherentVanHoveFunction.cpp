@@ -23,7 +23,7 @@
 #include <vector>
 #include <iomanip>
 #include <cstring>
-#include <algorithm>
+#include <algorithm>  // can someone tell us what this header is for?
 #include <sstream>
 
 #include "Trajectory.hpp"
@@ -35,8 +35,8 @@ CoherentVanHoveFunction::CoherentVanHoveFunction() :
 	output_file_name_("G_rt.txt"),
 	time_scale_type_("linear"),
 	atom_group_("system"),
-    user_atom_types_({"all"}),
-    scattering_lengths_({1.0}),
+    selected_atom_types_({}),
+    scattering_lengths_({}),
 	number_of_bins_(200),
 	number_of_time_points_(0),
 	number_of_frames_to_average_(1),
@@ -191,42 +191,28 @@ void CoherentVanHoveFunction::read_input_file()
 		if (input_word == "atom_types") {
             getline(input_file, input_word);
             stringstream input_line(input_word);
-            input_line >> input_word;
-            if (input_word[0] == '=') {
-                input_line >> input_word;
-            }
-            if (input_word[0] != '#') {
-                user_atom_types_.pop_back();        // remove default "all" if atom_types provided by user
-            }
-            while (input_word.find("#") == string::npos) {
-                user_atom_types_.push_back(input_word);
-                if (!input_line.eof()) {
+            while (input_line >> input_word) {
+                if (input_word[0] == '=') {
                     input_line >> input_word;
                 }
-                else {
+                if (input_word[0] == '#') {
                     break;
                 }
+                selected_atom_types_.push_back(input_word);
             }
             continue;
 		}
         if (input_word == "scattering_lengths") {
             getline(input_file, input_word);
             stringstream input_line(input_word);
-            input_line >> input_word;
-            if (input_word[0] == '=') {
-                input_line >> input_word;
-            }
-            if (input_word[0] != '#') {
-                scattering_lengths_.pop_back();     // remove default "1.0" if scattering_lengths provided by user
-            }
-            while (input_word.find("#") == string::npos) {
-                scattering_lengths_.push_back(stod(input_word));
-                if (!input_line.eof()) {
+            while (input_line >> input_word) {
+                if (input_word[0] == '=') {
                     input_line >> input_word;
                 }
-                else {
+                if (input_word[0] == '#') {
                     break;
                 }
+                scattering_lengths_.push_back(stod(input_word));
             }
             continue;
         }
@@ -355,19 +341,33 @@ void CoherentVanHoveFunction::compute_G_rt()
     // Form a array of time index values for a given type of timescale computation
     compute_time_array();
     
-    // select the indexes of user_atom_types in atom_group_ & compute average scattering length
-    vector < unsigned int > selected_atom_indexes;
-    vector < double > selected_atom_scattering_lengths;
-    vector < unsigned int > indexes_of_one_atom_type;
+    // select the indexes of selected_atom_types_ in atom_group_ & compute average scattering length
     double average_scattering_length = 0.0;
-    for (size_t i_atom_type = 0; i_atom_type < user_atom_types_.size(); ++i_atom_type) {
+    vector < unsigned int > selected_atom_indexes;
+    vector < double >       selected_atom_scattering_lengths;
+    vector < unsigned int > indexes_of_one_atom_type;
+    for (size_t i_atom_type = 0; i_atom_type < selected_atom_types_.size(); ++i_atom_type) {
         indexes_of_one_atom_type.clear();
-        select_atoms(indexes_of_one_atom_type, user_atom_types_[i_atom_type], atom_group_);
+        select_atoms(indexes_of_one_atom_type, selected_atom_types_[i_atom_type], atom_group_);
         selected_atom_indexes.insert(selected_atom_indexes.end(), indexes_of_one_atom_type.begin(), indexes_of_one_atom_type.end());
-        selected_atom_scattering_lengths.insert(selected_atom_scattering_lengths.end(), indexes_of_one_atom_type.size(), scattering_lengths_[i_atom_type]);
-        average_scattering_length += indexes_of_one_atom_type.size() * scattering_lengths_[i_atom_type];
+        
+        // Generate selected_atom_scattering_lengths
+        if (scattering_lengths_.size() == 0) {
+            selected_atom_scattering_lengths.insert(selected_atom_scattering_lengths.end(), indexes_of_one_atom_type.size(), 1.0);
+        }
+        else {
+            selected_atom_scattering_lengths.insert(selected_atom_scattering_lengths.end(), indexes_of_one_atom_type.size(), scattering_lengths_[i_atom_type]);
+            average_scattering_length += indexes_of_one_atom_type.size() * scattering_lengths_[i_atom_type];
+        }
     }
-    average_scattering_length /= selected_atom_indexes.size();
+    
+    // normalize the average scattering length
+    if (scattering_lengths_.size() == 0) {
+        average_scattering_length = 1.0;
+    }
+    else {
+        average_scattering_length /= selected_atom_indexes.size();
+    }
     
     // check max_cutoff_length < box_length_/2.0
     double min_box_length = average_box_length_[0];
@@ -392,7 +392,7 @@ void CoherentVanHoveFunction::compute_G_rt()
     
 	// Perform time averaging for G_rt_
 #pragma omp parallel for
-	for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {	// shift 1 to retain a row for Gs(r, t = 0)
+	for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {	// shift 1 to retain a row for G(r, t = 0)
 		for (size_t initial_frame = 0; initial_frame < number_of_frames_to_average_; ++initial_frame) {
 			size_t current_frame = initial_frame + time_array_indexes_[time_point];
 			for (size_t i_atom1 = 0; i_atom1 < selected_atom_indexes.size(); ++i_atom1) {
@@ -402,9 +402,11 @@ void CoherentVanHoveFunction::compute_G_rt()
                     double total_distance = 0.0;
                     for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
                         double scaling_box_length = box_length_[initial_frame][i_dimension];
+                        
                         // first initial real distance between two atoms
                         double delta_x = trajectory_[initial_frame][atom1_index][i_dimension] - trajectory_[initial_frame][atom2_index][i_dimension];
                         delta_x -= scaling_box_length * round(delta_x / scaling_box_length);
+                        
                         // then add displacement of atom1 during this time interval
                         delta_x += trajectory_[current_frame][atom1_index][i_dimension] - trajectory_[initial_frame][atom1_index][i_dimension];
                         total_distance += delta_x * delta_x;
@@ -469,20 +471,10 @@ void CoherentVanHoveFunction::write_G_rt()
     
 	ofstream output_Grt_file(output_file_name_);
 	
-	if (!output_Grt_file) {
-		cerr << "ERROR: Output file for coherent van Hove function: "
-			 << "\033[1;25m"
-			 << output_file_name_
-			 << "\033[0m"
-			 << ", could not be opened"
-			 << endl;
-		exit(1);
-	}
-	
 	output_Grt_file << "# Coherent van Hove function for atom types: \n";
-    output_Grt_file << "{ ";
-    for (size_t i_atom_type = 0; i_atom_type < user_atom_types_.size(); ++i_atom_type) {
-        output_Grt_file << user_atom_types_[i_atom_type] << " ";
+    output_Grt_file << "# { ";
+    for (size_t i_atom_type = 0; i_atom_type < selected_atom_types_.size(); ++i_atom_type) {
+        output_Grt_file << selected_atom_types_[i_atom_type] << " ";
     }
     output_Grt_file << "}";
 	output_Grt_file << " in " << atom_group_ << endl;
@@ -555,21 +547,41 @@ void CoherentVanHoveFunction::check_parameters() throw()
         }
 	}
     else {
-        cerr << "ERROR: Illegal time scale specified. Must be one of (linear/log)\n" << endl;
+        cerr << "ERROR: Illegal time scale specified. Must be one of (linear/log)\n";
+        cerr << endl;
         exit(1);
     }
 	
 	if (is_wrapped_) {
 		cerr << "WARNING: the trajectory provided is not unwrapped\n";
 		cerr << "       : We will unwrapp it for you, but user discretion\n";
-		cerr << "       : is advised";
+		cerr << "       : is advised\n";
 		cerr << endl;
 	}
     
     if (scattering_lengths_.empty()) {
         cout << "Scattering lengths of atoms are not provided.\n";
-        cout << "This calculation will not be weighted by scattering length." << endl;
+        cout << "  This calculation will not be weighted by scattering length.\n";
+        cout << endl;
     }
+    else if (scattering_lengths_.size() != selected_atom_types_.size() ) {
+        cerr << "ERROR: Number of scattering lengths must match the number of atom types provided.\n";
+        cerr << "     : Cannot proceed with computation\n";
+        cerr << endl;
+        exit(1);
+    }
+    
+    ofstream output_Grt_file(output_file_name_);
+    if (!output_Grt_file) {
+        cerr << "ERROR: Output file for coherent van Hove function: "
+        << "\033[1;25m"
+        << output_file_name_
+        << "\033[0m"
+        << ", could not be opened"
+        << endl;
+        exit(1);
+    }
+    output_Grt_file.close();
 }
 
 

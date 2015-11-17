@@ -8,12 +8,12 @@ is_run_mode_verbose         = yes
 trajectory_file_name        = ../../trajFiles/md.trr
 is_wrapped                  = yes
 gro_file_name               = ../../trajFiles/md.gro
-output_file_name            = G_rt.txt
+output_file_name            = ./fake_directory/G_rt.txt
 
 # atomtype in atomgroup
 atom_group                  = system
-atom_types                  = OW
-scattering_lengths          = 1.0
+atom_types                  = OW HW #ZW
+scattering_lengths          = 1.0 1.0
 
 # reading parameters
 dimension                   = 3
