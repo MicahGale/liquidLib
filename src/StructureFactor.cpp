@@ -39,7 +39,9 @@ StructureFactor::StructureFactor() :
     number_of_bins_(50),
     k_start_index_(0),
     number_of_k_vectors_(50),
-	number_of_frames_to_average_(0)
+	number_of_frames_to_average_(0),
+    atom_types_({}),
+    scattering_lengths_({})
 {
 }
 
@@ -202,21 +204,34 @@ void StructureFactor::read_input_file()
         }
         
         // Read scattering lengths provided by user
-		if (input_word == "scattering_lengths") {
+        if (input_word == "atom_types") {
             getline(input_file, input_word);
             stringstream input_line(input_word);
-            input_line >> input_word;
-            if (input_word[0] == '=') {
-                input_line >> input_word;
-            }
-            while (input_word.find("#") == string::npos && !input_line.eof()) {
-                user_atom_types_.push_back(input_word);
-                input_line >> input_word;
-                scattering_lengths_.push_back(stod(input_word));
-                input_line >> input_word;
+            while (input_line >> input_word) {
+                if (input_word[0] == '=') {
+                    input_line >> input_word;
+                }
+                if (input_word[0] == '#') {
+                    break;
+                }
+                atom_types_.push_back(input_word);
             }
             continue;
-		}
+        }
+        if (input_word == "scattering_lengths") {
+            getline(input_file, input_word);
+            stringstream input_line(input_word);
+            while (input_line >> input_word) {
+                if (input_word[0] == '=') {
+                    input_line >> input_word;
+                }
+                if (input_word[0] == '#') {
+                    break;
+                }
+                scattering_lengths_.push_back(stod(input_word));
+            }
+            continue;
+        }
         
         if (input_word == "method_of_k_sampling") {
             input_file >> input_word;
@@ -333,22 +348,18 @@ void StructureFactor::compute_S_k()
     }
     S_k_.resize(number_of_bins_, 0.0);
     
-    // Compute normalization factor
-    double average_scattering = 0.0;
-    unsigned int total_number_of_atoms = 0;
-    vector< vector< unsigned int > > atom_type_indexes(user_atom_types_.size());
-    for (size_t i_atom_type = 0; i_atom_type < user_atom_types_.size(); ++i_atom_type) {
-        select_atoms(atom_type_indexes[i_atom_type], user_atom_types_[i_atom_type], atom_group_);
-        average_scattering += scattering_lengths_[i_atom_type] * atom_type_indexes[i_atom_type].size();
-        total_number_of_atoms += atom_type_indexes[i_atom_type].size();
-    }
-    double normalization_factor = total_number_of_atoms / (number_of_frames_to_average_ * average_scattering * average_scattering * number_of_k_vectors_);
+    // select the indexes of atom_types_
+    size_t number_of_atoms;
+    double average_scattering_length = 0.0;
+    vector < vector< unsigned int > > atom_types_indexes(atom_types_.size());
+    
+    determine_atom_indexes(atom_types_indexes, average_scattering_length, number_of_atoms);
     
     // initialize random number generator
     random_device seed;
     generator_.seed(seed());
     
-    int status = 0;
+    size_t status = 0;
     cout << "Computing ..." << endl;
     
     // Perform frame averaging for S_k_
@@ -357,15 +368,16 @@ void StructureFactor::compute_S_k()
     vector < double > k_vector(dimension_, 0.0);
 
     for (size_t frame_number = 0; frame_number < number_of_frames_to_average_; ++frame_number) {
+#pragma omp barrier
 #pragma omp for
         for (size_t k_index = 0; k_index < number_of_bins_; ++k_index) {
             for (size_t i_k_vector = 0; i_k_vector < number_of_k_vectors_; ++i_k_vector) {
                 generate_k_vector(k_values_[k_index], k_vector);
                 double sum_cos_term = 0.0;
                 double sum_sin_term = 0.0;
-                for (size_t i_atom_type = 0; i_atom_type < user_atom_types_.size(); ++i_atom_type) {
-                    for (size_t i_atom = 0; i_atom < atom_type_indexes[i_atom_type].size(); ++i_atom) {
-                        size_t atom_index = atom_type_indexes[i_atom_type][i_atom];
+                for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+                    for (size_t i_atom = 0; i_atom < atom_types_indexes[i_atom_type].size(); ++i_atom) {
+                        size_t atom_index = atom_types_indexes[i_atom_type][i_atom];
                         double k_dot_r = 0.0;
                         for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
                             k_dot_r += k_vector[i_dimension] * trajectory_[frame_number][atom_index][i_dimension];
@@ -380,17 +392,13 @@ void StructureFactor::compute_S_k()
 
         if (is_run_mode_verbose_) {
 #pragma omp single
-            {
-                ++status;
-                cout << "\rcurrent progress of calculating structure factor is: ";
-                cout << static_cast< double >(status) * 100.0/number_of_frames_to_average_;
-                cout << " \%";
-                cout << flush;
-            }
+            print_status(status);
         }
-#pragma omp barrier
     }
 }
+    
+    double normalization_factor = 1.0 / (number_of_frames_to_average_ * number_of_atoms * number_of_k_vectors_);
+    normalization_factor /= ( average_scattering_length * average_scattering_length );
     
     for (size_t k_index = 0; k_index < number_of_bins_; ++k_index) {
         S_k_[k_index] *= normalization_factor;
@@ -404,26 +412,18 @@ void StructureFactor::write_S_k()
 {
 	ofstream output_Sk_file(output_file_name_);
 	
-	if (!output_Sk_file) {
-		cerr << "ERROR: Output file for structure factor: "
-			 << "\033[1;25m"
-			 << output_file_name_
-			 << "\033[0m"
-			 << ", could not be opened"
-			 << endl;
-		exit(1);
-	}
-	
-    output_Sk_file << setiosflags(ios::scientific) << setprecision(output_precision_);
-	output_Sk_file << "# Total structure factor for atom types: ";
-    for (size_t i_atom_type = 0; i_atom_type < user_atom_types_.size(); ++i_atom_type) {
-        output_Sk_file << user_atom_types_[i_atom_type];
+	output_Sk_file << "# Total structure factor for atom types: \n";
+    output_Sk_file << "# { ";
+    for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+        output_Sk_file << atom_types_[i_atom_type];
         output_Sk_file << "(" << scattering_lengths_[i_atom_type] << ")";
-        output_Sk_file << " , ";
+        output_Sk_file << " ";
     }
-	output_Sk_file << " in group: " << atom_group_ << ".\n";
+    output_Sk_file << "}";
+	output_Sk_file << "in " << atom_group_ << ".\n";
     output_Sk_file << "# k-values       S(k)  " << "\n";
     
+    output_Sk_file << setiosflags(ios::scientific) << setprecision(output_precision_);
     for (size_t k_index = 0; k_index < k_values_.size(); ++k_index) {
 		output_Sk_file << k_values_[k_index];
         output_Sk_file << "       ";
@@ -499,14 +499,6 @@ void StructureFactor::check_parameters() throw()
         end_frame_ = start_frame_ + number_of_frames_to_average_;
     }
     
-    if (user_atom_types_.empty() || scattering_lengths_.empty()) {
-        cerr << "\n";
-        cerr << "ERROR: No atom types and scattering lengths specified.\n";
-        cerr << "     : Computation cannot proceed.\n";
-        cerr << endl;
-        exit(1);
-    }
-    
     if (method_of_k_sampling_ != "gaussian" && method_of_k_sampling_ != "uniform") {
         cerr << "\n";
         cerr << "ERROR: Unrecognized sampling method for wavevector transfer k" << endl;
@@ -522,4 +514,76 @@ void StructureFactor::check_parameters() throw()
             exit(1);
         }
     }
+    
+    if (atom_types_.empty()) {
+        cerr << "ERROR: No atom types provided, nothing will be computed\n";
+        cerr << endl;
+        exit(1);
+    }
+    
+    // Check scattering lengths is correct
+    if (scattering_lengths_.empty()) {
+        cout << "Scattering lengths of atoms are not provided.\n";
+        cout << "  This calculation will not be weighted by scattering length.\n";
+        cout << endl;
+    }
+    else if (scattering_lengths_.size() != atom_types_.size() ) {
+        cerr << "ERROR: Number of scattering lengths must match the number of atom types provided.\n";
+        cerr << "     : Cannot proceed with computation\n";
+        cerr << endl;
+        exit(1);
+    }
+    
+    if (scattering_lengths_.empty()) {
+        scattering_lengths_ = vector< double > (atom_types_.size(), 1.0);
+    }
+    
+    // check output file can be opened
+    ofstream output_Sk_file(output_file_name_);
+    if (!output_Sk_file) {
+        cerr << "ERROR: Output file for structure factor: "
+        << "\033[1;25m"
+        << output_file_name_
+        << "\033[0m"
+        << ", could not be opened"
+        << endl;
+        exit(1);
+    }
+    output_Sk_file.close();
+}
+
+
+void StructureFactor::determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
+                                             double & average_scattering_length,
+                                             size_t & number_of_atoms)
+{
+    number_of_atoms = 0;
+    
+    for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+        select_atoms(atom_types_indexes[i_atom_type], atom_types_[i_atom_type], atom_group_);
+        
+        number_of_atoms += atom_types_indexes[i_atom_type].size();
+        // Generate average_scattering_length
+        if (scattering_lengths_.size() != 0) {
+            average_scattering_length += atom_types_indexes[i_atom_type].size() * scattering_lengths_[i_atom_type];
+        }
+    }
+    
+    // normalize the average scattering length
+    if (scattering_lengths_.size() == 0) {
+        average_scattering_length = 1.0;
+    }
+    else {
+        average_scattering_length /= number_of_atoms;
+    }
+}
+
+
+void StructureFactor::print_status(size_t & status)
+{
+    ++status;
+    cout << "\rcurrent progress of calculating the pair distribution function is: ";
+    cout << status * 100.0/number_of_frames_to_average_;
+    cout << " \%";
+    cout << flush;
 }

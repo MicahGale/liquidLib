@@ -32,6 +32,8 @@ public:
 protected:
     
 private:
+    inline void print_status(size_t & status);
+    
 //private variables
     vector< double > alpha2_t_;
 };

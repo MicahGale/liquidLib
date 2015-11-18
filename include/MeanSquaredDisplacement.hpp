@@ -33,6 +33,9 @@ protected:
 //protected member functions
     void check_parameters() throw();
     void compute_time_array();
+    void determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
+                                size_t & number_of_atoms);
+    inline void print_status(size_t & status);
     
 //protected variables
     unsigned int number_of_time_points_;
@@ -46,7 +49,7 @@ protected:
     string input_file_name_;
     string output_file_name_;
     string time_scale_type_;
-    string atom_type_;
+    vector < string > atom_types_;
     string atom_group_;
     
 private:

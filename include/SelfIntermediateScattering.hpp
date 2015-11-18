@@ -37,11 +37,16 @@ private:
     void check_parameters() throw();
     void compute_time_array();
     inline void generate_k_vector(double const & k_absolute_value, vector< double > & k_vector);
+    void determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
+                                double & average_scattering_length,
+                                size_t & number_of_atoms);
+    inline void print_status(size_t & status);
     
 // private member variables
     string input_file_name_;
     string output_file_name_;
-    string atom_type_;
+    vector < string > atom_types_;
+    vector < double > scattering_lengths_;
     string atom_group_;
 	string time_scale_type_;
     string method_of_k_sampling_;       // analytical, gaussian, ...

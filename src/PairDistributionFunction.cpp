@@ -342,24 +342,23 @@ void PairDistributionFunction::compute_g_r()
     bool same_atom_types = check_atom_types_equivalent();
     
 	// select the indexes of atom_types1_
+    size_t number_of_atoms1 = 0;
     double average_scattering_length1 = 0.0;
-	vector < unsigned int > atom_types1_indexes;
-    vector < double >       atom_types1_scattering_lengths;
+	vector < vector< unsigned int > > atom_types1_indexes(atom_types1_.size());
 
-    determine_atom_indexes(atom_types1_, scattering_lengths1_, atom_group1_, atom_types1_indexes, atom_types1_scattering_lengths, average_scattering_length1);
+    determine_atom_indexes(atom_types1_, scattering_lengths1_, atom_group1_, atom_types1_indexes, average_scattering_length1, number_of_atoms1);
     
     // select the indexes of atom_types2_
+    size_t number_of_atoms2 = 0;
     double average_scattering_length2 = 0.0;
-    vector < unsigned int > atom_types2_indexes;
-    vector < double >       atom_types2_scattering_lengths;
+    vector < vector< unsigned int > > atom_types2_indexes;
     
     if (same_atom_types) {
         average_scattering_length2      = average_scattering_length1;
         atom_types2_indexes             = atom_types1_indexes;
-        atom_types2_scattering_lengths  = atom_types1_scattering_lengths;
     }
     else {
-        determine_atom_indexes(atom_types2_, scattering_lengths2_, atom_group2_, atom_types2_indexes, atom_types2_scattering_lengths, average_scattering_length2);
+        determine_atom_indexes(atom_types2_, scattering_lengths2_, atom_group2_, atom_types2_indexes, average_scattering_length2, number_of_atoms2);
     }
     
 	// check max_cutoff_length < box_length_/2.0
@@ -386,23 +385,24 @@ void PairDistributionFunction::compute_g_r()
 	if (same_atom_types) {
 #pragma omp parallel for
 		for (size_t frame_number = 0; frame_number < number_of_frames_to_average_; ++frame_number) {
-			for (size_t i_atom1 = 0; i_atom1 < atom_types1_indexes.size(); ++i_atom1) {
-				for (size_t i_atom2 = i_atom1 + 1; i_atom2 < atom_types2_indexes.size(); ++i_atom2) {
-                    size_t atom1_index = atom_types1_indexes[i_atom1];
-                    size_t atom2_index = atom_types2_indexes[i_atom2];
-                    
-                    double scattering_length1 = atom_types1_scattering_lengths[i_atom1];
-                    double scattering_length2 = atom_types2_scattering_lengths[i_atom2];
-                    
-                    // only some trajectories provide molecule id's, this checks if molecule_id was created
-                    if (!molecule_id_.empty()) {
-                        if (molecule_id_[atom1_index] == molecule_id_[atom2_index]) {
-                            continue;
+            for (size_t i_atom_type1 = 0; i_atom_type1 < atom_types1_.size(); ++i_atom_type1) {
+                for (size_t i_atom1 = 0; i_atom1 < atom_types1_indexes[i_atom_type1].size(); ++i_atom1) {
+                    for (size_t i_atom_type2 = 0; i_atom_type2 < atom_types2_.size(); ++i_atom_type2) {
+                        for (size_t i_atom2 = i_atom1 + 1; i_atom2 < atom_types2_indexes[i_atom_type2].size(); ++i_atom2) {
+                            size_t atom1_index = atom_types1_indexes[i_atom_type1][i_atom1];
+                            size_t atom2_index = atom_types2_indexes[i_atom_type2][i_atom2];
+                            
+                            // only some trajectories provide molecule id's, this checks if molecule_id was created
+                            if (!molecule_id_.empty()) {
+                                if (molecule_id_[atom1_index] == molecule_id_[atom2_index]) {
+                                    continue;
+                                }
+                            }
+                            histogram_g_r(frame_number, atom1_index, atom2_index, i_atom_type1, i_atom_type2, delta_r);
                         }
                     }
-                    histogram_g_r(frame_number, atom1_index, atom2_index, scattering_length1, scattering_length2, delta_r);
-				}
-			}
+                }
+            }
             
             if (is_run_mode_verbose_) {
 #pragma omp atomic
@@ -413,21 +413,22 @@ void PairDistributionFunction::compute_g_r()
 	else {
 #pragma omp parallel for
         for (size_t frame_number = 0; frame_number < number_of_frames_to_average_; ++frame_number) {
-            for (size_t i_atom1 = 0; i_atom1 < atom_types1_indexes.size(); ++i_atom1) {
-                for (size_t i_atom2 = 0; i_atom2 < atom_types2_indexes.size(); ++i_atom2) {
-                    size_t atom1_index = atom_types1_indexes[i_atom1];
-                    size_t atom2_index = atom_types2_indexes[i_atom2];
-                    
-                    double scattering_length1 = atom_types1_scattering_lengths[i_atom1];
-                    double scattering_length2 = atom_types2_scattering_lengths[i_atom2];
-                    
-                    // only some trajectories provide molecule id's, this checks if molecule_id was created
-                    if (!molecule_id_.empty()) {
-                        if (molecule_id_[atom1_index] == molecule_id_[atom2_index]) {
-                            continue;
+            for (size_t i_atom_type1 = 0; i_atom_type1 < atom_types1_.size(); ++i_atom_type1) {
+                for (size_t i_atom1 = 0; i_atom1 < atom_types1_indexes[i_atom_type1].size(); ++i_atom1) {
+                    for (size_t i_atom_type2 = 0; i_atom_type2 < atom_types2_.size(); ++i_atom_type2) {
+                        for (size_t i_atom2 = 0; i_atom2 < atom_types2_indexes.size(); ++i_atom2) {
+                            size_t atom1_index = atom_types1_indexes[i_atom_type1][i_atom1];
+                            size_t atom2_index = atom_types2_indexes[i_atom_type2][i_atom2];
+                            
+                            // only some trajectories provide molecule id's, this checks if molecule_id was created
+                            if (!molecule_id_.empty()) {
+                                if (molecule_id_[atom1_index] == molecule_id_[atom2_index]) {
+                                    continue;
+                                }
+                            }
+                            histogram_g_r(frame_number, atom1_index, atom2_index, i_atom_type1, i_atom_type2, delta_r);
                         }
                     }
-                    histogram_g_r(frame_number, atom1_index, atom2_index, scattering_length1, scattering_length2, delta_r);
                 }
             }
             
@@ -445,7 +446,7 @@ void PairDistributionFunction::compute_g_r()
 		average_volume *= *i_boxlength;
 	}
 	
-    double density_of_atom_type2 = atom_types2_indexes.size() / average_volume;
+    double density_of_atom_type2 = number_of_atoms2 / average_volume;
     int scaling_factor = 1;
     if (same_atom_types) {
         scaling_factor = 2;
@@ -464,7 +465,7 @@ void PairDistributionFunction::compute_g_r()
 		    volume_of_inner_sphere = pow(r_values_[i_bin] - delta_r/2.0, dimension_) * dimension_scaling_factor;
 		}
 		double volume_of_shell = volume_of_outer_sphere - volume_of_inner_sphere;
-		double normalization_factor = 1.0 / (density_of_atom_type2 * volume_of_shell * atom_types1_indexes.size() * number_of_frames_to_average_);
+		double normalization_factor = 1.0 / (density_of_atom_type2 * volume_of_shell * number_of_atoms1 * number_of_frames_to_average_);
         normalization_factor /= (average_scattering_length1 * average_scattering_length2);
 		g_r_[i_bin] *= normalization_factor * scaling_factor;
 	}
@@ -475,27 +476,19 @@ void PairDistributionFunction::write_g_r()
 {
 	ofstream output_gr_file(output_file_name_);
 	
-	if (!output_gr_file) {
-		cerr << "Output file for Pair distribution function: ";
-		cerr << "\033[1;25m";
-        cerr << output_file_name_;
-		cerr << "\033[0m";
-		cerr << ", could not be opened";
-		cerr << endl;
-		exit(1);
-	}
-	
     output_gr_file << setiosflags(ios::scientific) << setprecision(output_precision_);
 	output_gr_file << "# Pair Distribution Function between atom types:" << endl;
     output_gr_file << "# 1st: ";
     for (size_t i_atom_type = 0; i_atom_type < atom_types1_.size(); ++i_atom_type) {
         output_gr_file << atom_types1_[i_atom_type];
+        output_gr_file << "(" << scattering_lengths1_[i_atom_type] << ")";
         output_gr_file << " ";
     }
 	output_gr_file << "in " << atom_group1_ << endl;
 	output_gr_file << "# 2nd: ";
     for (size_t i_atom_type = 0; i_atom_type < atom_types2_.size(); ++i_atom_type) {
         output_gr_file << atom_types2_[i_atom_type];
+        output_gr_file << "(" << scattering_lengths2_[i_atom_type] << ")";
         output_gr_file << " ";
     }
     output_gr_file << "in " << atom_group2_ << endl;
@@ -542,13 +535,13 @@ void PairDistributionFunction::check_parameters() throw()
     }
     
     // atom_types1 must contain atleast one atom type
-    if (atom_types1_.size() == 0) {
+    if (atom_types1_.empty()) {
         cerr << "\nERROR: 'atom_type1' not specifed. Must supply the type of atoms to compute g_r from.\n" << endl;
         exit(1);
     }
     
     // atom_types2 must contain atleast one atom type
-    if (atom_types2_.size() == 0) {
+    if (atom_types2_.empty()) {
         cerr << "\nERROR: 'atom_type2' not specifed. Must supply the second type of atoms to compute with.\n" << endl;
         exit(1);
     }
@@ -583,12 +576,30 @@ void PairDistributionFunction::check_parameters() throw()
         cerr << "\nWARNING: 'atom_group2' not specifed. It is set the same as 'atom_group'.\n" << endl;
         atom_group2_ = atom_group1_;
     }
+    
+    if (scattering_lengths1_.empty()) {
+        scattering_lengths1_ = vector< double > (atom_types1_.size(), 1.0);
+        scattering_lengths2_ = vector< double > (atom_types2_.size(), 1.0);
+    }
+    
+    // check that output file can be opened
+    ofstream output_gr_file(output_file_name_);
+    if (!output_gr_file) {
+        cerr << "Output file for Pair distribution function: ";
+        cerr << "\033[1;25m";
+        cerr << output_file_name_;
+        cerr << "\033[0m";
+        cerr << ", could not be opened";
+        cerr << endl;
+        exit(1);
+    }
+    output_gr_file.close();
 }
 
 
 void PairDistributionFunction::histogram_g_r(size_t const & frame_number,
                                              size_t const & atom1_index, size_t const & atom2_index,
-                                             double const & scattering_length1, double const & scattering_length2,
+                                             size_t const & atom1_type, size_t const & atom2_type,
                                              double const & delta_r)
 {
     // determine the real distrance between two atoms
@@ -603,31 +614,27 @@ void PairDistributionFunction::histogram_g_r(size_t const & frame_number,
     unsigned int bin = round(distrance_of_two_atoms/delta_r);
     if (bin < number_of_bins_) {
 #pragma omp atomic
-        g_r_[bin] += ( scattering_length1 * scattering_length2 );
+        g_r_[bin] += ( scattering_lengths1_[atom1_type] * scattering_lengths2_[atom2_type] );
     }
 }
+
 
 void PairDistributionFunction::determine_atom_indexes(vector < string > const & atom_types,
                                                       vector < double > const & scattering_lengths,
                                                       string            const & atom_group,
-                                                      vector < unsigned int > & atom_types_indexes,
-                                                      vector < double >       & atom_types_scattering_lengths,
-                                                      double                  & average_scattering_length)
+                                                      vector < vector < unsigned int > > & atom_types_indexes,
+                                                      double & average_scattering_length,
+                                                      size_t & number_of_atoms)
 {
-    vector < unsigned int > indexes_of_one_atom_type;
-
+    number_of_atoms = 0;
+    
     for (size_t i_atom_type = 0; i_atom_type < atom_types.size(); ++i_atom_type) {
-        indexes_of_one_atom_type.clear();
-        select_atoms(indexes_of_one_atom_type, atom_types[i_atom_type], atom_group);
-        atom_types_indexes.insert(atom_types_indexes.end(), indexes_of_one_atom_type.begin(), indexes_of_one_atom_type.end());
+        select_atoms(atom_types_indexes[i_atom_type], atom_types[i_atom_type], atom_group);
         
-        // Generate atom_types_scattering_lengths
-        if (scattering_lengths.size() == 0) {
-            atom_types_scattering_lengths.insert(atom_types_scattering_lengths.end(), indexes_of_one_atom_type.size(), 1.0);
-        }
-        else {
-            atom_types_scattering_lengths.insert(atom_types_scattering_lengths.end(), indexes_of_one_atom_type.size(), scattering_lengths[i_atom_type]);
-            average_scattering_length += indexes_of_one_atom_type.size() * scattering_lengths[i_atom_type];
+        number_of_atoms += atom_types_indexes[i_atom_type].size();
+        // Generate average_scattering_length
+        if (scattering_lengths.size() != 0) {
+            average_scattering_length += atom_types_indexes[i_atom_type].size() * scattering_lengths[i_atom_type];
         }
     }
     
@@ -636,9 +643,10 @@ void PairDistributionFunction::determine_atom_indexes(vector < string > const & 
         average_scattering_length = 1.0;
     }
     else {
-        average_scattering_length /= atom_types_indexes.size();
+        average_scattering_length /= number_of_atoms;
     }
 }
+
 
 bool PairDistributionFunction::check_atom_types_equivalent()
 {
@@ -658,6 +666,7 @@ bool PairDistributionFunction::check_atom_types_equivalent()
     
     return true;
 }
+
 
 void PairDistributionFunction::print_status(size_t & status)
 {

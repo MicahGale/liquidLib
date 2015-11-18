@@ -23,6 +23,7 @@
 #include <vector>
 #include <iomanip>
 #include <cstring>
+#include <sstream>
 
 #include "Trajectory.hpp"
 
@@ -36,7 +37,7 @@ FourPointCorrelation::FourPointCorrelation() :
     time_scale_type_("linear"),
     output_file_name_("chi4_t.txt"),
     input_file_name_("chi4_t.in"),
-    atom_type_("all"),
+    atom_types_({}),
     atom_group_("system")
 {
 }
@@ -252,12 +253,19 @@ void FourPointCorrelation::read_input_file()
             cerr << endl;
         }
 #endif
-        if (input_word == "atom_type") {
-            input_file >> input_word;
-            if (input_word[0] == '=') {
-                input_file >> input_word;
+        // Read scattering lengths provided by user
+        if (input_word == "atom_types") {
+            getline(input_file, input_word);
+            stringstream input_line(input_word);
+            while (input_line >> input_word) {
+                if (input_word[0] == '=') {
+                    input_line >> input_word;
+                }
+                if (input_word[0] == '#') {
+                    break;
+                }
+                atom_types_.push_back(input_word);
             }
-            atom_type_ = input_word;
             continue;
         }
         if (input_word == "atom_group") {
@@ -311,20 +319,20 @@ void FourPointCorrelation::compute_chi4_t()
     // Form Array of time index values for a given type of timescale computation
     compute_time_array();
     
-    vector< unsigned int > atom_type_indexes;
-    select_atoms(atom_type_indexes, atom_type_, atom_group_);
+    // select the indexes of atom_types_
+    size_t number_of_atoms;
+    vector < vector< unsigned int > > atom_types_indexes(atom_types_.size());
+    
+    determine_atom_indexes(atom_types_indexes, number_of_atoms);
 
     // Normalization factor
-    double const normalization_factor = 1.0/(atom_type_indexes.size() * number_of_frames_to_average_);
+    double const normalization_factor = 1.0/(number_of_atoms * number_of_frames_to_average_);
     double system_volume = 1.0;
     for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
         system_volume *= average_box_length_[i_dimension];
     }
     
-    cout << setiosflags(ios::fixed);
-    cout << setprecision(4);
-    
-    int status = 0;
+    size_t status = 0;
     cout << "Computing ..." << endl;
     
     // Perform time averaging of Four Point Correlation Function
@@ -335,15 +343,17 @@ void FourPointCorrelation::compute_chi4_t()
         for (size_t initial_frame = 0; initial_frame <  number_of_frames_to_average_; ++initial_frame) {
             size_t current_frame = initial_frame + time_array_indexes_[time_point];
             double q_self_tmp = 0.0;
-            for (size_t i_atom = 0; i_atom < atom_type_indexes.size(); ++i_atom) {
-                size_t atom_index = atom_type_indexes[i_atom];
-                double r_squared = 0.0;
-                for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-                    double delta_r = trajectory_[current_frame][atom_index][i_dimension] - trajectory_[initial_frame][atom_index][i_dimension];
-                    r_squared += delta_r * delta_r;
-                }
-                if (sqrt(r_squared) <= overlap_length_) {
-                    q_self_tmp += 1.0;
+            for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+                for (size_t i_atom = 0; i_atom < atom_types_indexes[i_atom_type].size(); ++i_atom) {
+                    size_t atom_index = atom_types_indexes[i_atom_type][i_atom];
+                    double r_squared = 0.0;
+                    for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+                        double delta_r = trajectory_[current_frame][atom_index][i_dimension] - trajectory_[initial_frame][atom_index][i_dimension];
+                        r_squared += delta_r * delta_r;
+                    }
+                    if (sqrt(r_squared) <= overlap_length_) {
+                        q_self_tmp += 1.0;
+                    }
                 }
             }
             q_self += q_self_tmp;
@@ -352,17 +362,11 @@ void FourPointCorrelation::compute_chi4_t()
         
         // Normalization
         chi4_t_[time_point][0] = q_self * normalization_factor;
-        chi4_t_[time_point][1] = system_volume * (q_self2 * normalization_factor / atom_type_indexes.size() - chi4_t_[time_point][0] * chi4_t_[time_point][0]);
+        chi4_t_[time_point][1] = system_volume * (q_self2 * normalization_factor / number_of_atoms - chi4_t_[time_point][0] * chi4_t_[time_point][0]);
 
         if (is_run_mode_verbose_) {
-#pragma omp critical
-            {
-                ++status;
-                cout << "\rcurrent progress of calculating chi4 is: ";
-                cout << status * 100.0/number_of_time_points_;
-                cout << " \%";
-                cout << flush;
-            }
+#pragma omp atomic
+            print_status(status);
         }
     }
     cout << endl;
@@ -380,17 +384,18 @@ void FourPointCorrelation::write_chi4_t()
     
     ofstream output_chi4_t_file(output_file_name_);
     
-    if (!output_chi4_t_file) {
-        cerr << "ERROR: Output file:" << "\033[1;25m" << output_file_name_ << "\033[0m";
-        cerr << ", could not be opened." << endl;
-        exit(1);
-    }
-    output_chi4_t_file << setiosflags(ios::scientific) << setprecision(output_precision_);
     output_chi4_t_file << "#Four point correlation function for ";
-    output_chi4_t_file << atom_type_ << " atoms of group " << atom_group_ << "\n";
+    output_chi4_t_file << "# { ";
+    for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+        output_chi4_t_file << atom_types_[i_atom_type];
+        output_chi4_t_file << " ";
+    }
+    output_chi4_t_file << "}";
+    output_chi4_t_file << "in " << atom_group_ << ".\n";
     output_chi4_t_file << "#using " << time_scale_type_ << "scale\n";
     output_chi4_t_file << "#time        q_self_t        chi4_t \n";
     
+    output_chi4_t_file << setiosflags(ios::scientific) << setprecision(output_precision_);
     for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
         output_chi4_t_file << time_array_indexes_[time_point] * trajectory_delta_time_ << "        ";
         output_chi4_t_file << chi4_t_[time_point][0] << "        ";
@@ -456,6 +461,20 @@ void FourPointCorrelation::check_parameters() throw()
         cerr << "       : is advised";
         cerr << endl;
     }
+    
+    if (atom_types_.empty()) {
+        cerr << "ERROR: No atom types provided, nothing will be computed\n";
+        cerr << endl;
+        exit(1);
+    }
+    
+    ofstream output_chi4_t_file(output_file_name_);
+    if (!output_chi4_t_file) {
+        cerr << "ERROR: Output file:" << "\033[1;25m" << output_file_name_ << "\033[0m";
+        cerr << ", could not be opened." << endl;
+        exit(1);
+    }
+    output_chi4_t_file.close();
 }
 
 
@@ -486,3 +505,23 @@ void FourPointCorrelation::compute_time_array()
 }
 
 
+void FourPointCorrelation::determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
+                                             size_t & number_of_atoms)
+{
+    number_of_atoms = 0;
+    
+    for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+        select_atoms(atom_types_indexes[i_atom_type], atom_types_[i_atom_type], atom_group_);
+        number_of_atoms += atom_types_indexes[i_atom_type].size();
+    }
+}
+
+
+void FourPointCorrelation::print_status(size_t & status)
+{
+    ++status;
+    cout << "\rcurrent progress of calculating the pair distribution function is: ";
+    cout << status * 100.0/number_of_frames_to_average_;
+    cout << " \%";
+    cout << flush;
+}

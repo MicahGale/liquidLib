@@ -341,33 +341,12 @@ void CoherentVanHoveFunction::compute_G_rt()
     // Form a array of time index values for a given type of timescale computation
     compute_time_array();
     
-    // select the indexes of atom_types_ in atom_group_ & compute average scattering length
+    // select the indexes of atom_types_
+    size_t number_of_atoms;
     double average_scattering_length = 0.0;
-    vector < unsigned int > atom_types_indexes;
-    vector < double >       atom_types_scattering_lengths;
-    vector < unsigned int > indexes_of_one_atom_type;
-    for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
-        indexes_of_one_atom_type.clear();
-        select_atoms(indexes_of_one_atom_type, atom_types_[i_atom_type], atom_group_);
-        atom_types_indexes.insert(atom_types_indexes.end(), indexes_of_one_atom_type.begin(), indexes_of_one_atom_type.end());
-        
-        // Generate atom_types_scattering_lengths
-        if (scattering_lengths_.size() == 0) {
-            atom_types_scattering_lengths.insert(atom_types_scattering_lengths.end(), indexes_of_one_atom_type.size(), 1.0);
-        }
-        else {
-            atom_types_scattering_lengths.insert(atom_types_scattering_lengths.end(), indexes_of_one_atom_type.size(), scattering_lengths_[i_atom_type]);
-            average_scattering_length += indexes_of_one_atom_type.size() * scattering_lengths_[i_atom_type];
-        }
-    }
+    vector < vector< unsigned int > > atom_types_indexes(atom_types_.size());
     
-    // normalize the average scattering length
-    if (scattering_lengths_.size() == 0) {
-        average_scattering_length = 1.0;
-    }
-    else {
-        average_scattering_length /= atom_types_indexes.size();
-    }
+    determine_atom_indexes(atom_types_indexes, average_scattering_length, number_of_atoms);
     
     // check max_cutoff_length < box_length_/2.0
     double min_box_length = average_box_length_[0];
@@ -387,7 +366,7 @@ void CoherentVanHoveFunction::compute_G_rt()
     
     G_rt_.resize(number_of_bins_, vector< double >(time_array_indexes_.size(), 0.0));
     
-    int status = 0;
+    size_t status = 0;
     cout << "Computing ..." << endl;
     
 	// Perform time averaging for G_rt_
@@ -395,41 +374,40 @@ void CoherentVanHoveFunction::compute_G_rt()
 	for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {	// shift 1 to retain a row for G(r, t = 0)
 		for (size_t initial_frame = 0; initial_frame < number_of_frames_to_average_; ++initial_frame) {
 			size_t current_frame = initial_frame + time_array_indexes_[time_point];
-			for (size_t i_atom1 = 0; i_atom1 < atom_types_indexes.size(); ++i_atom1) {
-                for (size_t i_atom2 = 0; i_atom2 < atom_types_indexes.size(); ++i_atom2) {
-                    unsigned int atom1_index = atom_types_indexes[i_atom1];
-                    unsigned int atom2_index = atom_types_indexes[i_atom2];
-                    double total_distance = 0.0;
-                    for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-                        double scaling_box_length = box_length_[initial_frame][i_dimension];
+            for (size_t i_atom_type1 = 0; i_atom_type1 < atom_types_.size(); ++i_atom_type1) {
+                for (size_t i_atom1 = 0; i_atom1 < atom_types_indexes[i_atom_type1].size(); ++i_atom1) {
+                    for (size_t i_atom_type2 = 0; i_atom_type2 < atom_types_.size(); ++i_atom_type2) {
+                        for (size_t i_atom2 = 0; i_atom2 < atom_types_indexes[i_atom_type2].size(); ++i_atom2) {
+                            unsigned int atom1_index = atom_types_indexes[i_atom_type1][i_atom1];
+                            unsigned int atom2_index = atom_types_indexes[i_atom_type2][i_atom2];
+                            
+                            double total_distance = 0.0;
+                            for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+                                double scaling_box_length = box_length_[initial_frame][i_dimension];
+                                
+                                // first initial real distance between two atoms
+                                double delta_x = trajectory_[initial_frame][atom1_index][i_dimension] - trajectory_[initial_frame][atom2_index][i_dimension];
+                                delta_x -= scaling_box_length * round(delta_x / scaling_box_length);
+                                
+                                // then add displacement of atom1 during this time interval
+                                delta_x += trajectory_[current_frame][atom1_index][i_dimension] - trajectory_[initial_frame][atom1_index][i_dimension];
+                                total_distance += delta_x * delta_x;
+                            }
+                            total_distance = sqrt(total_distance);
                         
-                        // first initial real distance between two atoms
-                        double delta_x = trajectory_[initial_frame][atom1_index][i_dimension] - trajectory_[initial_frame][atom2_index][i_dimension];
-                        delta_x -= scaling_box_length * round(delta_x / scaling_box_length);
-                        
-                        // then add displacement of atom1 during this time interval
-                        delta_x += trajectory_[current_frame][atom1_index][i_dimension] - trajectory_[initial_frame][atom1_index][i_dimension];
-                        total_distance += delta_x * delta_x;
-                    }
-                    total_distance = sqrt(total_distance);
-                
-                    unsigned int bin = round(total_distance / delta_r);
-                    if (bin < number_of_bins_) {
-                        G_rt_[bin][time_point] += atom_types_scattering_lengths[i_atom1] * atom_types_scattering_lengths[i_atom2];
+                            unsigned int bin = round(total_distance / delta_r);
+                            if (bin < number_of_bins_) {
+                                G_rt_[bin][time_point] += scattering_lengths_[i_atom_type1] * scattering_lengths_[i_atom_type2];
+                            }
+                        }
                     }
                 }
             }
 		}
         
         if (is_run_mode_verbose_) {
-#pragma omp critical
-            {
-                ++status;
-                cout << "\rcurrent progress of calculating coherent van hove function is: ";
-                cout << status * 100.0/number_of_time_points_;
-                cout << " \%";
-                cout << flush;
-            }
+#pragma omp atomic
+            print_status(status);
         }
 	}
     cout << endl;
@@ -449,14 +427,13 @@ void CoherentVanHoveFunction::compute_G_rt()
 		}
 		double volume_of_shell = volume_of_outer_sphere - volume_of_inner_sphere;
 		
-		double normalization_factor = 1.0/(volume_of_shell * atom_types_indexes.size() * number_of_frames_to_average_);
+		double normalization_factor = 1.0/(volume_of_shell * number_of_atoms * number_of_frames_to_average_);
         normalization_factor /=  (average_scattering_length * average_scattering_length);
         
 		for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
 			G_rt_[i_bin][time_point] *= normalization_factor;
 		}
 	}
-	
 }
 
 
@@ -474,7 +451,9 @@ void CoherentVanHoveFunction::write_G_rt()
 	output_Grt_file << "# Coherent van Hove function for atom types: \n";
     output_Grt_file << "# { ";
     for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
-        output_Grt_file << atom_types_[i_atom_type] << " ";
+        output_Grt_file << atom_types_[i_atom_type];
+        output_Grt_file << "(" << scattering_lengths_[i_atom_type] << ")";
+        output_Grt_file << " ";
     }
     output_Grt_file << "}";
 	output_Grt_file << " in " << atom_group_ << endl;
@@ -559,6 +538,12 @@ void CoherentVanHoveFunction::check_parameters() throw()
 		cerr << endl;
 	}
     
+    if (atom_types_.empty()) {
+        cerr << "ERROR: No atom types provided, nothing will be computed\n";
+        cerr << endl;
+        exit(1);
+    }
+    
     if (scattering_lengths_.empty()) {
         cout << "Scattering lengths of atoms are not provided.\n";
         cout << "  This calculation will not be weighted by scattering length.\n";
@@ -571,6 +556,11 @@ void CoherentVanHoveFunction::check_parameters() throw()
         exit(1);
     }
     
+    if (scattering_lengths_.empty()) {
+        scattering_lengths_ = vector< double > (atom_types_.size(), 1.0);
+    }
+    
+    // check that output file can be opened
     ofstream output_Grt_file(output_file_name_);
     if (!output_Grt_file) {
         cerr << "ERROR: Output file for coherent van Hove function: "
@@ -609,4 +599,40 @@ void CoherentVanHoveFunction::compute_time_array()
         
         assert(time_array_indexes_[time_point] + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
     }
+}
+
+
+void CoherentVanHoveFunction::determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
+                                                     double & average_scattering_length,
+                                                     size_t & number_of_atoms)
+{
+    number_of_atoms = 0;
+    
+    for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+        select_atoms(atom_types_indexes[i_atom_type], atom_types_[i_atom_type], atom_group_);
+        
+        number_of_atoms += atom_types_indexes[i_atom_type].size();
+        // Generate average_scattering_length
+        if (scattering_lengths_.size() != 0) {
+            average_scattering_length += atom_types_indexes[i_atom_type].size() * scattering_lengths_[i_atom_type];
+        }
+    }
+    
+    // normalize the average scattering length
+    if (scattering_lengths_.size() == 0) {
+        average_scattering_length = 1.0;
+    }
+    else {
+        average_scattering_length /= number_of_atoms;
+    }
+}
+
+
+void CoherentVanHoveFunction::print_status(size_t & status)
+{
+    ++status;
+    cout << "\rcurrent progress of calculating the pair distribution function is: ";
+    cout << status * 100.0/number_of_frames_to_average_;
+    cout << " \%";
+    cout << flush;
 }

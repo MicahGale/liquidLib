@@ -36,15 +36,15 @@ private:
     void check_parameters() throw();
     inline void histogram_g_r(size_t const & frame_number,
                               size_t const & atom1_index, size_t const & atom2_index,
-                              double const & scattering_length1, double const & scattering_length2,
+                              size_t const & atom1_type, size_t const & atom2_type,
                               double const & delta_r);
     
     void determine_atom_indexes(vector < string > const & atom_types,
-                                vector < double > const & scattering_lengths_,
+                                vector < double > const & scattering_lengths,
                                 string            const & atom_group,
-                                vector < unsigned int > & atom_types_indexes,
-                                vector < double >       & atom_types_scattering_lengths,
-                                double                  & average_scattering_length);
+                                vector < vector < unsigned int > > & atom_types_indexes,
+                                double & average_scattering_length,
+                                size_t & number_of_atoms);
     
     bool check_atom_types_equivalent();
     inline void print_status(size_t & status);

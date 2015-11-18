@@ -59,16 +59,15 @@ void NonGaussianParameter::compute_alpha2_t()
     // Form Array of time index values for a given type of timescale computation
     compute_time_array();
     
-    // select the indexes of atom_type_ in atom_group_
-    vector< unsigned int > atom_type_indexes;
-    select_atoms(atom_type_indexes, atom_type_, atom_group_);
+    // select the indexes of atom_types_
+    size_t number_of_atoms;
+    vector < vector< unsigned int > > atom_types_indexes(atom_types_.size());
     
-    double const normalization_factor = 1.0/(atom_type_indexes.size() * number_of_frames_to_average_);
+    determine_atom_indexes(atom_types_indexes, number_of_atoms);
     
-    cout << setiosflags(ios::fixed);
-    cout << setprecision(4);
+    double const normalization_factor = 1.0/(number_of_atoms * number_of_frames_to_average_);
     
-    int status = 0;
+    size_t status = 0;
     cout << "Computing ..." << endl;
     
     // Perform time averaging of Non Gaussian Parameter
@@ -78,29 +77,25 @@ void NonGaussianParameter::compute_alpha2_t()
         double total_bisquared_displacement = 0.0;
         for (size_t initial_frame = 0; initial_frame < number_of_frames_to_average_; ++initial_frame) {
             size_t current_frame = initial_frame + time_array_indexes_[time_point];
-            for (size_t i_atom = 0; i_atom < atom_type_indexes.size(); ++i_atom) {
-                size_t atom_index = atom_type_indexes[i_atom];
-                double r_squared_dimension_sum = 0.0;
-                for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-                    double delta_x = trajectory_[current_frame][atom_index][i_dimension] - trajectory_[initial_frame][atom_index][i_dimension];
-                    r_squared_dimension_sum += delta_x * delta_x;
+            for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+                for (size_t i_atom = 0; i_atom < atom_types_indexes[i_atom_type].size(); ++i_atom) {
+                    size_t atom_index = atom_types_indexes[i_atom_type][i_atom];
+                    double r_squared_dimension_sum = 0.0;
+                    for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+                        double delta_x = trajectory_[current_frame][atom_index][i_dimension] - trajectory_[initial_frame][atom_index][i_dimension];
+                        r_squared_dimension_sum += delta_x * delta_x;
+                    }
+                    total_squared_displacement += r_squared_dimension_sum;
+                    total_bisquared_displacement += r_squared_dimension_sum * r_squared_dimension_sum;
                 }
-                total_squared_displacement += r_squared_dimension_sum;
-                total_bisquared_displacement += r_squared_dimension_sum * r_squared_dimension_sum;
             }
         }
         r2_t_[time_point] = total_squared_displacement * normalization_factor;
         alpha2_t_[time_point] = 3.0 * total_bisquared_displacement/ (5.0 * total_squared_displacement * total_squared_displacement * normalization_factor) - 1.0;
         
         if (is_run_mode_verbose_) {
-#pragma omp critical
-            {
-                ++status;
-                cout << "\rcurrent progress of calculating non-gaussian parameter is: ";
-                cout << status * 100.0/number_of_time_points_;
-                cout << " \%";
-                cout << flush;
-            }
+#pragma omp atomic
+            print_status(status);
         }
     }
     
@@ -119,26 +114,18 @@ void NonGaussianParameter::write_alpha2_t()
     
     ofstream output_alpha2_t_file(output_file_name_);
     
-    if (!output_alpha2_t_file) {
-        cerr << "ERROR: Output file for non gaussian parameter: ";
-        cerr << "\033[1;25m";
-        cerr << output_file_name_;
-        cerr << ", could not be opened.";
-        cerr << endl;
-        exit(1);
-    }
-    
-    output_alpha2_t_file << setiosflags(ios::scientific) << setprecision(output_precision_);
     output_alpha2_t_file << "#Non Gaussian Parameter and Mean Squared Displacement for ";
-    output_alpha2_t_file << atom_type_;
-    output_alpha2_t_file << " atoms of group ";
-    output_alpha2_t_file << atom_group_;
-    output_alpha2_t_file << "\n";
-    output_alpha2_t_file << "#using ";
-    output_alpha2_t_file << time_scale_type_;
-    output_alpha2_t_file << "scale\n";
+    output_alpha2_t_file << "# { ";
+    for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+        output_alpha2_t_file << atom_types_[i_atom_type];
+        output_alpha2_t_file << " ";
+    }
+    output_alpha2_t_file << "}";
+    output_alpha2_t_file << "in " << atom_group_ << ".\n";
+    output_alpha2_t_file << "Using " << time_scale_type_ << "scale\n";
     output_alpha2_t_file << "#time               MSD                 NGP \n";
     
+    output_alpha2_t_file << setiosflags(ios::scientific) << setprecision(output_precision_);
     for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
         output_alpha2_t_file << time_array_indexes_[time_point] * trajectory_delta_time_;
         output_alpha2_t_file << "        ";
@@ -149,4 +136,13 @@ void NonGaussianParameter::write_alpha2_t()
     }
 
     output_alpha2_t_file.close();
+}
+
+void NonGaussianParameter::print_status(size_t & status)
+{
+    ++status;
+    cout << "\rcurrent progress of calculating the pair distribution function is: ";
+    cout << status * 100.0/number_of_frames_to_average_;
+    cout << " \%";
+    cout << flush;
 }

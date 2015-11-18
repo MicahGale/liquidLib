@@ -24,6 +24,7 @@
 #include <iomanip>
 #include <random>
 #include <cstring>
+#include <sstream>
 
 #include "Trajectory.hpp"
 
@@ -32,7 +33,8 @@ using namespace std;
 SelfIntermediateScattering::SelfIntermediateScattering() :
 	input_file_name_("Fs_kt.in"),
 	output_file_name_("Fs_kt.txt"),
-	atom_type_("all"),
+    atom_types_({}),
+    scattering_lengths_({}),
 	atom_group_("system"),
 	time_scale_type_("linear"),
     method_of_k_sampling_("analytical"),
@@ -180,14 +182,36 @@ void SelfIntermediateScattering::read_input_file()
 			cerr << endl;
 		}
 #endif
-		if (input_word == "atom_type") {
-			input_file >> input_word;
-			if (input_word[0] == '=') {
-				input_file >> input_word;
-			}
-			atom_type_ = input_word;
-			continue;
-		}
+        
+        // Read scattering lengths provided by user
+        if (input_word == "atom_types") {
+            getline(input_file, input_word);
+            stringstream input_line(input_word);
+            while (input_line >> input_word) {
+                if (input_word[0] == '=') {
+                    input_line >> input_word;
+                }
+                if (input_word[0] == '#') {
+                    break;
+                }
+                atom_types_.push_back(input_word);
+            }
+            continue;
+        }
+        if (input_word == "scattering_lengths") {
+            getline(input_file, input_word);
+            stringstream input_line(input_word);
+            while (input_line >> input_word) {
+                if (input_word[0] == '=') {
+                    input_line >> input_word;
+                }
+                if (input_word[0] == '#') {
+                    break;
+                }
+                scattering_lengths_.push_back(stod(input_word));
+            }
+            continue;
+        }
 		if (input_word == "atom_group") {
 			input_file >> input_word;
 			if (input_word[0] == '=') {
@@ -337,9 +361,12 @@ void SelfIntermediateScattering::compute_Fs_kt()
     // Form a array of time index values for a given type of timescale computation
     compute_time_array();
     
-	// select the indexes of atom_type_ in atom_group_
-	vector< unsigned int > atom_type_indexes;
-	select_atoms(atom_type_indexes, atom_type_, atom_group_);
+    // select the indexes of atom_types_
+    size_t number_of_atoms;
+    double average_scattering_length = 0.0;
+    vector < vector< unsigned int > > atom_types_indexes(atom_types_.size());
+    
+    determine_atom_indexes(atom_types_indexes, average_scattering_length, number_of_atoms);
 
     // k resolution is determined by inverse box length
     double min_box_length = average_box_length_[0];
@@ -354,15 +381,16 @@ void SelfIntermediateScattering::compute_Fs_kt()
         k_values_[k_index] = delta_k * (k_index + k_start_index_);
     }
     Fs_kt_.resize(number_of_bins_, vector< double >(time_array_indexes_.size(), 1.0));   // initialize with value 1.0 since Fs(k, t = 0) = 1.0
-
-    double normalization_factor = 1.0/(number_of_frames_to_average_ * atom_type_indexes.size() * number_of_k_vectors_);
-
     vector< double > k_vector(dimension_, 0.0);
+
+    // determine normalization factor
+    double normalization_factor = 1.0/(number_of_frames_to_average_ * number_of_atoms * number_of_k_vectors_);
+    normalization_factor /= ( average_scattering_length * average_scattering_length );
     
     random_device seed;
     generator_.seed(seed());
     
-    int status = 0;
+    size_t status = 0;
     cout << "Computing ..." << endl;
     
 #pragma omp parallel for firstprivate(k_vector)
@@ -374,27 +402,33 @@ void SelfIntermediateScattering::compute_Fs_kt()
                 size_t current_frame = initial_frame + time_array_indexes_[time_point];
 
                 if (method_of_k_sampling_ == "analytical") {
-                    for (vector< unsigned int >::iterator i_atom = atom_type_indexes.begin(); i_atom != atom_type_indexes.end(); ++i_atom) {
-                        double total_distance = 0.0;
-                        for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-                            double delta_x = trajectory_[current_frame][*i_atom][i_dimension] - trajectory_[initial_frame][*i_atom][i_dimension];
-                            total_distance += delta_x * delta_x;
+                    for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+                        for (size_t i_atom = 0; i_atom < atom_types_indexes[i_atom_type].size(); ++i_atom) {
+                            unsigned int atom_index = atom_types_indexes[i_atom_type][i_atom];
+                            double total_distance = 0.0;
+                            for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+                                double delta_x = trajectory_[current_frame][atom_index][i_dimension] - trajectory_[initial_frame][atom_index][i_dimension];
+                                total_distance += delta_x * delta_x;
+                            }
+                            total_distance = sqrt(total_distance);
+                            double k_times_r = k_values_[k_index] * total_distance;
+                            sum_of_individual_terms += sin(k_times_r)/k_times_r;
                         }
-                        total_distance = sqrt(total_distance);
-                        double k_times_r = k_values_[k_index] * total_distance;
-                        sum_of_individual_terms += sin(k_times_r)/k_times_r;
                     }
                 }
                 else {
                     for (size_t i_k_vector = 0; i_k_vector < number_of_k_vectors_; ++i_k_vector) {
                         generate_k_vector(k_values_[k_index], k_vector);
-                        for (vector< unsigned int >::iterator i_atom = atom_type_indexes.begin(); i_atom != atom_type_indexes.end(); ++i_atom) {
-                            double kr_vector_product = 0.0;
-                            for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-                                double delta_x = trajectory_[current_frame][*i_atom][i_dimension] - trajectory_[initial_frame][*i_atom][i_dimension];
-                                kr_vector_product += k_vector[i_dimension] * delta_x;
+                        for (size_t i_atom_type = 0; i_atom_type < atom_types_indexes[i_atom_type].size(); ++i_atom_type) {
+                            for (size_t i_atom = 0; i_atom < atom_types_indexes[i_atom_type].size(); ++i_atom) {
+                                unsigned int atom_index = atom_types_indexes[i_atom_type][i_atom];
+                                double kr_vector_product = 0.0;
+                                for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+                                    double delta_x = trajectory_[current_frame][atom_index][i_dimension] - trajectory_[initial_frame][atom_index][i_dimension];
+                                    kr_vector_product += k_vector[i_dimension] * delta_x;
+                                }
+                                sum_of_individual_terms += cos(kr_vector_product);
                             }
-                            sum_of_individual_terms += cos(kr_vector_product);
                         }
                     }
                 }
@@ -404,19 +438,11 @@ void SelfIntermediateScattering::compute_Fs_kt()
         }
         
         if (is_run_mode_verbose_) {
-#pragma omp critical
-            {
-                ++status;
-                cout << "\rcurrent progress of calculating self intermediate scattering is: ";
-                cout << status * 100.0/number_of_time_points_;
-                cout << " \%";
-                cout << flush;
-            }
+#pragma omp atomic
+            print_status(status);
         }
     }
-    
     cout << endl;
-	
 }
 
 
@@ -463,18 +489,15 @@ void SelfIntermediateScattering::write_Fs_kt()
     
 	ofstream output_Fskt_file(output_file_name_);
 	
-	if (!output_Fskt_file) {
-		cerr << "ERROR: Output file for self intermediate scattering function: "
-			 << "\033[1;25m"
-			 << output_file_name_
-			 << "\033[0m"
-			 << ", could not be opened"
-			 << endl;
-		exit(1);
-	}
-	
-	output_Fskt_file << "# Self intermediate scattering function for atom type: ";
-	output_Fskt_file << atom_type_ << " in " << atom_group_ << endl;
+	output_Fskt_file << "# Self intermediate scattering function for atom types: ";
+    output_Fskt_file << "# { ";
+    for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+        output_Fskt_file << atom_types_[i_atom_type];
+        output_Fskt_file << "(" << scattering_lengths_[i_atom_type] << ")";
+        output_Fskt_file << " ";
+    }
+    output_Fskt_file << "}";
+    output_Fskt_file << " in " << atom_group_ << endl;
     output_Fskt_file << "# using " << time_scale_type_ << " time scale, ";
     output_Fskt_file << method_of_k_sampling_ << " k sampling" << endl;
     
@@ -596,6 +619,41 @@ void SelfIntermediateScattering::check_parameters() throw()
             exit(1);
         }
     }
+    
+    if (atom_types_.empty()) {
+        cerr << "ERROR: No atom types provided, nothing will be computed\n";
+        cerr << endl;
+        exit(1);
+    }
+    
+    if (scattering_lengths_.empty()) {
+        cout << "Scattering lengths of atoms are not provided.\n";
+        cout << "  This calculation will not be weighted by scattering length.\n";
+        cout << endl;
+    }
+    else if (scattering_lengths_.size() != atom_types_.size() ) {
+        cerr << "ERROR: Number of scattering lengths must match the number of atom types provided.\n";
+        cerr << "     : Cannot proceed with computation\n";
+        cerr << endl;
+        exit(1);
+    }
+    
+    if (scattering_lengths_.empty()) {
+        scattering_lengths_ = vector< double > (atom_types_.size(), 1.0);
+    }
+    
+    // check that output can be opened
+    ofstream output_Fskt_file(output_file_name_);
+    if (!output_Fskt_file) {
+        cerr << "ERROR: Output file for self intermediate scattering function: "
+        << "\033[1;25m"
+        << output_file_name_
+        << "\033[0m"
+        << ", could not be opened"
+        << endl;
+        exit(1);
+    }
+    output_Fskt_file.close();
 }
 
 
@@ -623,4 +681,40 @@ void SelfIntermediateScattering::compute_time_array()
         
         assert(time_array_indexes_[time_point] + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
     }
+}
+
+
+void SelfIntermediateScattering::determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
+                                                        double & average_scattering_length,
+                                                        size_t & number_of_atoms)
+{
+    number_of_atoms = 0;
+    
+    for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+        select_atoms(atom_types_indexes[i_atom_type], atom_types_[i_atom_type], atom_group_);
+        
+        number_of_atoms += atom_types_indexes[i_atom_type].size();
+        // Generate average_scattering_length
+        if (scattering_lengths_.size() != 0) {
+            average_scattering_length += atom_types_indexes[i_atom_type].size() * scattering_lengths_[i_atom_type];
+        }
+    }
+    
+    // normalize the average scattering length
+    if (scattering_lengths_.size() == 0) {
+        average_scattering_length = 1.0;
+    }
+    else {
+        average_scattering_length /= number_of_atoms;
+    }
+}
+
+
+void SelfIntermediateScattering::print_status(size_t & status)
+{
+    ++status;
+    cout << "\rcurrent progress of calculating the pair distribution function is: ";
+    cout << status * 100.0/number_of_frames_to_average_;
+    cout << " \%";
+    cout << flush;
 }

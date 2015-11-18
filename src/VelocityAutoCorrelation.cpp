@@ -23,6 +23,7 @@
 #include <vector>
 #include <iomanip>
 #include <cstring>
+#include <sstream>
 
 #include "Trajectory.hpp"
 
@@ -31,7 +32,8 @@ using namespace std;
 VelocityAutoCorrelation::VelocityAutoCorrelation() :
     input_file_name_("vacf_t.in"),
     output_file_name_("vacf_t.txt"),
-    atom_type_("all"),
+    atom_types_({}),
+    scattering_lengths_({}),
     atom_group_("system"),
     time_scale_type_ ("linear"),
     number_of_time_points_(0),
@@ -244,12 +246,34 @@ void VelocityAutoCorrelation::read_input_file()
             cerr << endl;
         }
 #endif
-        if (input_word == "atom_type") {
-            input_file >> input_word;
-            if (input_word[0] == '=') {
-                input_file >> input_word;
+        
+        // Read scattering lengths provided by user
+        if (input_word == "atom_types") {
+            getline(input_file, input_word);
+            stringstream input_line(input_word);
+            while (input_line >> input_word) {
+                if (input_word[0] == '=') {
+                    input_line >> input_word;
+                }
+                if (input_word[0] == '#') {
+                    break;
+                }
+                atom_types_.push_back(input_word);
             }
-            atom_type_ = input_word;
+            continue;
+        }
+        if (input_word == "scattering_lengths") {
+            getline(input_file, input_word);
+            stringstream input_line(input_word);
+            while (input_line >> input_word) {
+                if (input_word[0] == '=') {
+                    input_line >> input_word;
+                }
+                if (input_word[0] == '#') {
+                    break;
+                }
+                scattering_lengths_.push_back(stod(input_word));
+            }
             continue;
         }
         if (input_word == "atom_group") {
@@ -304,45 +328,43 @@ void VelocityAutoCorrelation::compute_vacf_t()
     compute_time_array();
     
     // select the indexes of atom_type_ in atom_group_
-    vector <unsigned int> atom_type_indexes;
-    select_atoms(atom_type_indexes, atom_type_, atom_group_);
+    // select the indexes of atom_types_
+    size_t number_of_atoms;
+    double average_scattering_length = 0.0;
+    vector < vector< unsigned int > > atom_types_indexes(atom_types_.size());
     
-    double const normalization_factor = 1.0/(atom_type_indexes.size() * number_of_frames_to_average_);
+    determine_atom_indexes(atom_types_indexes, average_scattering_length, number_of_atoms);
     
-    cout << setiosflags(ios::fixed);
-    cout << setprecision(4);
+    // set normaization factor
+    double normalization_factor = 1.0/(number_of_atoms * number_of_frames_to_average_);
+    normalization_factor /= ( average_scattering_length * average_scattering_length );
+
     
-    int status = 0;
+    size_t status = 0;
     cout << "Computing ..." << endl;
     
     // Perform time averaging of vacf
 #pragma omp parallel for
     for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
-        double total_velocity_product = 0.0;
+        vacf_t_[time_point] = 0.0;
         for (size_t initial_frame = 0; initial_frame < number_of_frames_to_average_; ++initial_frame) {
             size_t current_frame = initial_frame + time_array_indexes_[time_point];
-            for (size_t i_atom = 0; i_atom < atom_type_indexes.size(); ++i_atom) {
-                size_t atom_index = atom_type_indexes[i_atom];
-                for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-                    double velocity_product = trajectory_[current_frame][atom_index][i_dimension] * trajectory_[initial_frame][atom_index][i_dimension];
-                    total_velocity_product += velocity_product;
+            for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+                for (size_t i_atom = 0; i_atom < atom_types_indexes[i_atom_type].size(); ++i_atom) {
+                    size_t atom_index = atom_types_indexes[i_atom_type][i_atom];
+                    for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+                        vacf_t_[time_point] += trajectory_[current_frame][atom_index][i_dimension] * trajectory_[initial_frame][atom_index][i_dimension];
+                    }
                 }
             }
         }
-        vacf_t_[time_point] = total_velocity_product * normalization_factor;
+        vacf_t_[time_point] *= normalization_factor;
  
         if (is_run_mode_verbose_) {
-#pragma omp critical
-            {
-                ++status;
-                cout << "\rcurrent progress of calculating velocity auto correlation is: ";
-                cout << status * 100.0/number_of_time_points_;
-                cout << " \%";
-                cout << flush;
-            }
+#pragma omp atomic
+            print_status(status);
         }
     }
-    
     cout << endl;
 }
 
@@ -358,26 +380,21 @@ void VelocityAutoCorrelation::write_vacf_t()
     
     ofstream output_vacf_file(output_file_name_);
     
-    if (!output_vacf_file) {
-        cerr << "ERROR: Output file for velocity autocorrelation function: ";
-        cerr << "\033[1;25m";
-        cerr << output_file_name_;
-        cerr << "\033[0m";
-        cerr << ", could not be opened";
-        cerr << endl;
-        exit(1);
-    }
-    output_vacf_file << setiosflags(ios::scientific) << setprecision(output_precision_);
     output_vacf_file << "# Velocity autocorrelation function for ";
-    output_vacf_file << atom_type_;
-    output_vacf_file << " atoms of group ";
-    output_vacf_file << atom_group_;
-    output_vacf_file << "\n";
+    output_vacf_file << "# { ";
+    for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+        output_vacf_file << atom_types_[i_atom_type];
+        output_vacf_file << "(" << scattering_lengths_[i_atom_type] << ")";
+        output_vacf_file << " ";
+    }
+    output_vacf_file << "}";
+    output_vacf_file << "in " << atom_group_ << ".\n";
     output_vacf_file << "# using ";
     output_vacf_file << time_scale_type_;
     output_vacf_file << " scale\n";
     output_vacf_file << "# time              vacf\n";
     
+    output_vacf_file << setiosflags(ios::scientific) << setprecision(output_precision_);
     for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
         output_vacf_file << time_array_indexes_[time_point]*trajectory_delta_time_;
         output_vacf_file << "\t";
@@ -461,7 +478,42 @@ void VelocityAutoCorrelation::check_parameters() throw()
             }
         }
     }
+    
+    if (atom_types_.empty()) {
+        cerr << "ERROR: No atom types provided, nothing will be computed\n";
+        cerr << endl;
+        exit(1);
+    }
+    
+    // Check scattering lengths is correct
+    if (scattering_lengths_.empty()) {
+        cout << "Scattering lengths of atoms are not provided.\n";
+        cout << "  This calculation will not be weighted by scattering length.\n";
+        cout << endl;
+    }
+    else if (scattering_lengths_.size() != atom_types_.size() ) {
+        cerr << "ERROR: Number of scattering lengths must match the number of atom types provided.\n";
+        cerr << "     : Cannot proceed with computation\n";
+        cerr << endl;
+        exit(1);
+    }
+    
+    if (scattering_lengths_.empty()) {
+        scattering_lengths_ = vector< double > (atom_types_.size(), 1.0);
+    }
 
+    // check output file can be opened
+    ofstream output_vacf_file(output_file_name_);
+    if (!output_vacf_file) {
+        cerr << "ERROR: Output file for velocity autocorrelation function: ";
+        cerr << "\033[1;25m";
+        cerr << output_file_name_;
+        cerr << "\033[0m";
+        cerr << ", could not be opened";
+        cerr << endl;
+        exit(1);
+    }
+    output_vacf_file.close();
 }
 
 
@@ -489,4 +541,39 @@ void VelocityAutoCorrelation::compute_time_array()
         
         assert(time_array_indexes_[time_point] + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
     }
+}
+
+void VelocityAutoCorrelation::determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
+                                             double & average_scattering_length,
+                                             size_t & number_of_atoms)
+{
+    number_of_atoms = 0;
+    
+    for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+        select_atoms(atom_types_indexes[i_atom_type], atom_types_[i_atom_type], atom_group_);
+        
+        number_of_atoms += atom_types_indexes[i_atom_type].size();
+        // Generate average_scattering_length
+        if (scattering_lengths_.size() != 0) {
+            average_scattering_length += atom_types_indexes[i_atom_type].size() * scattering_lengths_[i_atom_type];
+        }
+    }
+    
+    // normalize the average scattering length
+    if (scattering_lengths_.size() == 0) {
+        average_scattering_length = 1.0;
+    }
+    else {
+        average_scattering_length /= number_of_atoms;
+    }
+}
+
+
+void VelocityAutoCorrelation::print_status(size_t & status)
+{
+    ++status;
+    cout << "\rcurrent progress of calculating the pair distribution function is: ";
+    cout << status * 100.0/number_of_frames_to_average_;
+    cout << " \%";
+    cout << flush;
 }

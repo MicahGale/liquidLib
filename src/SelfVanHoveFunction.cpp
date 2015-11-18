@@ -24,6 +24,7 @@
 #include <iomanip>
 #include <cstring>
 #include <algorithm>
+#include <sstream>
 
 #include "Trajectory.hpp"
 
@@ -32,7 +33,8 @@ using namespace std;
 SelfVanHoveFunction::SelfVanHoveFunction() :
 	input_file_name_("Gs_rt.in"),
 	output_file_name_("Gs_rt.txt"),
-	atom_type_("all"),
+    atom_types_({}),
+    scattering_lengths_({}),
 	atom_group_("system"),
 	time_scale_type_("linear"),
 	number_of_bins_(200),
@@ -178,14 +180,37 @@ void SelfVanHoveFunction::read_input_file()
 			cerr << endl;
 		}
 #endif
-		if (input_word == "atom_type") {
-			input_file >> input_word;
-			if (input_word[0] == '=') {
-				input_file >> input_word;
-			}
-			atom_type_ = input_word;
-			continue;
-		}
+        
+        // Read scattering lengths provided by user
+        if (input_word == "atom_types") {
+            getline(input_file, input_word);
+            stringstream input_line(input_word);
+            while (input_line >> input_word) {
+                if (input_word[0] == '=') {
+                    input_line >> input_word;
+                }
+                if (input_word[0] == '#') {
+                    break;
+                }
+                atom_types_.push_back(input_word);
+            }
+            continue;
+        }
+        if (input_word == "scattering_lengths") {
+            getline(input_file, input_word);
+            stringstream input_line(input_word);
+            while (input_line >> input_word) {
+                if (input_word[0] == '=') {
+                    input_line >> input_word;
+                }
+                if (input_word[0] == '#') {
+                    break;
+                }
+                scattering_lengths_.push_back(stod(input_word));
+            }
+            continue;
+        }
+        
 		if (input_word == "atom_group") {
 			input_file >> input_word;
 			if (input_word[0] == '=') {
@@ -319,9 +344,12 @@ void SelfVanHoveFunction::compute_Gs_rt()
     // Form a array of time index values for a given type of timescale computation
     compute_time_array();
     
-	// select the indexes of atom_type_ in atom_group_
-	vector< unsigned int > atom_type_indexes;
-	select_atoms(atom_type_indexes, atom_type_, atom_group_);
+    // select the indexes of atom_types_
+    size_t number_of_atoms;
+    double average_scattering_length = 0.0;
+    vector < vector< unsigned int > > atom_types_indexes(atom_types_.size());
+    
+    determine_atom_indexes(atom_types_indexes, average_scattering_length, number_of_atoms);
 
     // check max_cutoff_length < box_length_/2.0
     double min_box_length = average_box_length_[0];
@@ -341,7 +369,7 @@ void SelfVanHoveFunction::compute_Gs_rt()
     
     Gs_rt_.resize(number_of_bins_, vector< double >(time_array_indexes_.size(), 0.0));		// add one row Gs(r, t = 0)
     
-    int status = 0;
+    size_t status = 0;
     cout << "Computing ..." << endl;
     
 	// Perform time averaging for Gs_rt_
@@ -349,30 +377,27 @@ void SelfVanHoveFunction::compute_Gs_rt()
 	for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {	// shift 1 to retain a row for Gs(r, t = 0)
 		for (size_t initial_frame = 0; initial_frame < number_of_frames_to_average_; ++initial_frame) {
 			size_t current_frame = initial_frame + time_array_indexes_[time_point];
-			for (vector< unsigned int >::iterator i_atom = atom_type_indexes.begin(); i_atom != atom_type_indexes.end(); ++i_atom) {
-				double total_distance = 0.0;
-				for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-					double delta_x = trajectory_[current_frame][*i_atom][i_dimension] - trajectory_[initial_frame][*i_atom][i_dimension];
-					total_distance += delta_x * delta_x;
-				}
-				total_distance = sqrt(total_distance);
-				
-				unsigned int bin = round(total_distance/delta_r);
-				if (bin < number_of_bins_) {
-					Gs_rt_[bin][time_point] += 1.0;
-				}
-			}
+            for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+                for (size_t i_atom = 0; i_atom < atom_types_indexes.size(); ++i_atom) {
+                    size_t atom_index = atom_types_indexes[i_atom_type][i_atom];
+                    double total_distance = 0.0;
+                    for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+                        double delta_x = trajectory_[current_frame][atom_index][i_dimension] - trajectory_[initial_frame][atom_index][i_dimension];
+                        total_distance += delta_x * delta_x;
+                    }
+                    total_distance = sqrt(total_distance);
+                    
+                    unsigned int bin = round(total_distance/delta_r);
+                    if (bin < number_of_bins_) {
+                        Gs_rt_[bin][time_point] += 1.0;
+                    }
+                }
+            }
 		}
         
         if (is_run_mode_verbose_) {
-#pragma omp critical
-            {
-                ++status;
-                cout << "\rcurrent progress of calculating self van hove function is: ";
-                cout << status * 100.0/number_of_time_points_;
-                cout << " \%";
-                cout << flush;
-            }
+#pragma omp atomic
+            print_status(status);
         }
 	}
     cout << endl;
@@ -392,7 +417,8 @@ void SelfVanHoveFunction::compute_Gs_rt()
 		}
 		double volume_of_shell = volume_of_outer_sphere - volume_of_inner_sphere;
 		
-		double normalization_factor = 1.0/(volume_of_shell * atom_type_indexes.size() * number_of_frames_to_average_);
+		double normalization_factor = 1.0/(volume_of_shell * number_of_atoms * number_of_frames_to_average_);
+        normalization_factor /= ( average_scattering_length * average_scattering_length );
 		
 		if (i_bin == 0) {
 			Gs_rt_[0][0] = 1.0/volume_of_shell;	// Gs(r, t = 0) = 1.0/volume_of_shell * delta_function(r)
@@ -416,18 +442,15 @@ void SelfVanHoveFunction::write_Gs_rt()
     
 	ofstream output_Gsrt_file(output_file_name_);
 	
-	if (!output_Gsrt_file) {
-		cerr << "ERROR: Output file for self van Hove function: "
-			 << "\033[1;25m"
-			 << output_file_name_
-			 << "\033[0m"
-			 << ", could not be opened"
-			 << endl;
-		exit(1);
-	}
-	
 	output_Gsrt_file << "# Self van Hove function for atom type: ";
-	output_Gsrt_file << atom_type_ << " in " << atom_group_ << endl;
+    output_Gsrt_file << "# { ";
+    for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+        output_Gsrt_file << atom_types_[i_atom_type];
+        output_Gsrt_file << "(" << scattering_lengths_[i_atom_type] << ")";
+        output_Gsrt_file << " ";
+    }
+    output_Gsrt_file << "}";
+    output_Gsrt_file << "in " << atom_group_ << ".\n";
     
     output_Gsrt_file << setiosflags(ios::scientific) << setprecision(output_precision_);
     output_Gsrt_file << "#" << endl;
@@ -437,6 +460,7 @@ void SelfVanHoveFunction::write_Gs_rt()
     }
     output_Gsrt_file << "#" << endl;
     output_Gsrt_file << "# r | Gs(r, t)" << endl;
+    
     for (size_t i_bin = 0; i_bin < number_of_bins_; ++i_bin) {
         output_Gsrt_file << r_values_[i_bin];
         for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
@@ -526,6 +550,36 @@ void SelfVanHoveFunction::check_parameters() throw()
 		cerr << "       : is advised";
 		cerr << endl;
 	}
+    
+    // Check scattering lengths is correct
+    if (scattering_lengths_.empty()) {
+        cout << "Scattering lengths of atoms are not provided.\n";
+        cout << "  This calculation will not be weighted by scattering length.\n";
+        cout << endl;
+    }
+    else if (scattering_lengths_.size() != atom_types_.size() ) {
+        cerr << "ERROR: Number of scattering lengths must match the number of atom types provided.\n";
+        cerr << "     : Cannot proceed with computation\n";
+        cerr << endl;
+        exit(1);
+    }
+    
+    if (scattering_lengths_.empty()) {
+        scattering_lengths_ = vector< double > (atom_types_.size(), 1.0);
+    }
+    
+    // check output file can be opened
+    ofstream output_Gsrt_file(output_file_name_);
+    if (!output_Gsrt_file) {
+        cerr << "ERROR: Output file for self van Hove function: "
+        << "\033[1;25m"
+        << output_file_name_
+        << "\033[0m"
+        << ", could not be opened"
+        << endl;
+        exit(1);
+    }
+    output_Gsrt_file.close();
 }
 
 
@@ -553,4 +607,40 @@ void SelfVanHoveFunction::compute_time_array()
         
         assert(time_array_indexes_[time_point] + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
     }
+}
+
+
+void SelfVanHoveFunction::determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
+                                             double & average_scattering_length,
+                                             size_t & number_of_atoms)
+{
+    number_of_atoms = 0;
+    
+    for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+        select_atoms(atom_types_indexes[i_atom_type], atom_types_[i_atom_type], atom_group_);
+        
+        number_of_atoms += atom_types_indexes[i_atom_type].size();
+        // Generate average_scattering_length
+        if (scattering_lengths_.size() != 0) {
+            average_scattering_length += atom_types_indexes[i_atom_type].size() * scattering_lengths_[i_atom_type];
+        }
+    }
+    
+    // normalize the average scattering length
+    if (scattering_lengths_.size() == 0) {
+        average_scattering_length = 1.0;
+    }
+    else {
+        average_scattering_length /= number_of_atoms;
+    }
+}
+
+
+void SelfVanHoveFunction::print_status(size_t & status)
+{
+    ++status;
+    cout << "\rcurrent progress of calculating the pair distribution function is: ";
+    cout << status * 100.0/number_of_frames_to_average_;
+    cout << " \%";
+    cout << flush;
 }

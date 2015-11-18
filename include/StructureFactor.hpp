@@ -36,6 +36,10 @@ private:
 // private member functions
     void check_parameters() throw();
     inline void generate_k_vector(double const & k_absolute_value, vector< double > & k_vector);
+    void determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
+                                double & average_scattering_length,
+                                size_t & number_of_atoms);
+    inline void print_status(size_t & status);
 	
 // private member variables
     string input_file_name_;
@@ -48,7 +52,7 @@ private:
     unsigned int number_of_k_vectors_;  // for k sampling, ingoring analytical method
     unsigned int number_of_frames_to_average_;
 	
-    vector< string > user_atom_types_;
+    vector< string > atom_types_;
     
     vector< double > k_values_;
     vector< double > scattering_lengths_;
