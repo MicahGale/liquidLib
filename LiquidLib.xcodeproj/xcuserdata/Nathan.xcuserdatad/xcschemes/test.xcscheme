@@ -32,9 +32,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D839E90F1B7B9C6D003E9C14"
-            BuildableName = "test"
-            BlueprintName = "test"
+            BlueprintIdentifier = "D88D4CE81B7A75A2009A16E8"
+            BuildableName = "computePairDistributionFunction"
+            BlueprintName = "computePairDistributionFunction"
             ReferencedContainer = "container:LiquidLib.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -43,7 +43,8 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
-      useCustomWorkingDirectory = "NO"
+      useCustomWorkingDirectory = "YES"
+      customWorkingDirectory = "/Users/Nathan/Documents/2015-08.tip3p_liquidlib/gofr_serial"
       buildConfiguration = "Debug"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
@@ -52,9 +53,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D839E90F1B7B9C6D003E9C14"
-            BuildableName = "test"
-            BlueprintName = "test"
+            BlueprintIdentifier = "D88D4CE81B7A75A2009A16E8"
+            BuildableName = "computePairDistributionFunction"
+            BlueprintName = "computePairDistributionFunction"
             ReferencedContainer = "container:LiquidLib.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

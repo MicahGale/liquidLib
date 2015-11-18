@@ -54,6 +54,7 @@ Trajectory::Trajectory():
 // deconstructor
 Trajectory::~Trajectory()
 {
+    cout << "trajectory location: " << trajectory_ << endl;
     for (size_t i_frame = 0; i_frame < end_frame_ - start_frame_; ++i_frame) {
         for (size_t i_atom = 0; i_atom < number_of_system_atoms_; ++i_atom) {
             delete[] trajectory_[i_frame][i_atom];

@@ -606,11 +606,11 @@ void PairDistributionFunction::histogram_g_r(size_t const & frame_number,
 }
 
 void PairDistributionFunction::determine_atom_indexes(vector < string > const & atom_types,
-                                                    vector < double > const & scattering_lengths,
-                                                    string            const & atom_group,
-                                                    vector < unsigned int > & atom_types_indexes,
-                                                    vector < double >       & atom_types_scattering_lengths,
-                                                    double                  & average_scattering_length)
+                                                      vector < double > const & scattering_lengths,
+                                                      string            const & atom_group,
+                                                      vector < unsigned int > & atom_types_indexes,
+                                                      vector < double >       & atom_types_scattering_lengths,
+                                                      double                  & average_scattering_length)
 {
     vector < unsigned int > indexes_of_one_atom_type;
 
