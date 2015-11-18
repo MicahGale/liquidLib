@@ -450,7 +450,7 @@ void CoherentVanHoveFunction::compute_G_rt()
 		double volume_of_shell = volume_of_outer_sphere - volume_of_inner_sphere;
 		
 		double normalization_factor = 1.0/(volume_of_shell * atom_types_indexes.size() * number_of_frames_to_average_);
-        normalization_factor /=  average_scattering_length * average_scattering_length;
+        normalization_factor /=  (average_scattering_length * average_scattering_length);
         
 		for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
 			G_rt_[i_bin][time_point] *= normalization_factor;
