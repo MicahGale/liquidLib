@@ -57,7 +57,7 @@ protected:
     string gro_file_name_;
     string trajectory_data_type_;    // coordinate, velocity, or force
 
-    vector< string > atom_types_;
+    vector< string > system_atom_types_; //contains atom_type of every atom
     vector< string > molecule_id_;
     
     // box_length_[time][coordinate]

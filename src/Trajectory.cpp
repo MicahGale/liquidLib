@@ -237,10 +237,10 @@ void Trajectory::select_atoms(vector< unsigned int > & selected_atom_indexes, st
     if (!selected_atom_indexes.empty()) {
         selected_atom_indexes.clear();
     }
-    for (unsigned int i_atom = 0; i_atom < atom_types_.size(); ++i_atom) {
+    for (unsigned int i_atom = 0; i_atom < system_atom_types_.size(); ++i_atom) {
         // compare atom types using strings of equal length
         // this helps distringuish atoms at different levels, e.g., H vs HW vs HW1,HW2
-        if (atom_types_[i_atom].compare(0, atom_type_to_select.size(), atom_type_to_select) == 0 || atom_type_to_select == "all") {
+        if (system_atom_types_[i_atom].compare(0, atom_type_to_select.size(), atom_type_to_select) == 0 || atom_type_to_select == "all") {
             if (atom_group_to_select == "system") {
                 selected_atom_indexes.push_back(i_atom);
                 continue;
@@ -292,9 +292,9 @@ void Trajectory::read_gro_file()
         exit(1);
     }
     
-    // allocate memory for molecule_id_, atom_types_,
+    // allocate memory for molecule_id_, system_atom_types_,
     molecule_id_.resize(number_of_system_atoms_);
-    atom_types_.resize(number_of_system_atoms_);
+    system_atom_types_.resize(number_of_system_atoms_);
     
     
     string line;
@@ -302,7 +302,7 @@ void Trajectory::read_gro_file()
     getline(gro_file, line);
         
     for (size_t i_atom = 0; i_atom < number_of_system_atoms_ && !gro_file.eof(); ++i_atom) {
-        gro_file >> molecule_id_[i_atom] >> atom_types_[i_atom];
+        gro_file >> molecule_id_[i_atom] >> system_atom_types_[i_atom];
         getline(gro_file, line);
     }
     
@@ -619,11 +619,11 @@ void Trajectory::read_vasp_file()
             number_of_system_atoms_ += stoi(read_word);
         }
     
-        atom_types_.resize(0);
+        system_atom_types_.resize(0);
         
         for (size_t atom_type = 0; atom_type < atom_types_in_file.size(); ++atom_type) {
             for (size_t i_atom = 0; i_atom < number_of_atoms_of_each_type_[atom_type]; ++i_atom) {
-                atom_types_.push_back(atom_types_in_file[atom_type]);
+                system_atom_types_.push_back(atom_types_in_file[atom_type]);
             }
         }
     }
@@ -793,7 +793,7 @@ void Trajectory::read_dump_file()
             continue;
         }
 
-        atom_types_.resize(number_of_system_atoms_); // reinitialize atom_types_ vector
+        system_atom_types_.resize(number_of_system_atoms_); // reinitialize system_atom_types_ vector
 
         unsigned int atom_number_index = 0;
         unsigned int tmp_atom_type_variable = 0;
@@ -802,7 +802,7 @@ void Trajectory::read_dump_file()
             for (size_t atom_index = 0; atom_index < number_of_system_atoms_; ++atom_index) {
                 if (i_frame == start_frame_) {
                     trajectory_file >> atom_number_index;
-                    trajectory_file >> atom_types_[atom_number_index - 1];
+                    trajectory_file >> system_atom_types_[atom_number_index - 1];
                 }
                 else {
                     trajectory_file >> atom_number_index >> tmp_atom_type_variable;
@@ -816,7 +816,7 @@ void Trajectory::read_dump_file()
             for (size_t atom_index = 0; atom_index < number_of_system_atoms_; ++atom_index) {
                 if (i_frame == start_frame_) {
                     trajectory_file >> atom_number_index;
-                    trajectory_file >> atom_types_[atom_number_index - 1];
+                    trajectory_file >> system_atom_types_[atom_number_index - 1];
                 }
                 else {
                     trajectory_file >> atom_number_index >> tmp_atom_type_variable;
@@ -881,14 +881,14 @@ void Trajectory::save_frame(unsigned int const & i_frame, float const & time, ma
 #ifdef GROMACS
 void Trajectory::set_monatomic()
 {
-    // allocate memory for molecule_id_, atom_types_,
+    // allocate memory for molecule_id_, system_atom_types_,
     molecule_id_.resize(number_of_system_atoms_);
-    atom_types_.resize(number_of_system_atoms_);
+    system_atom_types_.resize(number_of_system_atoms_);
     
 #pragma omp parallel for
     for (size_t i_atom = 0; i_atom < number_of_system_atoms_; ++i_atom) {
         molecule_id_[i_atom] = "system";
-        atom_types_[i_atom] = "all";
+        system_atom_types_[i_atom] = "all";
     }
 }
 #endif

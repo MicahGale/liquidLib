@@ -39,9 +39,9 @@ private:
 // private member variables
     string input_file_name_;
     string output_file_name_;
-    string atom_type_;
-    string atom_type2_;
-    string atom_group_;
+    vector < string > atom_types1_;
+    vector < string > atom_types2_;
+    string atom_group1_;
     string atom_group2_;
 
     unsigned int number_of_bins_;

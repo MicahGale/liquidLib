@@ -41,7 +41,7 @@ private:
     string output_file_name_;
 	string time_scale_type_;
     string atom_group_;
-    vector< string > selected_atom_types_;
+    vector< string > atom_types_;
     vector< double > scattering_lengths_;
     
     unsigned int number_of_bins_;
