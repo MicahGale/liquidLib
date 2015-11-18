@@ -208,6 +208,14 @@ void PairDistributionFunction::read_input_file()
             }
             continue;
         }
+        if (input_word == "atom_group1") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            atom_group1_ = input_word;
+            continue;
+        }
 		if (input_word == "atom_types2") {
             getline(input_file, input_word);
             stringstream input_line(input_word);
@@ -236,14 +244,6 @@ void PairDistributionFunction::read_input_file()
             }
             continue;
         }
-		if (input_word == "atom_group1") {
-			input_file >> input_word;
-			if (input_word[0] == '=') {
-				input_file >> input_word;
-			}
-			atom_group1_ = input_word;
-			continue;
-		}
 		if (input_word == "atom_group2") {
 			input_file >> input_word;
 			if (input_word[0] == '=') {
@@ -541,11 +541,13 @@ void PairDistributionFunction::check_parameters() throw()
         end_frame_ = start_frame_ + number_of_frames_to_average_;
     }
     
+    // atom_types1 must contain atleast one atom type
     if (atom_types1_.size() == 0) {
         cerr << "\nERROR: 'atom_type1' not specifed. Must supply the type of atoms to compute g_r from.\n" << endl;
         exit(1);
     }
     
+    // atom_types2 must contain atleast one atom type
     if (atom_types2_.size() == 0) {
         cerr << "\nERROR: 'atom_type2' not specifed. Must supply the second type of atoms to compute with.\n" << endl;
         exit(1);
