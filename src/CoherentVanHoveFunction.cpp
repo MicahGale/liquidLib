@@ -632,7 +632,7 @@ void CoherentVanHoveFunction::print_status(size_t & status)
 {
     ++status;
     cout << "\rcurrent progress of calculating the pair distribution function is: ";
-    cout << status * 100.0/number_of_frames_to_average_;
+    cout << status * 100.0/number_of_time_points_;
     cout << " \%";
     cout << flush;
 }

@@ -346,10 +346,10 @@ void SelfVanHoveFunction::compute_Gs_rt()
     
     // select the indexes of atom_types_
     size_t number_of_atoms;
-    double average_scattering_length = 0.0;
+    double average_squared_scattering_length = 0.0;
     vector < vector< unsigned int > > atom_types_indexes(atom_types_.size());
     
-    determine_atom_indexes(atom_types_indexes, average_scattering_length, number_of_atoms);
+    determine_atom_indexes(atom_types_indexes, average_squared_scattering_length, number_of_atoms);
 
     // check max_cutoff_length < box_length_/2.0
     double min_box_length = average_box_length_[0];
@@ -418,7 +418,7 @@ void SelfVanHoveFunction::compute_Gs_rt()
 		double volume_of_shell = volume_of_outer_sphere - volume_of_inner_sphere;
 		
 		double normalization_factor = 1.0/(volume_of_shell * number_of_atoms * number_of_frames_to_average_);
-        normalization_factor /= ( average_scattering_length * average_scattering_length );
+        normalization_factor /= ( average_squared_scattering_length );
 		
 		if (i_bin == 0) {
 			Gs_rt_[0][0] = 1.0/volume_of_shell;	// Gs(r, t = 0) = 1.0/volume_of_shell * delta_function(r)
@@ -611,7 +611,7 @@ void SelfVanHoveFunction::compute_time_array()
 
 
 void SelfVanHoveFunction::determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
-                                             double & average_scattering_length,
+                                             double & average_squared_scattering_length,
                                              size_t & number_of_atoms)
 {
     number_of_atoms = 0;
@@ -622,16 +622,16 @@ void SelfVanHoveFunction::determine_atom_indexes(vector < vector < unsigned int 
         number_of_atoms += atom_types_indexes[i_atom_type].size();
         // Generate average_scattering_length
         if (scattering_lengths_.size() != 0) {
-            average_scattering_length += atom_types_indexes[i_atom_type].size() * scattering_lengths_[i_atom_type];
+            average_squared_scattering_length += atom_types_indexes[i_atom_type].size() * scattering_lengths_[i_atom_type] * scattering_lengths_[i_atom_type];
         }
     }
     
     // normalize the average scattering length
     if (scattering_lengths_.size() == 0) {
-        average_scattering_length = 1.0;
+        average_squared_scattering_length = 1.0;
     }
     else {
-        average_scattering_length /= number_of_atoms;
+        average_squared_scattering_length /= number_of_atoms;
     }
 }
 
@@ -640,7 +640,7 @@ void SelfVanHoveFunction::print_status(size_t & status)
 {
     ++status;
     cout << "\rcurrent progress of calculating the pair distribution function is: ";
-    cout << status * 100.0/number_of_frames_to_average_;
+    cout << status * 100.0/number_of_time_points_;
     cout << " \%";
     cout << flush;
 }

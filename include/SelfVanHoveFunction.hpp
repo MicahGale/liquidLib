@@ -36,7 +36,7 @@ private:
     void check_parameters() throw();
     void compute_time_array();
     void determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
-                                double & average_scattering_length,
+                                double & average_squared_scattering_length,
                                 size_t & number_of_atoms);
     inline void print_status(size_t & status);
 	

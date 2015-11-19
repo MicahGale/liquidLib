@@ -1,5 +1,5 @@
 //
-//  SelfIntermediateScattering.cpp
+//  CoherentIntermediateScattering.cpp
 //
 //  Copyright (c) 2015 Zhang-Group. All rights reserved.
 //  This software is distributed under the MIT license
@@ -9,8 +9,8 @@
 //                        Nathan Walter
 //  -----------------------------------------------------
 //
-#ifndef LiquidLib_SelfIntermediateScattering_hpp
-#define LiquidLib_SelfIntermediateScattering_hpp
+#ifndef LiquidLib_CoherentIntermediateScattering_hpp
+#define LiquidLib_CoherentIntermediateScattering_hpp
 
 #include <vector>
 #include <string>
@@ -20,15 +20,15 @@
 
 using namespace std;
 
-class SelfIntermediateScattering : public Trajectory {
+class CoherentIntermediateScattering : public Trajectory {
 public:
-    SelfIntermediateScattering();
-    virtual ~SelfIntermediateScattering();
+    CoherentIntermediateScattering();
+    virtual ~CoherentIntermediateScattering();
     
     void read_command_inputs(int argc, char * argv[]);
     void read_input_file();
-    void compute_Fs_kt();
-    void write_Fs_kt();
+    void compute_F_kt();
+    void write_F_kt();
    
 protected:
     
@@ -37,7 +37,7 @@ private:
     void check_parameters() throw();
     void compute_time_array();
     void determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
-                                double & average_squared_scattering_length,
+                                double & average_scattering_length,
                                 size_t & number_of_atoms);
     void generate_k_vectors(unsigned int const & mag_kvec_sqr, vector< vector< unsigned int > > & kvec_temp);
     inline void compute_k_vectors(unsigned int & mag_kvec_sqr, vector< vector< unsigned int > > & kvec_temp);
@@ -48,10 +48,10 @@ private:
     string output_file_name_;
     string atom_group_;
 	string time_scale_type_;
-    string method_of_k_generation_;       // analytical, gaussian, ...
+    string method_of_k_generation_;
 
     unsigned int number_of_bins_;       // bin spacing = 2*M_PI/average_box_length
-    unsigned int k_start_index_;        // in unit of 2*M_PI/average_box_length
+    unsigned int k_start_index_;
 	unsigned int number_of_time_points_;
     unsigned int number_of_frames_to_average_;
 	
@@ -64,7 +64,7 @@ private:
     vector< double > scattering_lengths_;
 	vector< unsigned int > time_array_indexes_;
     vector< unsigned int > number_of_k_vectors_;
-    vector< vector< double > > Fs_kt_;
+    vector< vector< double > > F_kt_;
 };
 
-#endif // defined (LiquidLib_SelfIntermediateScattering_hpp)
+#endif // defined (LiquidLib_CoherentIntermediateScattering_hpp)

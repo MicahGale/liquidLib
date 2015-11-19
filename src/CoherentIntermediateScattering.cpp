@@ -1,5 +1,5 @@
 //
-//  SelfIntermediateScattering.cpp
+//  CoherentIntermediateScattering.cpp
 //
 //  Copyright (c) 2015 Zhang-Group. All rights reserved.
 //  This software is distributed under the MIT license
@@ -9,7 +9,7 @@
 //                        Nathan Walter
 //  -----------------------------------------------------
 //
-#include "SelfIntermediateScattering.hpp"
+#include "CoherentIntermediateScattering.hpp"
 
 #ifdef OMP
 #include "omp.h"
@@ -23,38 +23,35 @@
 #include <vector>
 #include <iomanip>
 #include <random>
-#include <cstring>
 #include <sstream>
+#include <cstring>
 
 #include "Trajectory.hpp"
 
 using namespace std;
 
-SelfIntermediateScattering::SelfIntermediateScattering() :
-	input_file_name_("Fs_kt.in"),
-	output_file_name_("Fs_kt.txt"),
+CoherentIntermediateScattering::CoherentIntermediateScattering() :
+	input_file_name_("F_kt.in"),
+	output_file_name_("F_kt.txt"),
 	atom_group_("system"),
 	time_scale_type_("linear"),
     method_of_k_generation_("moderate"),
     number_of_bins_(50),
-    k_start_index_(0),
+    k_start_index_(1),
 	number_of_time_points_(0),
 	number_of_frames_to_average_(1),
 	frame_interval_(1.0),
-    delta_k_(0),
-    atom_types_({}),
-    scattering_lengths_({}),
-    number_of_k_vectors_({})
+    delta_k_(0)
 {
 }
 
 
-SelfIntermediateScattering::~SelfIntermediateScattering()
+CoherentIntermediateScattering::~CoherentIntermediateScattering()
 {
 }
 
 
-void SelfIntermediateScattering::read_command_inputs(int argc, char * argv[])
+void CoherentIntermediateScattering::read_command_inputs(int argc, char * argv[])
 {
     for (int input = 1; input < argc; ++input) {
         if (strcmp(argv[input], "-i") == 0) {
@@ -80,7 +77,7 @@ void SelfIntermediateScattering::read_command_inputs(int argc, char * argv[])
 }
 
 
-void SelfIntermediateScattering::read_input_file()
+void CoherentIntermediateScattering::read_input_file()
 {
 	ifstream input_file(input_file_name_);
 	
@@ -140,7 +137,7 @@ void SelfIntermediateScattering::read_input_file()
 		
 		//check if equal to member strings
         if (input_word == "output_file_name") {
-            if (output_file_name_ != "Fs_kt.txt") {
+            if (output_file_name_ != "F_kt.txt") {
                 cerr << "ERROR: Please do not set output file by command line and input file,\n";
                 cerr << "     : we are unsure on which to prioritize.";
                 cerr << endl;
@@ -183,8 +180,42 @@ void SelfIntermediateScattering::read_input_file()
 			cerr << endl;
 		}
 #endif
-        
-        // Read scattering lengths provided by user
+
+		if (input_word == "atom_group") {
+			input_file >> input_word;
+			if (input_word[0] == '=') {
+				input_file >> input_word;
+			}
+			atom_group_ = input_word;
+			continue;
+		}
+		if (input_word == "time_scale_type") {
+			input_file >> input_word;
+			if (input_word[0] == '=') {
+				input_file >> input_word;
+			}
+			time_scale_type_ = input_word;
+			continue;
+		}
+        if (input_word == "method_of_k_generation") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            method_of_k_generation_ = input_word;
+            cout << method_of_k_generation_ << endl;
+            continue;
+        }
+        if (input_word == "trajectory_data_type") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            trajectory_data_type_ = input_word;
+            continue;
+        }
+		
+        // Read atom types and scattering lengths provided by user
         if (input_word == "atom_types") {
             getline(input_file, input_word);
             stringstream input_line(input_word);
@@ -213,39 +244,7 @@ void SelfIntermediateScattering::read_input_file()
             }
             continue;
         }
-		if (input_word == "atom_group") {
-			input_file >> input_word;
-			if (input_word[0] == '=') {
-				input_file >> input_word;
-			}
-			atom_group_ = input_word;
-			continue;
-		}
-		if (input_word == "time_scale_type") {
-			input_file >> input_word;
-			if (input_word[0] == '=') {
-				input_file >> input_word;
-			}
-			time_scale_type_ = input_word;
-			continue;
-		}
-        if (input_word == "method_of_k_generation") {
-            input_file >> input_word;
-            if (input_word[0] == '=') {
-                input_file >> input_word;
-            }
-            method_of_k_generation_ = input_word;
-            continue;
-        }
-        if (input_word == "trajectory_data_type") {
-            input_file >> input_word;
-            if (input_word[0] == '=') {
-                input_file >> input_word;
-            }
-            trajectory_data_type_ = input_word;
-            continue;
-        }
-		
+        
 		//check if equal to member ints
 		if (input_word == "start_frame") {
 			input_file >> input_word;
@@ -287,6 +286,14 @@ void SelfIntermediateScattering::read_input_file()
             number_of_bins_ = stoi(input_word);
             continue;
         }
+		if (input_word == "delta_k") {
+			input_file >> input_word;
+			if (input_word[0] == '=') {
+				input_file >> input_word;
+			}
+			delta_k_ = stod(input_word);
+			continue;
+		}
 		if (input_word ==  "number_of_time_points") {
 			input_file >> input_word;
 			if (input_word[0] == '=') {
@@ -345,7 +352,7 @@ void SelfIntermediateScattering::read_input_file()
 }
 
 
-void SelfIntermediateScattering::compute_Fs_kt()
+void CoherentIntermediateScattering::compute_F_kt()
 {
 	if (is_wrapped_) {
 		unwrap_coordinates();
@@ -356,11 +363,11 @@ void SelfIntermediateScattering::compute_Fs_kt()
     
     // select the indexes of atom_types_
     size_t number_of_atoms;
-    double average_squared_scattering_length = 0.0;
+    double average_scattering_length = 0.0;
     vector < vector< unsigned int > > atom_types_indexes(atom_types_.size());
     
-    determine_atom_indexes(atom_types_indexes, average_squared_scattering_length, number_of_atoms);
-
+    determine_atom_indexes(atom_types_indexes, average_scattering_length, number_of_atoms);
+    
     // k resolution is determined by inverse box length
     double min_box_length = average_box_length_[0];
     for (size_t i_dimension = 1; i_dimension < dimension_; ++i_dimension) {
@@ -368,8 +375,8 @@ void SelfIntermediateScattering::compute_Fs_kt()
     }
     double k_min = 2.0*M_PI/min_box_length;
     delta_k_ = (delta_k_ < k_min ) ? k_min : delta_k_;
-
-    // allocate k_values_
+    
+    // allocate k_values_ and normalization factor
     k_values_.resize(number_of_bins_, 0.0);
     number_of_k_vectors_.resize(number_of_bins_);
     vector< vector< vector < unsigned int > > > k_vectors(number_of_bins_);
@@ -392,7 +399,7 @@ void SelfIntermediateScattering::compute_Fs_kt()
         
         // Compute normalization factor
         normalization_factor[k_index] = 1.0 / (number_of_frames_to_average_ * number_of_atoms * number_of_k_vectors_[k_index]);
-        normalization_factor[k_index] /= ( average_squared_scattering_length );
+        normalization_factor[k_index] /= ( average_scattering_length * average_scattering_length );
         
         // Print num of vectors and values
         cout << "Corrected kvalue for : " << k_value_temp << " is : " << k_values_[k_index] << endl;
@@ -406,35 +413,67 @@ void SelfIntermediateScattering::compute_Fs_kt()
             }
         }
     }
+    cout << "Finished computing correct k-values and vectors. " << endl;
     
-    // initialize Fs_kt_
-    Fs_kt_.resize(number_of_bins_, vector< double >(time_array_indexes_.size(), 0.0));   // initialize with value 1.0 since Fs(k, t = 0) = 1.0
+    // initialize F_kt_
+    F_kt_.resize(number_of_bins_, vector< double > (time_array_indexes_.size(), 0.0));
+
+    // Store periodic_image_counts of trajectories until number_of_frames_to_average
+    double *** periodic_image_counts;
+    periodic_image_counts = new double ** [number_of_frames_to_average_];
+#pragma omp parallel for
+    for (size_t i_frame = 0; i_frame < number_of_frames_to_average_; ++i_frame) {
+        periodic_image_counts[i_frame] = new double * [number_of_system_atoms_];
+        for (size_t i_atom = 0; i_atom < number_of_system_atoms_; ++i_atom) {
+            periodic_image_counts[i_frame][i_atom] = new double [dimension_];
+        }
+    }
+    for (size_t i_frame = 0; i_frame < number_of_frames_to_average_; ++i_frame) {
+        for (size_t i_atom = 0; i_atom < number_of_system_atoms_; ++i_atom) {
+            for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+                periodic_image_counts[i_frame][i_atom][i_dimension] = box_length_[i_frame][i_dimension] * round( trajectory_[i_frame][i_atom][i_dimension] / box_length_[i_frame][i_dimension] );
+            }
+        }
+    }
     
     size_t status = 0;
     cout << "Computing ..." << endl;
     
-#pragma omp parallel for firstprivate(k_vectors)
+#pragma omp parallel for firstprivate(k_vector, k_vectors)
     for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
         for (size_t k_index = 0; k_index < number_of_bins_; ++k_index) {
-
+            
             for (size_t initial_frame = 0; initial_frame < number_of_frames_to_average_; ++initial_frame) {
                 size_t current_frame = initial_frame + time_array_indexes_[time_point];
-
+                
                 for (size_t i_k_vector = 0; i_k_vector < number_of_k_vectors_[k_index]; ++i_k_vector) {
+                    double sum_cos_term_r0 = 0.0;
+                    double sum_sin_term_c0 = 0.0;
+                    double sum_cos_term_rt = 0.0;
+                    double sum_sin_term_ct = 0.0;
                     for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
                         for (size_t i_atom = 0; i_atom < atom_types_indexes[i_atom_type].size(); ++i_atom) {
-                            unsigned int atom_index = atom_types_indexes[i_atom_type][i_atom];
-                            double kr_vector_product = 0.0;
+                            size_t atom_index = atom_types_indexes[i_atom_type][i_atom];
+                            double k_dot_r0 = 0.0;
+                            double k_dot_rt = 0.0;
                             for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-                                double delta_x = trajectory_[current_frame][atom_index][i_dimension] - trajectory_[initial_frame][atom_index][i_dimension];
-                                kr_vector_product += k_vectors[k_index][i_k_vector][i_dimension] * delta_x;
+                                k_dot_r0 += k_vectors[k_index][i_k_vector][i_dimension] * (trajectory_[initial_frame][atom_index][i_dimension] - periodic_image_counts[initial_frame][atom_index][i_dimension]);
+                                k_dot_rt += k_vectors[k_index][i_k_vector][i_dimension] * (trajectory_[current_frame][atom_index][i_dimension] - periodic_image_counts[initial_frame][atom_index][i_dimension]);
                             }
-                            Fs_kt_[k_index][time_point] += cos(kr_vector_product)*scattering_lengths_[i_atom_type]*scattering_lengths_[i_atom_type];
+                            sum_cos_term_r0 += cos(k_min * k_dot_r0);
+                            sum_sin_term_c0 += sin(k_min * k_dot_r0);
+                            sum_cos_term_rt += cos(k_min * k_dot_rt);
+                            sum_sin_term_ct += sin(k_min * k_dot_rt);
                         }
+                        sum_cos_term_r0 *= scattering_lengths_[i_atom_type];
+                        sum_sin_term_c0 *= scattering_lengths_[i_atom_type];
+                        sum_cos_term_rt *= scattering_lengths_[i_atom_type];
+                        sum_sin_term_ct *= scattering_lengths_[i_atom_type];
                     }
+                    F_kt_[k_index][time_point] += (sum_cos_term_rt * sum_cos_term_r0 + sum_sin_term_ct * sum_sin_term_c0);
                 }
             }
-            Fs_kt_[k_index][time_point] *= normalization_factor[k_index];
+            F_kt_[k_index][time_point] *= normalization_factor[k_index];
         }
         
         if (is_run_mode_verbose_) {
@@ -443,10 +482,19 @@ void SelfIntermediateScattering::compute_Fs_kt()
         }
     }
     cout << endl;
+    
+    // delete dynamically allocated memory
+    for (size_t i_frame = 0; i_frame < number_of_frames_to_average_; ++i_frame) {
+        for (size_t i_atom = 0; i_atom < number_of_system_atoms_; ++i_atom) {
+            delete[] periodic_image_counts[i_frame][i_atom];
+        }
+        delete[] periodic_image_counts[i_frame];
+    }
+    delete[] periodic_image_counts;
 }
 
 
-inline void SelfIntermediateScattering::generate_k_vectors(unsigned int const & mag_kvec_sqr, vector< vector< unsigned int > > & k_vectors)
+void CoherentIntermediateScattering::generate_k_vectors(unsigned int const & mag_kvec_sqr, vector< vector< unsigned int > > & k_vectors)
 {
     if (method_of_k_generation_ == "moderate") {
         unsigned int mag_k_vector = static_cast< unsigned int > (sqrt(mag_kvec_sqr));
@@ -469,7 +517,8 @@ inline void SelfIntermediateScattering::generate_k_vectors(unsigned int const & 
     }
 }
 
-inline void SelfIntermediateScattering::compute_k_vectors(unsigned int & mag_kvec_sqr, vector< vector< unsigned int > > & k_vectors)
+
+inline void CoherentIntermediateScattering::compute_k_vectors(unsigned int & mag_kvec_sqr, vector< vector< unsigned int > > & k_vectors)
 {
     generate_k_vectors( mag_kvec_sqr, k_vectors);
     unsigned int number_of_k_vectors = k_vectors.size();
@@ -481,7 +530,7 @@ inline void SelfIntermediateScattering::compute_k_vectors(unsigned int & mag_kve
 }
 
 
-void SelfIntermediateScattering::write_Fs_kt()
+void CoherentIntermediateScattering::write_F_kt()
 {
     if (trajectory_delta_time_ == 0) {
         cerr << "WARNING: time step of simulation could not be derived from trajectory,\n";
@@ -490,63 +539,43 @@ void SelfIntermediateScattering::write_Fs_kt()
         trajectory_delta_time_ = 1.0;
     }
     
-	ofstream output_Fskt_file(output_file_name_);
+	ofstream output_Fkt_file(output_file_name_);
 	
-	output_Fskt_file << "# Self intermediate scattering function for atom types: ";
-    output_Fskt_file << "# { ";
+	output_Fkt_file << "# Coherent intermediate scattering function for atom type: \n";
+    output_Fkt_file << "# { ";
     for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
-        output_Fskt_file << atom_types_[i_atom_type];
-        output_Fskt_file << "(" << scattering_lengths_[i_atom_type] << ")";
-        output_Fskt_file << " ";
+        output_Fkt_file << atom_types_[i_atom_type];
+        output_Fkt_file << "(" << scattering_lengths_[i_atom_type] << ")";
+        output_Fkt_file << "  ";
     }
-    output_Fskt_file << "}";
-    output_Fskt_file << " in " << atom_group_ << endl;
-    output_Fskt_file << "# using " << time_scale_type_ << " time scale, ";
-    output_Fskt_file << method_of_k_generation_ << " k sampling" << endl;
+    output_Fkt_file << "}";
+	output_Fkt_file << " in " << atom_group_ << endl;
+    output_Fkt_file << "# using " << time_scale_type_ << " time scale, " << endl;
     
-    output_Fskt_file << setiosflags(ios::scientific) << setprecision(output_precision_);
-    output_Fskt_file << "#" << endl;
-    output_Fskt_file << "# k values" << endl;
+    output_Fkt_file << setiosflags(ios::scientific) << setprecision(output_precision_);
+    output_Fkt_file << "#" << endl;
+    output_Fkt_file << "# k values" << endl;
     for (size_t k_index = 0; k_index < k_values_.size(); ++k_index) {
-        output_Fskt_file << k_values_[k_index] << endl;
+        output_Fkt_file << k_values_[k_index] << endl;
     }
-    output_Fskt_file << "#" << endl;
-    output_Fskt_file << "# t | Fs(k, t)" << endl;
+    output_Fkt_file << "#" << endl;
+    output_Fkt_file << "# t | F(k, t)" << endl;
     for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
-        output_Fskt_file << time_array_indexes_[time_point]*trajectory_delta_time_;
+        output_Fkt_file << time_array_indexes_[time_point]*trajectory_delta_time_;
         for (size_t k_index = 0; k_index < k_values_.size(); ++k_index) {
-            output_Fskt_file << "\t" << Fs_kt_[k_index][time_point];
+            output_Fkt_file << "\t" << F_kt_[k_index][time_point];
         }
-        output_Fskt_file << endl;
+        output_Fkt_file << endl;
     }
     
-    //    output_Fskt_file << "# ---------------------------" << endl;
-    //    output_Fskt_file << "#               k_1st_row    " << endl;
-    //    output_Fskt_file << "#            ----------------" << endl;
-    //    output_Fskt_file << "# t_1st_col | Fs(k, t)_matrix" << endl;
-    //    output_Fskt_file << "# ---------------------------" << endl;
-    //
-    //    output_Fskt_file << setiosflags(ios::scientific) << setprecision(output_precision_);
-    //	output_Fskt_file << "            ";
-    //    for (size_t k_index = 0; k_index < k_values_.size(); ++k_index) {
-    //		output_Fskt_file << "\t" << k_values_[k_index];
-    //	}
-    //	for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
-    //		output_Fskt_file << endl;
-    //        output_Fskt_file << time_array_indexes_[time_point]*trajectory_delta_time_;
-    //		for (size_t k_index = 0; k_index < k_values_.size(); ++k_index) {
-    //			output_Fskt_file << "\t" << Fs_kt_[k_index][time_point];
-    //		}
-    //	}
-    
-	output_Fskt_file.close();
+    output_Fkt_file.close();
 }
 
 
 // Function to check that all the parameters provided by the user for
-// self intermediate scattering are usable.  Ensures that the code will
+// Coherent intermediate scattering are usable.  Ensures that the code will
 // not have with needing enough data points
-void SelfIntermediateScattering::check_parameters() throw()
+void CoherentIntermediateScattering::check_parameters() throw()
 {
     if (end_frame_ == 0 && number_of_time_points_ == 0) {
         cerr << "ERROR: We require more information to proceed, either frameend or numberoftimepoints\n";
@@ -603,14 +632,17 @@ void SelfIntermediateScattering::check_parameters() throw()
 		cerr << endl;
 	}
     
-    if (method_of_k_generation_ != "moderate" && method_of_k_generation_ != "fast") {
-        cerr << "ERROR: Unrecognized sampling method for wavevector transfer k" << endl;
-        cerr << "     : Optional methods are \"analytical\", \"gaussian\", or \"uniform\"." << endl;
-        exit(1);
+    if (k_start_index_ < 1) {
+        cerr << "WARNING: k_start_index cannot be non-positive\n";
+        cerr << "       : We will reset the value to 1\n";
+        cerr << endl;
+        k_start_index_ = 1;
     }
     
     if (atom_types_.empty()) {
-        cerr << "ERROR: No atom types provided, nothing will be computed\n";
+        cerr << "\n";
+        cerr << "ERROR: No atom types specified.\n";
+        cerr << "     : Computation cannot proceed.\n";
         cerr << endl;
         exit(1);
     }
@@ -631,10 +663,10 @@ void SelfIntermediateScattering::check_parameters() throw()
         scattering_lengths_ = vector< double > (atom_types_.size(), 1.0);
     }
     
-    // check that output can be opened
-    ofstream output_Fskt_file(output_file_name_);
-    if (!output_Fskt_file) {
-        cerr << "ERROR: Output file for self intermediate scattering function: "
+    // check output file can be opened
+    ofstream output_Fkt_file(output_file_name_);
+    if (!output_Fkt_file) {
+        cerr << "ERROR: Output file for Coherent intermediate scattering function: "
         << "\033[1;25m"
         << output_file_name_
         << "\033[0m"
@@ -642,11 +674,37 @@ void SelfIntermediateScattering::check_parameters() throw()
         << endl;
         exit(1);
     }
-    output_Fskt_file.close();
+    output_Fkt_file.close();
 }
 
 
-void SelfIntermediateScattering::compute_time_array()
+void CoherentIntermediateScattering::determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
+                                                     double & average_scattering_length,
+                                                     size_t & number_of_atoms)
+{
+    number_of_atoms = 0;
+    
+    for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+        select_atoms(atom_types_indexes[i_atom_type], atom_types_[i_atom_type], atom_group_);
+        
+        number_of_atoms += atom_types_indexes[i_atom_type].size();
+        // Generate average_scattering_length
+        if (scattering_lengths_.size() != 0) {
+            average_scattering_length += atom_types_indexes[i_atom_type].size() * scattering_lengths_[i_atom_type];
+        }
+    }
+    
+    // normalize the average scattering length
+    if (scattering_lengths_.size() == 0) {
+        average_scattering_length = 1.0;
+    }
+    else {
+        average_scattering_length /= number_of_atoms;
+    }
+}
+
+
+void CoherentIntermediateScattering::compute_time_array()
 {
     time_array_indexes_.resize(number_of_time_points_);
     time_array_indexes_[0] = 0;
@@ -673,33 +731,7 @@ void SelfIntermediateScattering::compute_time_array()
 }
 
 
-void SelfIntermediateScattering::determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
-                                                        double & average_squared_scattering_length,
-                                                        size_t & number_of_atoms)
-{
-    number_of_atoms = 0;
-    
-    for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
-        select_atoms(atom_types_indexes[i_atom_type], atom_types_[i_atom_type], atom_group_);
-        
-        number_of_atoms += atom_types_indexes[i_atom_type].size();
-        // Generate average_scattering_length
-        if (scattering_lengths_.size() != 0) {
-            average_squared_scattering_length += atom_types_indexes[i_atom_type].size() * scattering_lengths_[i_atom_type] * scattering_lengths_[i_atom_type];
-        }
-    }
-    
-    // normalize the average scattering length
-    if (scattering_lengths_.size() == 0) {
-        average_squared_scattering_length = 1.0;
-    }
-    else {
-        average_squared_scattering_length /= number_of_atoms;
-    }
-}
-
-
-void SelfIntermediateScattering::print_status(size_t & status)
+void CoherentIntermediateScattering::print_status(size_t & status)
 {
     ++status;
     cout << "\rcurrent progress of calculating the pair distribution function is: ";
