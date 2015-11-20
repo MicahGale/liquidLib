@@ -465,7 +465,31 @@ inline void SelfIntermediateScattering::generate_k_vectors(unsigned int const & 
         return;
     }
     else if (method_of_k_generation_ == "fast") {
-        
+        unsigned int i_max = static_cast< unsigned int > (sqrt(mag_kvec_sqr/3.0));
+        for (unsigned int i = 0; i <= i_max; ++i) {
+            unsigned int j_max = static_cast< unsigned int > (sqrt((mag_kvec_sqr - i*i)/2.0));
+            for (unsigned int j = i; j <= j_max; ++j) {
+                unsigned int k_sqr = mag_kvec_sqr - i*i - j*j;
+                unsigned int k = static_cast< unsigned int > (sqrt(k_sqr));
+                // check if k is a perfect square
+                if ( fabs(k_sqr - k*k) < 1e-16 ) {
+                    // Add all permutations since i <= j <= k;
+                    k_vectors.push_back( {i, j, k} );
+                    if (i != j && i != k && j != k) {
+                        // Write down all 6 permuations
+                        k_vectors.push_back( {i, k, j} );
+                        k_vectors.push_back( {j, i, k} );
+                        k_vectors.push_back( {j, k, i} );
+                        k_vectors.push_back( {k, i, j} );
+                        k_vectors.push_back( {k, j, i} );
+                    }
+                    else if ( i == j || i == k || j == k ) {
+                        k_vectors.push_back( {j, k, i} );
+                        k_vectors.push_back( {k, i, j} );
+                    }
+                }
+            }
+        }
     }
 }
 
