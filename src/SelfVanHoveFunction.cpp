@@ -396,8 +396,10 @@ void SelfVanHoveFunction::compute_Gs_rt()
 		}
         
         if (is_run_mode_verbose_) {
-#pragma omp atomic
+#pragma omp critical
+{
             print_status(status);
+}
         }
 	}
     cout << endl;

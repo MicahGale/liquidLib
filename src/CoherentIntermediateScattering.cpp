@@ -439,7 +439,7 @@ void CoherentIntermediateScattering::compute_F_kt()
     size_t status = 0;
     cout << "Computing ..." << endl;
     
-#pragma omp parallel for firstprivate(k_vector, k_vectors)
+#pragma omp parallel for firstprivate(k_vectors)
     for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
         for (size_t k_index = 0; k_index < number_of_bins_; ++k_index) {
             
@@ -477,8 +477,10 @@ void CoherentIntermediateScattering::compute_F_kt()
         }
         
         if (is_run_mode_verbose_) {
-#pragma omp atomic
+#pragma omp critical
+{
             print_status(status);
+}
         }
     }
     cout << endl;
@@ -523,17 +525,20 @@ void CoherentIntermediateScattering::generate_k_vectors(unsigned int const & mag
                 if ( fabs(k_sqr - k*k) < 1e-16 ) {
                     // Add all permutations since i <= j <= k;
                     k_vectors.push_back( {i, j, k} );
-                    if (i != j && i != k && j != k) {
-                        // Write down all 6 permuations
+                    if (i == j && j == k) {
+                        continue;
+                    }
+                    else if ( i == j || j == k ) {
+                        k_vectors.push_back( {j, k, i} );
+                        k_vectors.push_back( {k, i, j} );
+                    }
+                    else {
+                        // Write down all remaining permuations
                         k_vectors.push_back( {i, k, j} );
                         k_vectors.push_back( {j, i, k} );
                         k_vectors.push_back( {j, k, i} );
                         k_vectors.push_back( {k, i, j} );
                         k_vectors.push_back( {k, j, i} );
-                    }
-                    else if ( i == j || i == k || j == k ) {
-                        k_vectors.push_back( {j, k, i} );
-                        k_vectors.push_back( {k, i, j} );
                     }
                 }
             }
@@ -655,6 +660,21 @@ void CoherentIntermediateScattering::check_parameters() throw()
 		cerr << "       : is advised";
 		cerr << endl;
 	}
+    
+    if (method_of_k_generation_ != "moderate" && method_of_k_generation_ != "fast") {
+        cerr << "\n";
+        cerr << "ERROR: Unrecognized sampling method for wavevector transfer k" << endl;
+        cerr << "     : Options are \"moderate\", or \"fast\"." << endl;
+        exit(1);
+    }
+    
+    // check dimension == 3
+    if (dimension_ != 3) {
+        cerr << "\n";
+        cerr << "ERROR: Dimension must equal 3.\n" << endl;
+        cerr << "     : Currently LiquidLib doesn't support k vector generation in: " << dimension_ << " dimensions.\n";
+        exit(1);
+    }
     
     if (k_start_index_ < 1) {
         cerr << "WARNING: k_start_index cannot be non-positive\n";

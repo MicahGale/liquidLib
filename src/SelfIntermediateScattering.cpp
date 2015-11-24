@@ -438,8 +438,10 @@ void SelfIntermediateScattering::compute_Fs_kt()
         }
         
         if (is_run_mode_verbose_) {
-#pragma omp atomic
+#pragma omp critical
+{
             print_status(status);
+}
         }
     }
     cout << endl;
@@ -475,17 +477,20 @@ inline void SelfIntermediateScattering::generate_k_vectors(unsigned int const & 
                 if ( fabs(k_sqr - k*k) < 1e-16 ) {
                     // Add all permutations since i <= j <= k;
                     k_vectors.push_back( {i, j, k} );
-                    if (i != j && i != k && j != k) {
-                        // Write down all 6 permuations
+                    if (i == j && j == k) {
+                        continue;
+                    }
+                    else if ( i == j || j == k ) {
+                        k_vectors.push_back( {j, k, i} );
+                        k_vectors.push_back( {k, i, j} );
+                    }
+                    else {
+                        // Write down all remaining permuations
                         k_vectors.push_back( {i, k, j} );
                         k_vectors.push_back( {j, i, k} );
                         k_vectors.push_back( {j, k, i} );
                         k_vectors.push_back( {k, i, j} );
                         k_vectors.push_back( {k, j, i} );
-                    }
-                    else if ( i == j || i == k || j == k ) {
-                        k_vectors.push_back( {j, k, i} );
-                        k_vectors.push_back( {k, i, j} );
                     }
                 }
             }
@@ -629,7 +634,7 @@ void SelfIntermediateScattering::check_parameters() throw()
     
     if (method_of_k_generation_ != "moderate" && method_of_k_generation_ != "fast") {
         cerr << "ERROR: Unrecognized sampling method for wavevector transfer k" << endl;
-        cerr << "     : Optional methods are \"analytical\", \"gaussian\", or \"uniform\"." << endl;
+        cerr << "     : Options are \"moderate\", or \"fast\"." << endl;
         exit(1);
     }
     

@@ -405,8 +405,10 @@ void PairDistributionFunction::compute_g_r()
             }
             
             if (is_run_mode_verbose_) {
-#pragma omp atomic
+#pragma omp critical
+{
                 print_status(status);
+}
             }
         }
 	}
@@ -433,8 +435,10 @@ void PairDistributionFunction::compute_g_r()
             }
             
             if (is_run_mode_verbose_) {
-#pragma omp atomic
+#pragma omp critical
+{
                 print_status(status);
+}
             }
         }
 	}

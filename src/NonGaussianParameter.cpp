@@ -94,8 +94,10 @@ void NonGaussianParameter::compute_alpha2_t()
         alpha2_t_[time_point] = 3.0 * total_bisquared_displacement/ (5.0 * total_squared_displacement * total_squared_displacement * normalization_factor) - 1.0;
         
         if (is_run_mode_verbose_) {
-#pragma omp atomic
+#pragma omp critical
+{
             print_status(status);
+}
         }
     }
     

@@ -365,8 +365,10 @@ void FourPointCorrelation::compute_chi4_t()
         chi4_t_[time_point][1] = system_volume * (q_self2 * normalization_factor / number_of_atoms - chi4_t_[time_point][0] * chi4_t_[time_point][0]);
 
         if (is_run_mode_verbose_) {
-#pragma omp atomic
+#pragma omp critical
+{
             print_status(status);
+}
         }
     }
     cout << endl;

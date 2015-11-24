@@ -345,8 +345,10 @@ void MeanSquaredDisplacement::compute_r2_t()
         r2_t_[time_point] = total_squared_distance*normalization_factor;
         
         if (is_run_mode_verbose_) {
-#pragma omp atomic
+#pragma omp critical
+{
             print_status(status);
+}
         }
     }
     
