@@ -10,7 +10,7 @@ gro_file_name               = ../../1bar_300K/md.gro
 output_file_name            = Fskt_1bar_300K.txt
 
 # select atoms
-atom_type                   = OW
+atom_types                   = OW
 atom_group                  = system
 
 # reading parameters
@@ -28,5 +28,3 @@ number_of_frames_to_average = 5000
 # wavevector parameters
 k_start_index               = 5
 number_of_bins              = 20
-number_of_k_vectors         = 80
-method_of_k_sampling        = analytical

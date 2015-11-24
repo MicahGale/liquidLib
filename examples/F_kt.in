@@ -30,4 +30,3 @@ trajectory_delta_time	    = 0.005
 k_start_index               = 1
 delta_k			   = 0.4
 number_of_bins              = 1
-method_of_k_generation      = moderate
