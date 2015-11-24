@@ -233,7 +233,7 @@ void StructureFactor::read_input_file()
             continue;
         }
         
-        if (input_word == "method_of_k_generation_") {
+        if (input_word == "method_of_k_generation") {
             input_file >> input_word;
             if (input_word[0] == '=') {
                 input_file >> input_word;
@@ -449,7 +449,14 @@ void StructureFactor::generate_k_vectors(unsigned int const & mag_kvec_sqr, vect
                 if ( fabs(k_sqr - k*k) < 1e-16 ) {
                     // Add all permutations since i <= j <= k;
                     k_vectors.push_back( {i, j, k} );
-                    if (i != j && i != k && j != k) {
+                    if (i == j && j == k) {
+                        continue;
+                    }
+                    else if ( i == j || j == k ) {
+                        k_vectors.push_back( {j, k, i} );
+                        k_vectors.push_back( {k, i, j} );
+                    }
+                    else {
                         // Write down all 6 permuations
                         k_vectors.push_back( {i, k, j} );
                         k_vectors.push_back( {j, i, k} );
@@ -457,15 +464,43 @@ void StructureFactor::generate_k_vectors(unsigned int const & mag_kvec_sqr, vect
                         k_vectors.push_back( {k, i, j} );
                         k_vectors.push_back( {k, j, i} );
                     }
-                    else if ( i == j || i == k || j == k ) {
-                        k_vectors.push_back( {j, k, i} );
-                        k_vectors.push_back( {k, i, j} );
-                    }
                 }
             }
         }
     }
+    else if (method_of_k_generation_ == "dimensional") {
+        vector< unsigned int > k_vector(dimension_, 0);
+        recurrsive_k_generation(mag_kvec_sqr, 0, k_vector, k_vectors);
+    
+        return;
+    }
     // add other sampling methods that are also generic in different dimensions
+}
+
+
+void StructureFactor::recurrsive_k_generation(unsigned int const mag_kvec_sqr, unsigned int const dimension,
+                                              vector< unsigned int > & k_vector, vector< vector< unsigned int > > & k_vectors)
+{
+    unsigned int sum_squares = 0;
+    for (size_t i_dimension = 0; i_dimension < dimension; ++i_dimension) {
+        sum_squares += k_vector[i_dimension]*k_vector[i_dimension];
+    }
+    unsigned int max_iterator = static_cast< unsigned int > (sqrt(mag_kvec_sqr - sum_squares));
+    for (size_t k_mag = 0; k_mag <= max_iterator; ++k_mag) {
+        k_vector[dimension] = k_mag;
+        if (dimension != dimension_ - 1) {
+            recurrsive_k_generation(mag_kvec_sqr, dimension + 1, k_vector, k_vectors);
+        }
+        else {
+            unsigned int k_squared = 0;
+            for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+                k_squared += k_vector[i_dimension]*k_vector[i_dimension];
+            }
+            if (k_squared == mag_kvec_sqr) {
+                k_vectors.push_back(k_vector);
+            }
+        }
+    }
 }
 
 
@@ -501,11 +536,19 @@ void StructureFactor::check_parameters() throw()
         end_frame_ = start_frame_ + number_of_frames_to_average_;
     }
     
-    if (method_of_k_generation_ != "moderate" && method_of_k_generation_ != "fast") {
+    if (method_of_k_generation_ != "moderate" && method_of_k_generation_ != "fast" && method_of_k_generation_ != "dimensional") {
         cerr << "\n";
         cerr << "ERROR: Unrecognized sampling method for wavevector transfer k" << endl;
-        cerr << "     : Optional methods are \"gaussian\", or \"uniform\".\n" << endl;
+        cerr << "     : Optional methods are \"moderate\", \"fast\", or \"dimensional\"." << endl;
         exit(1);
+    }
+    
+    if (dimension_ != 3 && method_of_k_generation_ != "dimensional") {
+        cout << "WARNING: Only dimensional k_generation works for high dimensional trajectories\n";
+        cout << "       : We will set k_generation_method to dimension\n";
+        cout << endl;
+        
+        method_of_k_generation_ = "dimensional";
     }
     
     if (k_start_index_ < 1) {

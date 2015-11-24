@@ -491,7 +491,41 @@ inline void SelfIntermediateScattering::generate_k_vectors(unsigned int const & 
             }
         }
     }
+    else if (method_of_k_generation_ == "dimensional") {
+        vector< unsigned int > k_vector(dimension_, 0);
+        recurrsive_k_generation(mag_kvec_sqr, 0, k_vector, k_vectors);
+        
+        return;
+    }
+    // add other sampling methods that are also generic in different dimensions
 }
+
+
+void SelfIntermediateScattering::recurrsive_k_generation(unsigned int const mag_kvec_sqr, unsigned int const dimension,
+                                              vector< unsigned int > & k_vector, vector< vector< unsigned int > > & k_vectors)
+{
+    unsigned int sum_squares = 0;
+    for (size_t i_dimension = 0; i_dimension < dimension; ++i_dimension) {
+        sum_squares += k_vector[i_dimension]*k_vector[i_dimension];
+    }
+    unsigned int max_iterator = static_cast< unsigned int > (sqrt(mag_kvec_sqr - sum_squares));
+    for (size_t k_mag = 0; k_mag <= max_iterator; ++k_mag) {
+        k_vector[dimension] = k_mag;
+        if (dimension != dimension_ - 1) {
+            recurrsive_k_generation(mag_kvec_sqr, dimension + 1, k_vector, k_vectors);
+        }
+        else {
+            unsigned int k_squared = 0;
+            for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+                k_squared += k_vector[i_dimension]*k_vector[i_dimension];
+            }
+            if (k_squared == mag_kvec_sqr) {
+                k_vectors.push_back(k_vector);
+            }
+        }
+    }
+}
+
 
 inline void SelfIntermediateScattering::compute_k_vectors(unsigned int & mag_kvec_sqr, vector< vector< unsigned int > > & k_vectors)
 {
@@ -627,10 +661,18 @@ void SelfIntermediateScattering::check_parameters() throw()
 		cerr << endl;
 	}
     
-    if (method_of_k_generation_ != "moderate" && method_of_k_generation_ != "fast") {
+    if (method_of_k_generation_ != "moderate" && method_of_k_generation_ != "fast" && method_of_k_generation_ != "dimensional") {
         cerr << "ERROR: Unrecognized sampling method for wavevector transfer k" << endl;
-        cerr << "     : Optional methods are \"analytical\", \"gaussian\", or \"uniform\"." << endl;
+        cerr << "     : Optional methods are \"moderate\", \"fast\", or \"dimensional\"." << endl;
         exit(1);
+    }
+    
+    if (dimension_ != 3 && method_of_k_generation_ != "dimensional") {
+        cout << "WARNING: Only dimensional k_generation works for high dimensional trajectories\n";
+        cout << "       : We will set k_generation_method to dimension\n";
+        cout << endl;
+        
+        method_of_k_generation_ = "dimensional";
     }
     
     if (atom_types_.empty()) {
