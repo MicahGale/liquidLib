@@ -38,6 +38,8 @@ private:
                                 double & average_scattering_length,
                                 size_t & number_of_atoms);
     void generate_k_vectors(unsigned int const & mag_kvec_sqr, vector< vector< unsigned int > > & kvec_temp);
+    void recurrsive_k_generation(unsigned int const mag_kvec_sqr, unsigned int const dimension,
+                                 vector< unsigned int > & k_vector, vector< vector< unsigned int > > & k_vectors);
     inline void print_status(size_t & status);
 	
 // private member variables

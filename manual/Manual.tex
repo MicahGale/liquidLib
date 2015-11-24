@@ -287,8 +287,8 @@ User can input two atom types using the \textbf{atom$\_$types1} and \textbf{atom
 User can input selected atom types using only the \textbf{atom$\_$types} parameter.  Scattering lengths can be provided in the same order of atom types in order to compute the total structure factor comparable to experiments.
 \begin{description}		
 	\item[method$\_$of$\_$k$\_$generation] \hfill \\
-	- [default: moderate, optional] This value determines the method for sampling the \textbf{k} vectors.  K values will always be generated on a periodic boundary grid or $\mathbf{k} = (n_x,n_y,n_z)$, where $n_x, n_y, n_z$ are non-negative integers. Two methods (moderate, fast) are provided to generate the vectors. Currently, this method is limited to 3D only. We will add support for any dimension in future releases.
-	
+	- [default: moderate, optional] This value determines the method for sampling the \textbf{k} vectors.  K values will always be generated on a periodic boundary grid or $\mathbf{k} = (n_x,n_y,n_z)$, where $n_x, n_y, n_z$ are non-negative integers.  The options for this are, moderate, fast, and dimensional.  Moderate and fast may only be used in 3-dimensions, where as if someone wishes to use high dimensional k vectors, dimensional will generate k vectors of any dimension, at the expense of computational speed.
+
 	\item[k$\_$start$\_$index] \hfill \\
 	- [default: 0, optional] This value determines the first multiple of $\delta k$ used, where $\delta k = 2*\pi/\textbf{boxlength}$.  
 		
@@ -429,7 +429,7 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the self intermediate scattering function.  For example, if this value is set to 1.5, then the self intermediate scattering function will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
 	
 	\item[method$\_$of$\_$k$\_$generation] \hfill \\
-	- [default: moderate, optional] This value determines the method for sampling the \textbf{k} vectors.  K values will always be generated on a periodic boundary grid or $\mathbf{k} = (n_x,n_y,n_z)$, where $n_x, n_y, n_z$ are non-negative integers.
+	- [default: moderate, optional] This value determines the method for sampling the \textbf{k} vectors.  K values will always be generated on a periodic boundary grid or $\mathbf{k} = (n_x,n_y,n_z)$, where $n_x, n_y, n_z$ are non-negative integers.  The options for this are, moderate, fast, and dimensional.  Moderate and fast may only be used in 3-dimensions, where as if someone wishes to use high dimensional k vectors, dimensional will generate k vectors of any dimension, at the expense of computational speed.
 	
 	\item[k$\_$start$\_$index] \hfill \\
 	- [default: 0, optional] This value determines the first multiple of $\delta k$ used, where $\delta k = 2*\pi/\textbf{boxlength}$.  
@@ -454,7 +454,7 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the self intermediate scattering function.  For example, if this value is set to 1.5, then the self intermediate scattering function will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
 	
 	\item[method$\_$of$\_$k$\_$generation] \hfill \\
-	- [default: moderate, optional] This value determines the method for sampling the \textbf{k} vectors.  K values will always be generated on a periodic boundary grid or $\mathbf{k} = (n_x,n_y,n_z)$, where $n_x, n_y, n_z$ are non-negative integers.
+	- [default: moderate, optional] This value determines the method for sampling the \textbf{k} vectors.  K values will always be generated on a periodic boundary grid or $\mathbf{k} = (n_x,n_y,n_z)$, where $n_x, n_y, n_z$ are non-negative integers.  The options for this are, moderate, fast, and dimensional.  Moderate and fast may only be used in 3-dimensions, where as if someone wishes to use high dimensional k vectors, dimensional will generate k vectors of any dimension, at the expense of computational speed.
 	
 	\item[k$\_$start$\_$index] \hfill \\
 	- [default: 0, optional] This value determines the first multiple of $\delta k$ used, where $\delta k = 2*\pi/\textbf{boxlength}$.  
