@@ -35,7 +35,6 @@ StructureFactor::StructureFactor() :
 	input_file_name_("S_k.in"),
 	output_file_name_("S_k.txt"),
 	atom_group_("system"),
-    method_of_k_generation_("moderate"),
     number_of_bins_(50),
     k_start_index_(0),
 	number_of_frames_to_average_(0),
@@ -232,16 +231,6 @@ void StructureFactor::read_input_file()
             }
             continue;
         }
-        
-        if (input_word == "method_of_k_generation") {
-            input_file >> input_word;
-            if (input_word[0] == '=') {
-                input_file >> input_word;
-            }
-            method_of_k_generation_ = input_word;
-            continue;
-        }
-
 		
 		//check if equal to member ints
 		if (input_word == "start_frame") {
@@ -348,7 +337,7 @@ void StructureFactor::compute_S_k()
     for (size_t k_index = 0; k_index < number_of_bins_; ++k_index) {
         // Compute k_vectors
         k_values_[k_index] = delta_k * (k_index + k_start_index_);
-        generate_k_vectors(k_index + k_start_index_, k_vectors[k_index]);
+        generate_k_vectors((k_index + k_start_index_) * (k_index + k_start_index_), k_vectors[k_index]);
         number_of_k_vectors_[k_index] = k_vectors[k_index].size();
         
         // Compute normalization factor
@@ -375,8 +364,8 @@ void StructureFactor::compute_S_k()
                         for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
                             k_dot_r += k_vectors[k_index][i_k_vector][i_dimension] * trajectory_[frame_number][atom_index][i_dimension];
                         }
-                        sum_cos_term += scattering_lengths_[i_atom_type] * cos(k_dot_r);
-                        sum_sin_term += scattering_lengths_[i_atom_type] * sin(k_dot_r);
+                        sum_cos_term += scattering_lengths_[i_atom_type] * cos(delta_k * k_dot_r);
+                        sum_sin_term += scattering_lengths_[i_atom_type] * sin(delta_k * k_dot_r);
                     }
                 }
                 S_k_[k_index] += (sum_cos_term * sum_cos_term + sum_sin_term * sum_sin_term);
@@ -422,57 +411,59 @@ void StructureFactor::write_S_k()
 }
 
 
-void StructureFactor::generate_k_vectors(unsigned int const & mag_kvec_sqr, vector< vector< unsigned int > > & k_vectors)
+void StructureFactor::generate_k_vectors(unsigned int const & k_squared, vector< vector< unsigned int > > & k_vectors)
 {
-    if (method_of_k_generation_ == "moderate") {
-        unsigned int mag_k_vector = static_cast< unsigned int > (sqrt(mag_kvec_sqr));
-        for (unsigned int i = 0; i <= mag_k_vector; ++i) {
-            unsigned int j_max = static_cast< unsigned int > (sqrt(mag_kvec_sqr - i*i));
-            for (unsigned int j = 0; j <= j_max; ++j) {
-                unsigned int k_sqr = mag_kvec_sqr - i*i - j*j;
-                unsigned int k = static_cast< unsigned int > (sqrt(k_sqr));
-                // check if k is a perfect square integer
-                if ( fabs(k_sqr - k*k) < 1e-16) {
-                    vector< unsigned int > inds = {i, j, k};
-                    k_vectors.push_back( inds );
+    if (dimension_ == 3) {
+//        if (method_of_k_generation_ == "moderate") {
+//            unsigned int mag_k_vector = static_cast< unsigned int > (sqrt(mag_kvec_sqr));
+//            for (unsigned int i = 0; i <= mag_k_vector; ++i) {
+//                unsigned int j_max = static_cast< unsigned int > (sqrt(mag_kvec_sqr - i*i));
+//                for (unsigned int j = 0; j <= j_max; ++j) {
+//                    unsigned int k_sqr = mag_kvec_sqr - i*i - j*j;
+//                    unsigned int k = static_cast< unsigned int > (sqrt(k_sqr));
+//                    // check if k is a perfect square integer
+//                    if ( fabs(k_sqr - k*k) < 1e-16) {
+//                        vector< unsigned int > inds = {i, j, k};
+//                        k_vectors.push_back( inds );
+//                    }
+//                }
+//            }
+//            return;
+//        }
+//        else if (method_of_k_generation_ == "fast") {
+            unsigned int i_max = static_cast< unsigned int > (sqrt(k_squared/3.0));
+            for (unsigned int i = 0; i <= i_max; ++i) {
+                unsigned int j_max = static_cast< unsigned int > (sqrt((k_squared - i*i)/2.0));
+                for (unsigned int j = i; j <= j_max; ++j) {
+                    unsigned int k_sqr = k_squared - i*i - j*j;
+                    unsigned int k = static_cast< unsigned int > (sqrt(k_sqr));
+                    // check if k is a perfect square
+                    if ( fabs(k_sqr - k*k) < 1e-16 ) {
+                        // Add all permutations since i <= j <= k;
+                        k_vectors.push_back( {i, j, k} );
+                        if (i == j && j == k) {
+                            continue;
+                        }
+                        else if ( i == j || j == k ) {
+                            k_vectors.push_back( {j, k, i} );
+                            k_vectors.push_back( {k, i, j} );
+                        }
+                        else {
+                            // Write down all remaining permuations
+                            k_vectors.push_back( {i, k, j} );
+                            k_vectors.push_back( {j, i, k} );
+                            k_vectors.push_back( {j, k, i} );
+                            k_vectors.push_back( {k, i, j} );
+                            k_vectors.push_back( {k, j, i} );
+                        }
+                    }
                 }
             }
-        }
-        return;
+//        }
     }
-    else if (method_of_k_generation_ == "fast") {
-        unsigned int i_max = static_cast< unsigned int > (sqrt(mag_kvec_sqr/3.0));
-        for (unsigned int i = 0; i <= i_max; ++i) {
-            unsigned int j_max = static_cast< unsigned int > (sqrt((mag_kvec_sqr - i*i)/2.0));
-            for (unsigned int j = i; j <= j_max; ++j) {
-                unsigned int k_sqr = mag_kvec_sqr - i*i - j*j;
-                unsigned int k = static_cast< unsigned int > (sqrt(k_sqr));
-                // check if k is a perfect square
-                if ( fabs(k_sqr - k*k) < 1e-16 ) {
-                    // Add all permutations since i <= j <= k;
-                    k_vectors.push_back( {i, j, k} );
-                    if (i == j && j == k) {
-                        continue;
-                    }
-                    else if ( i == j || j == k ) {
-                        k_vectors.push_back( {j, k, i} );
-                        k_vectors.push_back( {k, i, j} );
-                    }
-                    else {
-                        // Write down all remaining permuations
-                        k_vectors.push_back( {i, k, j} );
-                        k_vectors.push_back( {j, i, k} );
-                        k_vectors.push_back( {j, k, i} );
-                        k_vectors.push_back( {k, i, j} );
-                        k_vectors.push_back( {k, j, i} );
-                    }
-                }
-            }
-        }
-    }
-    else if (method_of_k_generation_ == "dimensional") {
-        vector< unsigned int > k_vector(dimension_, 0);
-        recurrsive_k_generation(mag_kvec_sqr, 0, k_vector, k_vectors);
+    else {
+        vector< unsigned int > k_vector_temp(dimension_, 0);
+        recurrsive_generate_k_vectors(k_squared, 0, k_vector_temp, k_vectors);
     
         return;
     }
@@ -480,26 +471,26 @@ void StructureFactor::generate_k_vectors(unsigned int const & mag_kvec_sqr, vect
 }
 
 
-void StructureFactor::recurrsive_k_generation(unsigned int const mag_kvec_sqr, unsigned int const dimension,
-                                              vector< unsigned int > & k_vector, vector< vector< unsigned int > > & k_vectors)
+void StructureFactor::recurrsive_generate_k_vectors(unsigned int const k_squared, unsigned int const dimension,
+                                                    vector< unsigned int > & k_vector_temp, vector< vector< unsigned int > > & k_vectors)
 {
     unsigned int sum_squares = 0;
     for (size_t i_dimension = 0; i_dimension < dimension; ++i_dimension) {
-        sum_squares += k_vector[i_dimension]*k_vector[i_dimension];
+        sum_squares += k_vector_temp[i_dimension]*k_vector_temp[i_dimension];
     }
-    unsigned int max_iterator = static_cast< unsigned int > (sqrt(mag_kvec_sqr - sum_squares));
-    for (size_t k_mag = 0; k_mag <= max_iterator; ++k_mag) {
-        k_vector[dimension] = k_mag;
+    unsigned int max_iterator = static_cast< unsigned int > (sqrt(k_squared - sum_squares));
+    for (size_t i_k = 0; i_k <= max_iterator; ++i_k) {
+        k_vector_temp[dimension] = i_k;
         if (dimension != dimension_ - 1) {
-            recurrsive_k_generation(mag_kvec_sqr, dimension + 1, k_vector, k_vectors);
+            recurrsive_generate_k_vectors(k_squared, dimension + 1, k_vector_temp, k_vectors);
         }
         else {
-            unsigned int k_squared = 0;
+            unsigned int k_squared_current = 0;
             for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-                k_squared += k_vector[i_dimension]*k_vector[i_dimension];
+                k_squared_current += k_vector_temp[i_dimension]*k_vector_temp[i_dimension];
             }
-            if (k_squared == mag_kvec_sqr) {
-                k_vectors.push_back(k_vector);
+            if (k_squared_current == k_squared) {
+                k_vectors.push_back(k_vector_temp);
             }
         }
     }
@@ -536,21 +527,6 @@ void StructureFactor::check_parameters() throw()
     // end_frame doesn't exist
     if (end_frame_ == 0) {
         end_frame_ = start_frame_ + number_of_frames_to_average_;
-    }
-    
-    if (method_of_k_generation_ != "moderate" && method_of_k_generation_ != "fast" && method_of_k_generation_ != "dimensional") {
-        cerr << "\n";
-        cerr << "ERROR: Unrecognized sampling method for wavevector transfer k" << endl;
-        cerr << "     : Optional methods are \"moderate\", \"fast\", or \"dimensional\"." << endl;
-        exit(1);
-    }
-    
-    if (dimension_ != 3 && method_of_k_generation_ != "dimensional") {
-        cout << "WARNING: Only dimensional k_generation works for high dimensional trajectories\n";
-        cout << "       : We will set k_generation_method to dimension\n";
-        cout << endl;
-        
-        method_of_k_generation_ = "dimensional";
     }
     
     if (k_start_index_ < 1) {

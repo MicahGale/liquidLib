@@ -35,7 +35,6 @@ CoherentIntermediateScattering::CoherentIntermediateScattering() :
 	output_file_name_("F_kt.txt"),
 	atom_group_("system"),
 	time_scale_type_("linear"),
-    method_of_k_generation_("moderate"),
     number_of_bins_(50),
     k_start_index_(1),
 	number_of_time_points_(0),
@@ -197,15 +196,6 @@ void CoherentIntermediateScattering::read_input_file()
 			time_scale_type_ = input_word;
 			continue;
 		}
-        if (input_word == "method_of_k_generation") {
-            input_file >> input_word;
-            if (input_word[0] == '=') {
-                input_file >> input_word;
-            }
-            method_of_k_generation_ = input_word;
-            cout << method_of_k_generation_ << endl;
-            continue;
-        }
         if (input_word == "trajectory_data_type") {
             input_file >> input_word;
             if (input_word[0] == '=') {
@@ -388,14 +378,14 @@ void CoherentIntermediateScattering::compute_F_kt()
         double k_value_temp = delta_k_ * (k_index + k_start_index_);
         
         // Compute the integer value based on user input k_value
-        unsigned int mag_kvec_sqr = static_cast<unsigned int> (k_value_temp * k_value_temp * min_box_length * min_box_length / (4.0 * M_PI * M_PI));
+        unsigned int k_squared = static_cast<unsigned int> (k_value_temp * k_value_temp * min_box_length * min_box_length / (4.0 * M_PI * M_PI));
         
         // Compute the avaible k_vectors
-        compute_k_vectors( mag_kvec_sqr, k_vectors[k_index] );
+        compute_k_vectors( k_squared, k_vectors[k_index] );
         number_of_k_vectors_[k_index] = k_vectors[k_index].size();
         
         // Corrected k_value on the grid with the new mag_kvec_sqr
-        k_values_[k_index] = 2.0 * M_PI * sqrt(1.0 * mag_kvec_sqr) / min_box_length;
+        k_values_[k_index] = 2.0 * M_PI * sqrt(1.0 * k_squared) / min_box_length;
         
         // Compute normalization factor
         normalization_factor[k_index] = 1.0 / (number_of_frames_to_average_ * number_of_atoms * number_of_k_vectors_[k_index]);
@@ -496,30 +486,31 @@ void CoherentIntermediateScattering::compute_F_kt()
 }
 
 
-void CoherentIntermediateScattering::generate_k_vectors(unsigned int const & mag_kvec_sqr, vector< vector< unsigned int > > & k_vectors)
+void CoherentIntermediateScattering::generate_k_vectors(unsigned int const & k_squared, vector< vector< unsigned int > > & k_vectors)
 {
-    if (method_of_k_generation_ == "moderate") {
-        unsigned int mag_k_vector = static_cast< unsigned int > (sqrt(mag_kvec_sqr));
-        for (unsigned int i = 0; i <= mag_k_vector; ++i) {
-            unsigned int j_max = static_cast< unsigned int > (sqrt(mag_kvec_sqr - i*i));
-            for (unsigned int j = 0; j <= j_max; ++j) {
-                unsigned int k_sqr = mag_kvec_sqr - i*i - j*j;
-                unsigned int k = static_cast< unsigned int > (sqrt(k_sqr));
-                // check if k is a perfect square integer
-                if ( fabs(k_sqr - k*k) < 1e-16) {
-                    vector< unsigned int > inds = {i, j, k};
-                    k_vectors.push_back( inds );
-                }
-            }
-        }
-        return;
-    }
-    else if (method_of_k_generation_ == "fast") {
-        unsigned int i_max = static_cast< unsigned int > (sqrt(mag_kvec_sqr/3.0));
+    if (dimension_ == 3) {
+        //        if (method_of_k_generation_ == "moderate") {
+        //            unsigned int mag_k_vector = static_cast< unsigned int > (sqrt(mag_kvec_sqr));
+        //            for (unsigned int i = 0; i <= mag_k_vector; ++i) {
+        //                unsigned int j_max = static_cast< unsigned int > (sqrt(mag_kvec_sqr - i*i));
+        //                for (unsigned int j = 0; j <= j_max; ++j) {
+        //                    unsigned int k_sqr = mag_kvec_sqr - i*i - j*j;
+        //                    unsigned int k = static_cast< unsigned int > (sqrt(k_sqr));
+        //                    // check if k is a perfect square integer
+        //                    if ( fabs(k_sqr - k*k) < 1e-16) {
+        //                        vector< unsigned int > inds = {i, j, k};
+        //                        k_vectors.push_back( inds );
+        //                    }
+        //                }
+        //            }
+        //            return;
+        //        }
+        //        else if (method_of_k_generation_ == "fast") {
+        unsigned int i_max = static_cast< unsigned int > (sqrt(k_squared/3.0));
         for (unsigned int i = 0; i <= i_max; ++i) {
-            unsigned int j_max = static_cast< unsigned int > (sqrt((mag_kvec_sqr - i*i)/2.0));
+            unsigned int j_max = static_cast< unsigned int > (sqrt((k_squared - i*i)/2.0));
             for (unsigned int j = i; j <= j_max; ++j) {
-                unsigned int k_sqr = mag_kvec_sqr - i*i - j*j;
+                unsigned int k_sqr = k_squared - i*i - j*j;
                 unsigned int k = static_cast< unsigned int > (sqrt(k_sqr));
                 // check if k is a perfect square
                 if ( fabs(k_sqr - k*k) < 1e-16 ) {
@@ -543,10 +534,11 @@ void CoherentIntermediateScattering::generate_k_vectors(unsigned int const & mag
                 }
             }
         }
+        //        }
     }
-    else if (method_of_k_generation_ == "dimensional") {
-        vector< unsigned int > k_vector(dimension_, 0);
-        recurrsive_k_generation(mag_kvec_sqr, 0, k_vector, k_vectors);
+    else {
+        vector< unsigned int > k_vector_temp(dimension_, 0);
+        recurrsive_generate_k_vectors(k_squared, 0, k_vector_temp, k_vectors);
         
         return;
     }
@@ -554,39 +546,39 @@ void CoherentIntermediateScattering::generate_k_vectors(unsigned int const & mag
 }
 
 
-void CoherentIntermediateScattering::recurrsive_k_generation(unsigned int const mag_kvec_sqr, unsigned int const dimension,
-                                              vector< unsigned int > & k_vector, vector< vector< unsigned int > > & k_vectors)
+void CoherentIntermediateScattering::recurrsive_generate_k_vectors(unsigned int const k_squared, unsigned int const dimension,
+                                                    vector< unsigned int > & k_vector_temp, vector< vector< unsigned int > > & k_vectors)
 {
     unsigned int sum_squares = 0;
     for (size_t i_dimension = 0; i_dimension < dimension; ++i_dimension) {
-        sum_squares += k_vector[i_dimension]*k_vector[i_dimension];
+        sum_squares += k_vector_temp[i_dimension]*k_vector_temp[i_dimension];
     }
-    unsigned int max_iterator = static_cast< unsigned int > (sqrt(mag_kvec_sqr - sum_squares));
-    for (size_t k_mag = 0; k_mag <= max_iterator; ++k_mag) {
-        k_vector[dimension] = k_mag;
+    unsigned int max_iterator = static_cast< unsigned int > (sqrt(k_squared - sum_squares));
+    for (size_t i_k = 0; i_k <= max_iterator; ++i_k) {
+        k_vector_temp[dimension] = i_k;
         if (dimension != dimension_ - 1) {
-            recurrsive_k_generation(mag_kvec_sqr, dimension + 1, k_vector, k_vectors);
+            recurrsive_generate_k_vectors(k_squared, dimension + 1, k_vector_temp, k_vectors);
         }
         else {
-            unsigned int k_squared = 0;
+            unsigned int k_squared_current = 0;
             for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
-                k_squared += k_vector[i_dimension]*k_vector[i_dimension];
+                k_squared_current += k_vector_temp[i_dimension]*k_vector_temp[i_dimension];
             }
-            if (k_squared == mag_kvec_sqr) {
-                k_vectors.push_back(k_vector);
+            if (k_squared_current == k_squared) {
+                k_vectors.push_back(k_vector_temp);
             }
         }
     }
 }
 
 
-inline void CoherentIntermediateScattering::compute_k_vectors(unsigned int & mag_kvec_sqr, vector< vector< unsigned int > > & k_vectors)
+inline void CoherentIntermediateScattering::compute_k_vectors(unsigned int & k_squared, vector< vector< unsigned int > > & k_vectors)
 {
-    generate_k_vectors( mag_kvec_sqr, k_vectors);
+    generate_k_vectors( k_squared, k_vectors);
     unsigned int number_of_k_vectors = k_vectors.size();
     while (number_of_k_vectors == 0) {
-        mag_kvec_sqr += 1;
-        generate_k_vectors( mag_kvec_sqr, k_vectors);
+        k_squared += 1;
+        generate_k_vectors( k_squared, k_vectors);
         number_of_k_vectors = k_vectors.size();
     }
 }
@@ -686,21 +678,6 @@ void CoherentIntermediateScattering::check_parameters() throw()
         cerr << "ERROR: Illegal time scale specified. Must be one of (linear/log)\n" << endl;
         exit(1);
     }
-    
-    if (method_of_k_generation_ != "moderate" && method_of_k_generation_ != "fast" && method_of_k_generation_ != "dimensional") {
-        cerr << "\n";
-        cerr << "ERROR: Unrecognized sampling method for wavevector transfer k" << endl;
-        cerr << "     : Optional methods are \"moderate\", \"fast\", or \"dimensional\"." << endl;
-        exit(1);
-    }
-    
-    if (dimension_ != 3 && method_of_k_generation_ != "dimensional") {
-        cout << "WARNING: Only dimensional k_generation works for high dimensional trajectories\n";
-        cout << "       : We will set k_generation_method to dimension\n";
-        cout << endl;
-        
-        method_of_k_generation_ = "dimensional";
-    }
 	
 	if (is_wrapped_) {
 		cerr << "WARNING: the trajectory provided is not unwrapped\n";
@@ -708,13 +685,6 @@ void CoherentIntermediateScattering::check_parameters() throw()
 		cerr << "       : is advised";
 		cerr << endl;
 	}
-    
-    if (method_of_k_generation_ != "moderate" && method_of_k_generation_ != "fast") {
-        cerr << "\n";
-        cerr << "ERROR: Unrecognized sampling method for wavevector transfer k" << endl;
-        cerr << "     : Options are \"moderate\", or \"fast\"." << endl;
-        exit(1);
-    }
     
     // check dimension == 3
     if (dimension_ != 3) {

@@ -351,11 +351,12 @@ void PairDistributionFunction::compute_g_r()
     // select the indexes of atom_types2_
     size_t number_of_atoms2 = 0;
     double average_scattering_length2 = 0.0;
-    vector < vector< unsigned int > > atom_types2_indexes;
+    vector < vector< unsigned int > > atom_types2_indexes(atom_types2_.size());
     
     if (same_atom_types) {
-        average_scattering_length2      = average_scattering_length1;
-        atom_types2_indexes             = atom_types1_indexes;
+        atom_types2_indexes        = atom_types1_indexes;
+        average_scattering_length2 = average_scattering_length1;
+        number_of_atoms2           = number_of_atoms1;
     }
     else {
         determine_atom_indexes(atom_types2_, scattering_lengths2_, atom_group2_, atom_types2_indexes, average_scattering_length2, number_of_atoms2);
@@ -418,7 +419,7 @@ void PairDistributionFunction::compute_g_r()
             for (size_t i_atom_type1 = 0; i_atom_type1 < atom_types1_.size(); ++i_atom_type1) {
                 for (size_t i_atom1 = 0; i_atom1 < atom_types1_indexes[i_atom_type1].size(); ++i_atom1) {
                     for (size_t i_atom_type2 = 0; i_atom_type2 < atom_types2_.size(); ++i_atom_type2) {
-                        for (size_t i_atom2 = 0; i_atom2 < atom_types2_indexes.size(); ++i_atom2) {
+                        for (size_t i_atom2 = 0; i_atom2 < atom_types2_indexes[i_atom_type2].size(); ++i_atom2) {
                             size_t atom1_index = atom_types1_indexes[i_atom_type1][i_atom1];
                             size_t atom2_index = atom_types2_indexes[i_atom_type2][i_atom2];
                             
@@ -472,7 +473,7 @@ void PairDistributionFunction::compute_g_r()
 		double normalization_factor = 1.0 / (density_of_atom_type2 * volume_of_shell * number_of_atoms1 * number_of_frames_to_average_);
         normalization_factor /= (average_scattering_length1 * average_scattering_length2);
 		g_r_[i_bin] *= normalization_factor * scaling_factor;
-	}
+    }
 }
 
 

@@ -39,10 +39,10 @@ private:
     void determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
                                 double & average_scattering_length,
                                 size_t & number_of_atoms);
-    void generate_k_vectors(unsigned int const & mag_kvec_sqr, vector< vector< unsigned int > > & kvec_temp);
-    void recurrsive_k_generation(unsigned int const mag_kvec_sqr, unsigned int const dimension,
-                                 vector< unsigned int > & k_vector, vector< vector< unsigned int > > & k_vectors);
-    inline void compute_k_vectors(unsigned int & mag_kvec_sqr, vector< vector< unsigned int > > & kvec_temp);
+    void generate_k_vectors(unsigned int const & k_squared, vector< vector< unsigned int > > & k_vectors);
+    void recurrsive_generate_k_vectors(unsigned int const k_squared, unsigned int const dimension,
+                                       vector< unsigned int > & k_vector_temp, vector< vector< unsigned int > > & k_vectors);
+    inline void compute_k_vectors(unsigned int & k_squared, vector< vector< unsigned int > > & k_vectors);
     inline void print_status(size_t & status);
     
 // private member variables
@@ -50,7 +50,6 @@ private:
     string output_file_name_;
     string atom_group_;
 	string time_scale_type_;
-    string method_of_k_generation_;
 
     unsigned int number_of_bins_;       // bin spacing = 2*M_PI/average_box_length
     unsigned int k_start_index_;

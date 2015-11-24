@@ -4,8 +4,8 @@ SHELL=/bin/bash
 ## USER OPTION SETTINGS ##
 ##########################
 # Set to “yes” if OpenMP or xdrfile library should be used
-USE_OMP    = yes
-USE_XDRLIB = no
+USE_OMP    = no
+USE_XDRLIB = yes
 
 # Locations of the xdrfile library if USE_XDRLIB is yes
 ifeq ($(USE_XDRLIB), yes)

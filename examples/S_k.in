@@ -4,24 +4,22 @@
 is_run_mode_verbose         = yes
 
 # input & output
-trajectory_file_name        = ../../1bar_300K/md.trr
+trajectory_file_name        = LJ.100.short.dump
 is_wrapped                  = yes
-gro_file_name               = ../../1bar_300K/md.gro
-output_file_name            = Sk_1bar_300K.txt
+#gro_file_name               = ../../1bar_300K/md.gro
+output_file_name            = test.txt
 
 # select atoms
 atom_group                  = system
-scattering_lengths          = OW 1.0
+atom_types = 1
+scattering_lengths = 5
 
 # reading parameters
 dimension                   = 3
 start_frame                 = 0
 #end_frame                   = 20
-number_of_frames_to_average = 1000
+number_of_frames_to_average = 100
 
 # wavevector parameters
-k_start_index               = 5
+k_start_index               = 1
 number_of_bins              = 50
-number_of_k_vectors         = 50
-method_of_k_sampling        = gaussian
-
