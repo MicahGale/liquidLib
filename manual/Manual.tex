@@ -47,7 +47,7 @@
 \textit{LiquidLib} is an open source code and is published under the MIT License.  The core contributers are Zhikun Cai, Abhishek Jaiswal, Nathan Walter, and Yang Zhang.   
 \\
 \\
-If you distribute a modified code or release any of the source code that includes \textit{LiquidLib} source files then it must also be open sourced.  Anyone is free to use modify or extend.  This has been a joint effort by Zhang research group at University of Illinois at Champaign-Urbana.  More information can be found at \url{http://zhang.npre.illinois.edu/}.  Contact information for any of the contributers can also be found at the former address, any issues, bugs, or other related material can be sent to us via our contact information listed at group webpage listed.
+If you distribute a modified code or release any of the source code that includes \textit{LiquidLib} source files then it must also be open sourced.  Anyone is free to use modify or extend.  This has been a joint effort by Zhang research group at University of Illinois at Champaign-Urbana.  More information can be found at \url{http://zhang.npre.illinois.edu/}.  Contact information for any of the contributers can also be found at the former address, any issues, bugs, or other related material can be sent to us via our contact information listed at the group webpage.
 \\
 \\
 Please cite as:\\
@@ -65,20 +65,20 @@ $ make
 This will create a directory /liquidlib/bin/ with all of the executables contained within it.
 \\
 \\
-To make a GROMACS compatible build, open Makefile and in the optional components section change "USE$\_$XDRLIB" to "yes".  This will add the apporpriate flags for \textit{LiquidLib} to be built to read .xtc and .trr trajectory files.  Follow the instructions in Makefile for linking the xdrfile headers. To make a build that can read trajectories that are dumped as .trr or .xtc binary files, such as GROMACS does, or .xtc for LAMMPS.  In order to read these file types, LiquidLib relies on the open source library libxdrfile.  The source code can be downloaded from the GROMACS website or the following link: \url{ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.1.tar.gz} Newer versions of the xdfile library should be compatible with LiquidLib, however, we recommend 1.1.1 as this is the version used for testing purposes.
+To make a GROMACS compatible build, open Makefile and in the optional components section change "USE$\_$XDRLIB" to "yes".  This will add the appropriate flags for \textit{LiquidLib} to be built to read .xtc and .trr trajectory files.  Follow the instructions in Makefile for linking the xdrfile headers to make a build that can read trajectories that are dumped as .trr or .xtc binary files, such as GROMACS does, or .xtc for LAMMPS.  In order to read these file types, LiquidLib relies on the open source library libxdrfile.  The source code can be downloaded from the GROMACS website or the following link: \url{ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.1.tar.gz} Newer versions of the xdfile library should be compatible with LiquidLib, however, we recommend 1.1.1 as this is the version used for testing purposes.
 \\
 \\
 Once libxdrfile.a and xdrfile.h, xdrfile$\_$trr.h, and xdrfile$\_$xtc.h have been installed, open the \textit{LiquidLib} Makefile, and edit the lines contained in the comment section for the GROMACS build.  For compiling, the libxdrfile.a and xdrfile.h, xdrfile$\_$trr.h, and xdrfile$\_$xtc.h headers can be placed inside of the \textit{LiquidLib} include directory, or you can specify the location inside of the Makefile.  Recompile LiquidLib and the binaries should be compatible with GROMACS.
 \\
 \\
-To build parallelized OpenMP support, open Makefile in a text editor and in the optional compoents section change "USE$\_$OMP" to "yes.  This will add the apporpriate flags for \textit{LiquidLib} to be built with OpenMP support included.  Then recompile.
+To build parallelized OpenMP support, open Makefile in a text editor and in the optional components section change "USE$\_$OMP" to "yes.  This will add the apporpriate flags for \textit{LiquidLib} to be built with OpenMP support included.  Recompile the program thereafter.
 \\
 \\
 All user options for the Makefile are listed at the beginning of the Makefile.
 
 
 \section{Description of Quantities}
-This section provides a brief overview of the quantities, including operating equations. Please refer to standard textbooks, journal articles for explanation of physical meaning, and how to interpret your results.
+This section provides a brief overview of the quantities, including operating equations. Please refer to standard textbooks, journal articles for explanation of physical meaning, and how to interpret your results.  The quantities can be weighted by the appropriate scattering lengths (coherent or incoherent) if the user wants to compare to experimentally measurable quantities.
 
 \subsection{Pair Distribution Function: $g(r)$} \label{sec::gofr}
 For an isotropic and homogenous liquid system, the pair distribution function (PDF) or radial distribution function (RDF), depends only on the modulus of relative atomic distance and can be computed as follows:
@@ -93,21 +93,21 @@ The static structure factor $S(k)$ is a quantity that can be directly measured b
 \label{eq:Sq1}
 S(k) = \frac{1}{N\langle b\rangle^2}\left\langle\sum_{l,l'=1}^{N} b_lb_{l'}\exp{\{-i\mathbf{k}\cdot[\mathbf{r}_l - \mathbf{r}_{l'}]\}}\right\rangle.
 \end{equation}
-A simplified representation of $S(k)$ is shown in Eq.~[\ref{eq:Sq2}]. In performing the computations of $S(k)$, the computational complexity of Eq.~[\ref{eq:Sq1}] is reduced to $\mathcal{O}(N)$ by performing angular average over many random angular directions.
+A simplified representation of $S(k)$ is shown in Eq.~[\ref{eq:Sq2}]. In performing the computations of $S(k)$, the computational complexity of Eq.~[\ref{eq:Sq1}] is reduced to $\mathcal{O}(N)$ by performing angular average over preferred directions at a given $k$-value.
 \begin{equation}
 \label{eq:Sq2}
 S(k) = \frac{1}{N\langle b_{coh}\rangle^2}\left\langle\left[\sum_{l=1}^{N} b_l\cos(\mathbf{k}\cdot\mathbf{r}_l)\right]^2+\left[\sum_{l=1}^{N} b_l\sin(\mathbf{k}\cdot\mathbf{r}_l)\right]^2\right\rangle.
 \end{equation} 
 
 \subsection{Self van Hove Correlation: $G_s(r,t)$} \label{sec::Gofrt}
-Single particle's motion can be studied using the self-part of the van Hove correlation function. In the liquid state, the system is isotropic and hence these quantities depend only on the magnitude of displacements not their directions. The physical meaning of $G_s(r,t)$ is the probability of finding a particle $i$ in the vicinity of some distance `$r$' at some other time `$t$' given that it was at origin at $t = 0$.
+Single particle's motion can be studied using the self-part of the van Hove correlation function. In the liquid state, the system is isotropic and hence this quantity depend only on the magnitude of displacements not their directions. The physical meaning of $G_s(r,t)$ is the probability of finding a particle $i$ in the vicinity of some distance `$r$' at some other time `$t$' given that it was at origin at $t = 0$.
 \begin{equation}
 \label{eq:gr}
-G_s(r,t) = \frac{1}{N\langle b_{inc}^2\rangle}\left\langle\sum\limits_{l=1}^N b_lb_l\delta(\mathbf{r}+\mathbf{r}_l(0)-\mathbf{r}_l(t))\right\rangle.
+G_s(r,t) = \frac{1}{N\langle b_{inc}^2\rangle}\left\langle\sum\limits_{l=1}^N b_l^2\delta(\mathbf{r}+\mathbf{r}_l(0)-\mathbf{r}_l(t))\right\rangle.
 \end{equation}
 
 \subsection{Coherent van Hove Correlation: $G(r,t)$} \label{sec::Grt}
-Single particle's motion can be studied using the coherent part of the van Hove correlation function. In the liquid state, the system is isotropic and hence these quantities depend only on the magnitude of displacements not their directions. The physical meaning of $G_c(r,t)$ is the probability of finding a particle $i$ in the vicinity of some distance `$r$' of a particle $j$ at some other time `$t$' given that it was at origin at $t = 0$.
+The coherent van Hove correlation function is a measure of the density-density correlations at two spatial points as a function of time. In the liquid state, the system is isotropic and hence this quantity depend only on the magnitude of displacements, but not their directions. One can separate this function into two parts, self and distinct. The physical meaning of this function is the probability density of finding a particle $i$ in the vicinity of \textbf{r} at a givrn time $t$ knowing that another particle $j$ is in the vicinity of the origin at time $t = 0$. In the long time limit, the system loses memory of its initial configuration and this the correlation function becomes independent of the distance \textbf{r}.
 \begin{equation}
 \label{eq:grc}
 G(r,t) = \frac{1}{N\langle b_{coh}\rangle^2}\left\langle\sum\limits_{l=1}^N\sum\limits_{l'=1}^N b_lb_{l'}\delta(\mathbf{r}+\mathbf{r}_l(0)-\mathbf{r}_{l'}(t))\right\rangle.
@@ -126,24 +126,24 @@ The non-Gaussian parameter measures the deviation from the gaussian behavior of 
 \end{equation}
  
  \subsection{Four Point Correlation: $\chi_4(t)$} \label{sec::chi4}
-Direct quantification of a length scale characterizing correlated particles motion in liquids involves the motion of two or more particles, and hence are probed using a four-point, time-dependent density correlation functions that contain information about the density at two spatial points and two times. To capture the correlated motions between particles in liquids, we utilize a `coarse graining' approach by using an `overlap' function that measures overlap between configurations at time $t=0$ and a future time $t$.  The overlap function $w(|r_1~-~r_2|)$ is unity for $|r_1~-~r_2|~\leq~a$ and 0 otherwise. The distance parameter `$a$' is chosen to be larger than the square root of the plateau of $\left<r^2(t)\right>$.
+Direct quantification of a length scale characterizing correlated particles motion in liquids involves the motion of two or more particles, and hence are probed using a four-point, time-dependent density correlation functions that contain information about the density at two spatial points and two times. To capture the correlated motions between particles in liquids, we utilize a `coarse graining' approach by using an `overlap' function that measures overlap between configurations at time $t=0$ and a future time $t$.  The overlap function $w(|r_1~-~r_2|)$ is unity for $|r_1~-~r_2|~\leq~a$ and 0 otherwise. The distance parameter `$a$' is chosen to be larger than the square root of the plateau of $\left<r^2(t)\right>$. The program doesn't normalize by the temperature as this input is not provided in the trajectory or user input file. Hence the user must do this in post-processing.
 \begin{equation}
 \begin{split}
-\chi_4(t) &= \frac{V}{TN^2}[\langle Q_s^2(t)\rangle - \langle Q_s(t)\rangle^2],\\
-Q_s(t) &= \sum_{l=1}^N \textit{w}(|\mathbf{r}_l(t) - \mathbf{r}_l(0)|).
+\chi_4(t) &= \frac{V}{T}[\langle Q_s^2(t)\rangle - \langle Q_s(t)\rangle^2],\\
+Q_s(t) &= \frac{1}{N} \sum_{l=1}^N \textit{w}(|\mathbf{r}_l(t) - \mathbf{r}_l(0)|).
 \end{split}
 \end{equation}
 
 \subsection{Self Intermediate Scattering Function: $F_s(k,t)$} \label{sec::Fsqt}
-Self Intermediate Scattering Functions (SISF) is defined as the spatial Fourier transform of $G_s(r,t)$ to the reciprocal space, which can be measured either directly by correlation spectroscopy and neutron spin echo technique, or indirectly by inelastic scattering experiments. SISF characterizes the density fluctuations of the same particle in the system at time $t = 0$ and at another subsequent time $t$.
+Self Intermediate Scattering Functions (SISF) is defined as the spatial Fourier transform of $G_s(r,t)$ to the reciprocal space, which can be measured either directly by correlation spectroscopy and neutron spin echo technique. SISF characterizes the density fluctuations of the same particle in the system at time $t = 0$ and at another subsequent time $t$. The incoherent neutron scattering arising from isotopic variations and/or spin fluctations provides a measure of the self-intermediate scattering function.
 \begin{equation}
 \label{eq:fsqt}
-F_s(k,t) = \frac{1}{N\langle b_{inc}^2\rangle} \left\langle \sum_{l=1}^{N} b_lb_l\exp{\{-i\mathbf{k}\cdot[\mathbf{r}_l(t) - \mathbf{r}_l(0)]}\}\right\rangle.
+F_s(k,t) = \frac{1}{N\langle b_{inc}^2\rangle} \left\langle \sum_{l=1}^{N} b_l^2\exp{\{-i\mathbf{k}\cdot[\mathbf{r}_l(t) - \mathbf{r}_l(0)]}\}\right\rangle.
 \end{equation}
 
 
 \subsection{Coherent Intermediate Scattering Function: $F(k,t)$} \label{sec::Fqt}
-Coherent Intermediate Scattering Functions (CISF) is defined as the spatial Fourier transform of $G(r,t)$ to the reciprocal space, which can be measured either directly by correlation spectroscopy and neutron spin echo technique, or indirectly by inelastic scattering experiments. CISF characterizes the density fluctuations of the particles in the system at time $t = 0$ and at another subsequent time $t$.
+Coherent Intermediate Scattering Functions (CISF) is defined as the spatial Fourier transform of $G(r,t)$ to the reciprocal space, which can be measured either directly by correlation spectroscopy and neutron spin echo technique, or indirectly by inelastic scattering experiments. 
 \begin{equation}
 \label{eq:fqt}
 F(k,t) = \frac{1}{N\langle b_{coh}\rangle^2} \left\langle \sum_{l=1}^{N}\sum_{l'=1}^{N} b_lb_{l'}\exp{\{-i\mathbf{k}\cdot[\mathbf{r}_l(t) - \mathbf{r}_{l'}(0)]}\}\right\rangle.
@@ -260,6 +260,7 @@ This section of the manual describes the potential options that can be used in t
 \end{description}
 
 \subsection{Pair Distribution Function: $g(r)$} \label{sec::gofr_parm}
+User can input two atom types using the \textbf{atom$\_$types1} and \textbf{atom$\_$types2} parameters listed below.  If the scattering lengths are provided then, they are appropriately weighted. If no value is provided then it is set to 1.
 \begin{description}	
 	\item[atom$\_$types1] \hfill \\
 	- [default: empty, mandatory] This parameter sets the first atom types being studied.  By default, the program requires atom types to be provided in order for computation to proceed.  But this parameter can be set to the atom identifier used in the trajectory or .gro file, i.e. HW for hydrogen in water, or Li for lithium, or 1 if the atom type is numeric in the trajectory.  Can also be set to multiple atom types.
@@ -283,9 +284,10 @@ This section of the manual describes the potential options that can be used in t
 
 
 \subsection{Structure Factor: $S(k)$} \label{sec::sofk_parm}
+User can input selected atom types using only the \textbf{atom$\_$types} parameter.  Scattering lengths can be provided in the same order of atom types in order to compute the total structure factor comparable to experiments.
 \begin{description}		
 	\item[method$\_$of$\_$k$\_$generation] \hfill \\
-	- [default: moderate, optional] This value determines the method for sampling the \textbf{k} vectors.  K values will always be generated on a periodic boundary grid or $\mathbf{k} = (n_x,n_y,n_z)$, where $n_x, n_y, n_z$ are non-negative integers.
+	- [default: moderate, optional] This value determines the method for sampling the \textbf{k} vectors.  K values will always be generated on a periodic boundary grid or $\mathbf{k} = (n_x,n_y,n_z)$, where $n_x, n_y, n_z$ are non-negative integers. Two methods (moderate, fast) are provided to generate the vectors. Currently, this method is limited to 3D only. We will add support for any dimension in future releases.
 	
 	\item[k$\_$start$\_$index] \hfill \\
 	- [default: 0, optional] This value determines the first multiple of $\delta k$ used, where $\delta k = 2*\pi/\textbf{boxlength}$.  
@@ -294,12 +296,13 @@ This section of the manual describes the potential options that can be used in t
 	- [default: 50, optional] This sets the number of multiples of $\delta k$ where structure factor will be computed starting from k$\_$start$\_$index and ending at k$\_$start$\_$index + number$\_$of$\_$bins. 
 	
 	\item[number$\_$of$\_$kvectors] \hfill \\
-	- [default: 50, optional] This value sets the number of directional \textbf{k} vectors sampled for ever value of $|\bm{k}|$.  
+	- [default: 1, optional] This value sets the number of directional \textbf{k} vectors sampled for every value of $|\bm{k}|$.  
 
 \end{description}
 
 
 \subsection{Self van Hove Correlation: $G_s(r,t)$} \label{sec::Gofrt_parm}
+User can input selected atom types using only the \textbf{atom$\_$types} parameter.
 \begin{description}	
 	\item[number$\_$of$\_$time$\_$points]\hfill \\
 	- [default: 0, optional] This is the number of points that will be calculated for the self van Hove correlation function.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.
@@ -319,10 +322,12 @@ This section of the manual describes the potential options that can be used in t
 	- [default: half of the smallest box side] This value sets the max $|r|$ used for g(r).  By default this value will be set to the smallest boxlength in any dimension.  If a max value greater than half the smallest boxlength is provided, the value will be reset to the half the smallest boxlength as spatial correlations for values of $|r|$ greater than half of box length cannot be accurately determined and thus should not be used.
 \end{description}
 
-\subsection{Coherent van Hove Correlation: $G_s(r,t)$} \label{sec::Grt_parm}
+
+\subsection{Coherent van Hove Correlation: $G(r,t)$} \label{sec::Grt_parm}
+User can input selected atom types using only the \textbf{atom$\_$types} parameter. Scattering lengths can be provided in the same order of atom types.
 \begin{description}	
 	\item[number$\_$of$\_$time$\_$points]\hfill \\
-	- [default: 0, optional] This is the number of points that will be calculated for the self van Hove correlation function.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.
+	- [default: 0, optional] This is the number of points that will be calculated for the coherent van Hove correlation function.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.
 	
 	\item[time$\_$scale] \hfill \\
 	- [default: linear, optional] This can be set to ``linear'' or ``'log''.  This sets the time scale of the output. Self van Hove correlation can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps).
@@ -341,8 +346,7 @@ This section of the manual describes the potential options that can be used in t
 
 
 \subsection{Mean Squared Displacement: $\left<r^2(t)\right>$} \label{sec::MSD_parm}
-The binary to compute Mean Squared Displacement is /bin/computeMeanSquaredDisplacement.
-The options that can be included in the input file in addition to those listed in \hyperref[sec::general_parameters]{Trajectory Parameters} are as follows:
+The binary to compute Mean Squared Displacement is /bin/computeMeanSquaredDisplacement. User can input selected atom types using only the \textbf{atom$\_$types} parameter. The options that can be included in the input file in addition to those listed in \hyperref[sec::general_parameters]{Trajectory Parameters} are as follows:
 \begin{description}	
 	\item[number$\_$of$\_$time$\_$points]\hfill \\
 	- [default: 0, optional] This is the number of points that will be calculated for the mean squared displacement.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.
@@ -359,6 +363,7 @@ The options that can be included in the input file in addition to those listed i
 
 
 \subsection{Non-Gaussian Parameter: $\alpha_2(t)$} \label{sec::alpha2_parm}
+User can input selected atom types using only the \textbf{atom$\_$types} parameter.
 \begin{description}	
 	\item[number$\_$of$\_$time$\_$points]\hfill \\
 	- [default: 0, optional] This is the number of points that will be calculated for the non-Gaussian parameter.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.
@@ -375,6 +380,7 @@ The options that can be included in the input file in addition to those listed i
 
 
 \subsection{Four Point Correlation: $\chi_4(t)$} \label{sec::chi4_parm}
+User can input selected atom types using only the \textbf{atom$\_$types} parameter.
 \begin{description}	
 	\item[number$\_$of$\_$time$\_$points]\hfill \\
 	- [default: 0, optional] This is the number of points that will be calculated for the four point correlation function.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.
@@ -388,10 +394,11 @@ The options that can be included in the input file in addition to those listed i
 	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the four point correlation function.  For example, if this value is set to 1.5, then the four point correlation function will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
 	
 	\item[overlap$\_$length] \hfill \\
-	- [\textbf{mandatory}] This value sets the overlap length. It is usually set to the plateau of the mean squared displacement so as to filter out vibrations. For more information on this parameter and how to set the value, please refer to N. Lačević, F. W. Starr, T. B. Schroøder, S. C. Glotzer, ``Spatially heterogeneous dynamics investigated via a time-dependent four-point density correlation function,'' J. Chem. Phys. 119, 7372 (2003).
+	- [\textbf{mandatory}] This value sets the overlap length. It is usually set to the square root of the plateau of the mean squared displacement so as to filter out vibrations. For more information on this parameter and how to set the value, please refer to N. Lačević, F. W. Starr, T. B. Schroder, S. C. Glotzer, ``Spatially heterogeneous dynamics investigated via a time-dependent four-point density correlation function,'' J. Chem. Phys. 119, 7372 (2003).
 \end{description}
 
 \subsection{Self Intermediate Scattering Function: $F_s(k,t)$} \label{sec::Fsqt_parm}
+User can input selected atom types using only the \textbf{atom$\_$types} parameter.
 \begin{description}	
 	\item[number$\_$of$\_$timevpoints]\hfill \\
 	- [default: 0, optional] This is the number of points that will be calculated for the self intermediate scattering function.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.
@@ -416,6 +423,7 @@ The options that can be included in the input file in addition to those listed i
 \end{description}
 
 \subsection{Coherent Intermediate Scattering Function: $F_s(k,t)$} \label{sec::Fqt_parm}
+User can input selected atom types using only the \textbf{atom$\_$types} parameter. Scattering lengths can be provided in order of atom types to compare with experiments.
 \begin{description}	
 	\item[number$\_$of$\_$timevpoints]\hfill \\
 	- [default: 0, optional] This is the number of points that will be calculated for the self intermediate scattering function.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.
