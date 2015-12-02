@@ -32,7 +32,7 @@ int main(int argc, char * argv[])
     mean_squared_displacement.write_r2_t();
     
     cout << "Successfully computed mean squared displacement\n";
-    cout << "Aloha";
+    cout << "Aloha.";
     cout << endl;
     
     return 0;

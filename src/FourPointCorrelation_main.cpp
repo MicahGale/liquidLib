@@ -32,7 +32,7 @@ int main(int argc, char * argv[])
     four_point_correlation.write_chi4_t();
     
     cout << "Successfully computed four point correlation\n";
-    cout << "Toodles";
+    cout << "Toodles.";
     cout << endl;
     
     return 0;

@@ -23,16 +23,16 @@ int main(int argc, char * argv[])
 {
     print_executable_header();
 	
-    CoherentIntermediateScattering Coherent_intermediate_scattering;
+    CoherentIntermediateScattering coherent_intermediate_scattering;
     
-    Coherent_intermediate_scattering.read_command_inputs(argc, argv);
-    Coherent_intermediate_scattering.read_input_file();
-    Coherent_intermediate_scattering.read_trajectory();
-    Coherent_intermediate_scattering.compute_F_kt();
-    Coherent_intermediate_scattering.write_F_kt();
+    coherent_intermediate_scattering.read_command_inputs(argc, argv);
+    coherent_intermediate_scattering.read_input_file();
+    coherent_intermediate_scattering.read_trajectory();
+    coherent_intermediate_scattering.compute_F_kt();
+    coherent_intermediate_scattering.write_F_kt();
     
     cout << "Successfully computed Coherent intermediate scattering function\n";
-    cout << "Cya";
+    cout << "Farewell";
     cout << endl;
     
     return 0;

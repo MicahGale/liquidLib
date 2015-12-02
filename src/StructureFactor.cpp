@@ -169,6 +169,14 @@ void StructureFactor::read_input_file()
             trajectory_file_name_ = input_word;
             continue;
         }
+        if (input_word == "trajectory_file_type") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            trajectory_file_type_ = input_word;
+            continue;
+        }
 #ifdef GROMACS
 		if (input_word == "gro_file_name") {
 			input_file >> input_word;

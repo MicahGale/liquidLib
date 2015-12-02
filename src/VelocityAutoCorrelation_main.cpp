@@ -32,7 +32,7 @@ int main(int argc, char * argv[])
     velocityautocorrelation.write_vacf_t();
     
     cout << "Successfully computed velocity autocorrelaiton function\n";
-    cout << "Adios";
+    cout << "Adios.";
     cout << endl;
     
     return 0;

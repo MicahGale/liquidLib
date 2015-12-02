@@ -6,6 +6,7 @@ SHELL=/bin/bash
 # Set to “yes” if OpenMP or xdrfile library should be used
 USE_OMP    = no
 USE_XDRLIB = yes
+USE_GSL    = yes
 
 # Locations of the xdrfile library if USE_XDRLIB is yes
 ifeq ($(USE_XDRLIB), yes)
@@ -39,7 +40,7 @@ EXECUTABLE := $(EXECUTABLE:./src/%_main.cpp=%)
 
 # set system compiler and flags
 CXX      = g++
-CXXFLAGS = -c -Wall -std=c++11 -I$(INCLUDE) -O3 
+CXXFLAGS = -c -Wall -std=c++11 -I$(INCLUDE) -O3
 
 MAINFLAGS =
 
@@ -63,6 +64,17 @@ ifeq ($(USE_XDRLIB), yes)
 	#
 	CXXFLAGS  := $(CXXFLAGS) -I$(XDRHEAD)
 	MAINFLAGS := $(MAINFLAGS) -lxdrfile -L$(XDRLIB)
+endif
+##
+
+## Determine if gal is to be used
+ifeq ($(USE_GSL), yes)
+	CXXFLAGS := $(CXXFLAGS) -DGSL
+	#
+	# add directories where the gsl headers and libraries were installed
+	#
+	CXXFLAGS  := $(CXXFLAGS) -I/opt/local/include
+	MAINFLAGS := $(MAINFLAGS) -I/opt/local/include -lgsl -lgslcblas -L/opt/local/lib
 endif
 ##
 
@@ -96,7 +108,7 @@ MakeBin:
 depends:
 	@ rm -f $(SRC)/depends.mk
 	@ for file in $(SOURCE); do \
-		$(CXX) $(CXXFLAGS) -MM $$file.cpp -I./include -MT $$file.o >> $(SRC)/depends.mk; \
+		$(CXX) $(CXXFLAGS) -MM $$file.cpp -I$(INCLUDE) -MT $$file.o >> $(SRC)/depends.mk; \
 	  done
 
 # Include dependencies

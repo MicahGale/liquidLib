@@ -32,7 +32,7 @@ int main(int argc, char * argv[])
     pair_distribution_function.write_g_r();
     
     cout << "Successfully computed pair distribution function\n";
-    cout << "bai bai la";
+    cout << "bai bai la.";
     cout << endl;
     
     return 0;

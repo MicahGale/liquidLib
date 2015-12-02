@@ -33,7 +33,7 @@ int main(int argc, char * argv[])
     non_gaussian_parameter.write_alpha2_t();
     
     cout << "Successfully computed non gaussian parameter and mean squared displacement\n";
-    cout << "Bye bye";
+    cout << "Bye bye.";
     cout << endl;
     
     return 0;

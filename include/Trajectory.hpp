@@ -54,6 +54,7 @@ protected:
     double output_precision_;
     
     string trajectory_file_name_;
+    string trajectory_file_type_;
     string gro_file_name_;
     string trajectory_data_type_;    // coordinate, velocity, or force
 
@@ -77,6 +78,7 @@ private:
     
     void read_vasp_file();
     void read_dump_file();
+    void read_abc_file();
     
 #ifdef GROMACS
     inline void save_frame(unsigned int const & frame_number, float const & time, matrix const & box, rvec const * coordinate);
