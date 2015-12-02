@@ -582,7 +582,7 @@ void VelocityAutoCorrelation::determine_atom_indexes(vector < vector < unsigned 
 void VelocityAutoCorrelation::print_status(size_t & status)
 {
     ++status;
-    cout << "\rcurrent progress of calculating the pair distribution function is: ";
+    cout << "\rcurrent progress of calculating the velocity auto correlation is: ";
     cout << status * 100.0/number_of_time_points_;
     cout << " \%";
     cout << flush;

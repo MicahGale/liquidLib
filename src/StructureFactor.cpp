@@ -611,7 +611,7 @@ void StructureFactor::determine_atom_indexes(vector < vector < unsigned int > > 
 void StructureFactor::print_status(size_t & status)
 {
     ++status;
-    cout << "\rcurrent progress of calculating the pair distribution function is: ";
+    cout << "\rcurrent progress of calculating the structure factor is: ";
     cout << status * 100.0/number_of_bins_;
     cout << " \%";
     cout << flush;

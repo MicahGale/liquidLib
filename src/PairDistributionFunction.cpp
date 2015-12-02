@@ -362,7 +362,9 @@ void PairDistributionFunction::compute_g_r()
     vector < vector< unsigned int > > atom_types2_indexes(atom_types2_.size());
     
     if (same_atom_types) {
+        atom_types2_               = atom_types1_;
         atom_types2_indexes        = atom_types1_indexes;
+        scattering_lengths2_       = scattering_lengths1_;
         average_scattering_length2 = average_scattering_length1;
         number_of_atoms2           = number_of_atoms1;
     }
@@ -396,8 +398,12 @@ void PairDistributionFunction::compute_g_r()
 		for (size_t frame_number = 0; frame_number < number_of_frames_to_average_; ++frame_number) {
             for (size_t i_atom_type1 = 0; i_atom_type1 < atom_types1_.size(); ++i_atom_type1) {
                 for (size_t i_atom1 = 0; i_atom1 < atom_types1_indexes[i_atom_type1].size(); ++i_atom1) {
-                    for (size_t i_atom_type2 = 0; i_atom_type2 < atom_types2_.size(); ++i_atom_type2) {
-                        for (size_t i_atom2 = i_atom1 + 1; i_atom2 < atom_types2_indexes[i_atom_type2].size(); ++i_atom2) {
+                    for (size_t i_atom_type2 = i_atom_type1; i_atom_type2 < atom_types2_.size(); ++i_atom_type2) {
+                        size_t i_atom2_start_index = 0;
+                        if (atom_types1_[i_atom_type1] == atom_types2_[i_atom_type2]) {
+                            i_atom2_start_index = i_atom1 + 1;
+                        }
+                        for (size_t i_atom2 = i_atom2_start_index; i_atom2 < atom_types2_indexes[i_atom_type2].size(); ++i_atom2) {
                             size_t atom1_index = atom_types1_indexes[i_atom_type1][i_atom1];
                             size_t atom2_index = atom_types2_indexes[i_atom_type2][i_atom2];
                             
@@ -407,6 +413,7 @@ void PairDistributionFunction::compute_g_r()
                                     continue;
                                 }
                             }
+                            // double histogram since the same atom type, this reduces computation time
                             histogram_g_r(frame_number, atom1_index, atom2_index, i_atom_type1, i_atom_type2, delta_r);
                         }
                     }
@@ -460,13 +467,14 @@ void PairDistributionFunction::compute_g_r()
 	}
 	
     double density_of_atom_type2 = number_of_atoms2 / average_volume;
+    
+	r_values_.resize(number_of_bins_, 0.0);
+	double dimension_scaling_factor = pow(M_PI, dimension_/2.0) / tgamma(1 + dimension_/2.0);
+    
     int scaling_factor = 1;
     if (same_atom_types) {
         scaling_factor = 2;
     }
-    
-	r_values_.resize(number_of_bins_, 0.0);
-	double dimension_scaling_factor = pow(M_PI, dimension_/2.0) / tgamma(1 + dimension_/2.0);
     
 	for (size_t i_bin = 0; i_bin < number_of_bins_; ++i_bin) {
 		r_values_[i_bin] = delta_r * i_bin;
@@ -480,7 +488,7 @@ void PairDistributionFunction::compute_g_r()
 		double volume_of_shell = volume_of_outer_sphere - volume_of_inner_sphere;
 		double normalization_factor = 1.0 / (density_of_atom_type2 * volume_of_shell * number_of_atoms1 * number_of_frames_to_average_);
         normalization_factor /= (average_scattering_length1 * average_scattering_length2);
-		g_r_[i_bin] *= normalization_factor * scaling_factor;
+		g_r_[i_bin] *= scaling_factor * normalization_factor;
     }
 }
 

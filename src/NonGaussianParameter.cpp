@@ -143,7 +143,7 @@ void NonGaussianParameter::write_alpha2_t()
 void NonGaussianParameter::print_status(size_t & status)
 {
     ++status;
-    cout << "\rcurrent progress of calculating the pair distribution function is: ";
+    cout << "\rcurrent progress of calculating the nongaussian parameter is: ";
     cout << status * 100.0/number_of_frames_to_average_;
     cout << " \%";
     cout << flush;

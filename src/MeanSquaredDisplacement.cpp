@@ -520,7 +520,7 @@ void MeanSquaredDisplacement::determine_atom_indexes(vector < vector < unsigned 
 void MeanSquaredDisplacement::print_status(size_t & status)
 {
     ++status;
-    cout << "\rcurrent progress of calculating the pair distribution function is: ";
+    cout << "\rcurrent progress of calculating the mean squared displacement is: ";
     cout << status * 100.0/number_of_frames_to_average_;
     cout << " \%";
     cout << flush;

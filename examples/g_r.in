@@ -10,11 +10,11 @@ gro_file_name               = ../../1bar_300K/md.gro
 output_file_name            = gr_OO_1bar_300K.txt
 
 # atomtype in atomgroup
-atom_types1                   = OW
+atom_types1                  = OW HW
 atom_group1                  = system
 
 # atomtype2 in atomgroup2
-atom_types2                  = OW
+atom_types2                  = OW HW
 atom_group2                 = system
 
 # reading parameters

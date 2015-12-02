@@ -10,7 +10,7 @@ gro_file_name               = ../../1bar_300K/md.gro
 output_file_name            = msd_1bar_300K.txt
 
 # select atoms
-atom_type                   = OW
+atom_types                   = OW
 atom_group                  = system
 
 # reading parameters
