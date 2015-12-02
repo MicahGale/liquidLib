@@ -796,7 +796,7 @@ void CoherentIntermediateScattering::compute_time_array()
 void CoherentIntermediateScattering::print_status(size_t & status)
 {
     ++status;
-    cout << "\rcurrent progress of calculating the pair distribution function is: ";
+    cout << "\rcurrent progress of calculating the coherent intermediate scattering function is: ";
     cout << status * 100.0/number_of_time_points_;
     cout << " \%";
     cout << flush;
