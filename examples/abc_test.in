@@ -4,13 +4,13 @@
 # program run mode
 is_run_mode_verbose         = yes
 is_wrapped		   = yes
-is_averaged                 = no
+is_averaged                 = yes
 add_bar			   = no
 
 # input & output
 trajectory_file_name        = abc_test.xyz
 trajectory_file_type	   = abc
-output_file_name            = abc_test.out
+output_file_name            = abc_new.out
 
 # atomtype in atomgroup
 atom_types                   = 0

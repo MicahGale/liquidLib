@@ -415,6 +415,18 @@ void BondOrderParameter::compute_BOP()
     else {
         bond_order_parameter_.resize(number_of_time_points_, vector<double> (number_of_atoms, 0.0));
     }
+    
+    vector< vector<double> > real_term;
+    vector< vector<double> > imaginary_term;
+    
+    if (add_bar_) {
+        real_term.resize(number_of_atoms, vector<double> (bond_parameter_order_ + 1, 0.0));
+        imaginary_term.resize(number_of_atoms, vector<double> (bond_parameter_order_ + 1, 0.0));
+    }
+    else {
+        real_term.resize(1, vector<double> (bond_parameter_order_ + 1, 0.0));
+        imaginary_term.resize(1, vector<double> (bond_parameter_order_ + 1, 0.0));
+    }
 
     size_t status = 0;
     cout << "\nComputing ..." << endl;
@@ -423,17 +435,19 @@ void BondOrderParameter::compute_BOP()
         size_t current_frame = time_array_indexes_[time_point];
         size_t i_atom_number = 0;
         
-        vector<double> real_term      (bond_parameter_order_ + 1, 0.0);
-        vector<double> imaginary_term (bond_parameter_order_ + 1, 0.0);
+        if (is_averaged_ && !add_bar_) {
+            real_term[0]      = vector<double> (bond_parameter_order_ + 1, 0.0);
+            imaginary_term[0] = vector<double> (bond_parameter_order_ + 1, 0.0);
+        }
         
         size_t number_neighbors = 0;
         
         for (size_t i_atom_type1 = 0; i_atom_type1 < atom_types_.size(); ++i_atom_type1) {
             for (size_t i_atom1 = 0; i_atom1 < atom_types_indexes[i_atom_type1].size(); ++i_atom1) {
                 
-                if (!is_averaged_) {
-                    real_term      = vector<double> (bond_parameter_order_ + 1, 0.0);
-                    imaginary_term = vector<double> (bond_parameter_order_ + 1, 0.0);
+                if (!is_averaged_ && !add_bar_) {
+                    real_term[0]      = vector<double> (bond_parameter_order_ + 1, 0.0);
+                    imaginary_term[0] = vector<double> (bond_parameter_order_ + 1, 0.0);
                 
                     number_neighbors = 0;
                 }
@@ -466,11 +480,11 @@ void BondOrderParameter::compute_BOP()
                             // i_m is the iterator over the vector, and bond_order_degree is the conversion to the order "m"
                             for (size_t i_m = 0; i_m < bond_parameter_order_ + 1; ++i_m) {
                             #ifdef GSL
-                                real_term[i_m]      += gsl_sf_legendre_sphPlm(bond_parameter_order_, i_m, cos(theta))*cos(i_m*phi);
-                                imaginary_term[i_m] += gsl_sf_legendre_sphPlm(bond_parameter_order_, i_m, cos(theta))*sin(i_m*phi);
+                                real_term[0][i_m]      += gsl_sf_legendre_sphPlm(bond_parameter_order_, i_m, cos(theta))*cos(i_m*phi);
+                                imaginary_term[0][i_m] += gsl_sf_legendre_sphPlm(bond_parameter_order_, i_m, cos(theta))*sin(i_m*phi);
                             #elif BOOST
-                                real_term[i_m]      += boost::math::spherical_harmonic_r(bond_parameter_order_, i_m, theta, phi);
-                                imaginary_term[i_m] += boost::math::spherical_harmonic_i(bond_parameter_order_, i_m, theta, phi);
+                                real_term[0][i_m]      += boost::math::spherical_harmonic_r(bond_parameter_order_, i_m, theta, phi);
+                                imaginary_term[0][i_m] += boost::math::spherical_harmonic_i(bond_parameter_order_, i_m, theta, phi);
                             #endif
                             }
                         }
@@ -479,9 +493,9 @@ void BondOrderParameter::compute_BOP()
                 if (!is_averaged_ && !add_bar_) {
                     if (number_neighbors != 0) {
                         // q_l = q_l0*q_l0 + 2.0*sum_1:l q_li
-                        bond_order_parameter_[time_point][i_atom_number] = (real_term[0]*real_term[0] + imaginary_term[0]*imaginary_term[0]);
+                        bond_order_parameter_[time_point][i_atom_number] = (real_term[0][0]*real_term[0][0] + imaginary_term[0][0]*imaginary_term[0][0]);
                         for (size_t i_m = 1; i_m < bond_parameter_order_ + 1; ++i_m) {
-                            bond_order_parameter_[time_point][i_atom_number] += 2.0*(real_term[i_m]*real_term[i_m] + imaginary_term[i_m]*imaginary_term[i_m]);
+                            bond_order_parameter_[time_point][i_atom_number] += 2.0*(real_term[0][i_m]*real_term[0][i_m] + imaginary_term[0][i_m]*imaginary_term[0][i_m]);
                         }
                         bond_order_parameter_[time_point][i_atom_number] = sqrt(bond_order_parameter_[time_point][i_atom_number]);
                         bond_order_parameter_[time_point][i_atom_number] *= sqrt(4.0*M_PI/(2.0*bond_parameter_order_ + 1.0))/number_neighbors;
@@ -498,9 +512,9 @@ void BondOrderParameter::compute_BOP()
         if (is_averaged_ && !add_bar_) {
             if (number_neighbors != 0) {
                 // Q_l = Q_l0*Q_l0 + 2.0*sum_1:l Q_li
-                bond_order_parameter_[time_point][0] = (real_term[0]*real_term[0] + imaginary_term[0]*imaginary_term[0]);
+                bond_order_parameter_[time_point][0] = (real_term[0][0]*real_term[0][0] + imaginary_term[0][0]*imaginary_term[0][0]);
                 for (size_t i_m = 1; i_m < bond_parameter_order_ + 1; ++i_m) {
-                    bond_order_parameter_[time_point][0] += 2.0*(real_term[i_m]*real_term[i_m] + imaginary_term[i_m]*imaginary_term[i_m]);
+                    bond_order_parameter_[time_point][0] += 2.0*(real_term[0][i_m]*real_term[0][i_m] + imaginary_term[0][i_m]*imaginary_term[0][i_m]);
                 }
                 bond_order_parameter_[time_point][0] = sqrt(bond_order_parameter_[time_point][0]);
                 bond_order_parameter_[time_point][0] *= sqrt(4.0*M_PI/(2.0*bond_parameter_order_ + 1.0))/number_neighbors;
