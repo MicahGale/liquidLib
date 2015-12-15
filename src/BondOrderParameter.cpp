@@ -476,7 +476,7 @@ void BondOrderParameter::compute_BOP()
                         }
                     }
                 }
-                if (!is_averaged_ && !add_bar_) {
+                if (!is_averaged_) {
                     if (number_neighbors != 0) {
                         // q_l = q_l0*q_l0 + 2.0*sum_1:l q_li
                         bond_order_parameter_[time_point][i_atom_number] = (real_term[0]*real_term[0] + imaginary_term[0]*imaginary_term[0]);
@@ -495,7 +495,7 @@ void BondOrderParameter::compute_BOP()
                 }
             }
         }
-        if (is_averaged_ && !add_bar_) {
+        if (is_averaged_) {
             if (number_neighbors != 0) {
                 // Q_l = Q_l0*Q_l0 + 2.0*sum_1:l Q_li
                 bond_order_parameter_[time_point][0] = (real_term[0]*real_term[0] + imaginary_term[0]*imaginary_term[0]);
