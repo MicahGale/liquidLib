@@ -4,7 +4,7 @@
 # program run mode
 is_run_mode_verbose         = yes
 is_wrapped		   = yes
-is_averaged                 = yes
+is_averaged                 = no
 add_bar			   = no
 
 # input & output

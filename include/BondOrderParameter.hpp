@@ -35,6 +35,8 @@ protected:
 private:
     // private member functions
     void check_parameters() throw();
+    void compute_harmonic(size_t const & atom1_index, size_t const & atom2_index, size_t const & current_frame,
+                          size_t & number_neighbors, vector<double> & real_term, vector<double> & imaginary_term);
     void compute_time_array();
     void determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
                                 size_t & number_of_atoms);
