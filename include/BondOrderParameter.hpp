@@ -42,10 +42,10 @@ private:
     
     // private member variables
     bool is_averaged_;
+    bool add_bar_;
     
     string input_file_name_;
     string output_file_name_;
-    string atom_group_;
     string time_scale_type_;
     
     unsigned int number_of_time_points_;
@@ -55,6 +55,7 @@ private:
     double max_cutoff_length_;
     
     vector< string > atom_types_;
+    string atom_group_;
     
     vector< unsigned int > time_array_indexes_;
     vector< vector< double > > bond_order_parameter_; // first dimension is time point, second dimension is atom

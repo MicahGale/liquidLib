@@ -23,7 +23,7 @@ int main(int argc, char * argv[])
 {
     print_executable_header();
     
-#ifdef GSL
+#if defined(GSL) || defined(BOOST)
     BondOrderParameter bond_order_parameter;
     
     bond_order_parameter.read_command_inputs(argc, argv);
@@ -37,7 +37,7 @@ int main(int argc, char * argv[])
     cout << endl;
 #else
     cerr << "ERROR: Bonded Order Parameter can only be computed with\n";
-    cerr << "     : Gnu Scientific Library Installed.  Please edit\n";
+    cerr << "     : Gnu Scientific Library or BOOST Installed.  Please edit\n";
     cerr << "     : Makefile to account for this requirement to continue\n";
     cerr << endl;
     exit(1);

@@ -7,6 +7,7 @@ SHELL=/bin/bash
 USE_OMP    = no
 USE_XDRLIB = yes
 USE_GSL    = yes
+USE_BOOST  = no
 
 # Locations of the xdrfile library if USE_XDRLIB is yes
 ifeq ($(USE_XDRLIB), yes)
@@ -67,11 +68,22 @@ ifeq ($(USE_XDRLIB), yes)
 endif
 ##
 
-## Determine if gal is to be used
+## Determine if gsl is to be used
 ifeq ($(USE_GSL), yes)
 	CXXFLAGS := $(CXXFLAGS) -DGSL
 	#
 	# add directories where the gsl headers and libraries were installed
+	#
+	CXXFLAGS  := $(CXXFLAGS) -I/opt/local/include
+	MAINFLAGS := $(MAINFLAGS) -I/opt/local/include -lgsl -lgslcblas -L/opt/local/lib
+endif
+##
+
+## Determine if boost is to be used
+ifeq ($(USE_BOOST), yes)
+	CXXFLAGS := $(CXXFLAGS) -DBOOST
+	#
+	# add directories where the boost headers and libraries were installed
 	#
 	CXXFLAGS  := $(CXXFLAGS) -I/opt/local/include
 	MAINFLAGS := $(MAINFLAGS) -I/opt/local/include -lgsl -lgslcblas -L/opt/local/lib

@@ -30,21 +30,26 @@
 #include <gsl/gsl_sf_legendre.h>
 #endif
 
+#ifdef BOOST
+#include <boost/math/special_functions/spherical_harmonic.hpp>
+#endif
+
 #include "Trajectory.hpp"
 
 using namespace std;
 
 BondOrderParameter::BondOrderParameter() :
     is_averaged_(false),
+    add_bar_(false),
     input_file_name_("BOP.in"),
     output_file_name_("BOP.txt"),
-    atom_group_("system"),
     time_scale_type_("linear"),
     number_of_time_points_(0),
     bond_parameter_order_(0),
     frame_interval_(1.0),
     max_cutoff_length_(0.0),
-    atom_types_({})
+    atom_types_({}),
+    atom_group_("system")
 {
 }
 
@@ -118,6 +123,22 @@ void BondOrderParameter::read_input_file()
             }
             else {
                 is_averaged_ = stoi(input_word);
+            }
+            continue;
+        }
+        if (input_word == "add_bar") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            if (input_word == "true" || input_word == "yes") {
+                add_bar_ = true;
+            }
+            else if(input_word == "false" || input_word == "no") {
+                add_bar_ = false;
+            }
+            else {
+                add_bar_ = stoi(input_word);
             }
             continue;
         }
@@ -216,6 +237,22 @@ void BondOrderParameter::read_input_file()
             atom_group_ = input_word;
             continue;
         }
+        // Read atom types and scattering lengths provided by user
+        if (input_word == "atom_types") {
+            getline(input_file, input_word);
+            stringstream input_line(input_word);
+            while (input_line >> input_word) {
+                if (input_word[0] == '=') {
+                    input_line >> input_word;
+                }
+                if (input_word[0] == '#') {
+                    break;
+                }
+                atom_types_.push_back(input_word);
+            }
+            continue;
+        }
+
         if (input_word == "time_scale_type") {
             input_file >> input_word;
             if (input_word[0] == '=') {
@@ -230,22 +267,6 @@ void BondOrderParameter::read_input_file()
                 input_file >> input_word;
             }
             trajectory_data_type_ = input_word;
-            continue;
-        }
-        
-        // Read atom types and scattering lengths provided by user
-        if (input_word == "atom_types") {
-            getline(input_file, input_word);
-            stringstream input_line(input_word);
-            while (input_line >> input_word) {
-                if (input_word[0] == '=') {
-                    input_line >> input_word;
-                }
-                if (input_word[0] == '#') {
-                    break;
-                }
-                atom_types_.push_back(input_word);
-            }
             continue;
         }
         
@@ -324,6 +345,20 @@ void BondOrderParameter::read_input_file()
             output_precision_ = stod(input_word);
             continue;
         }
+        if (input_word == "boxlength") {
+            getline(input_file, input_word);
+            stringstream input_line(input_word);
+            while (input_line >> input_word) {
+                if (input_word[0] == '=') {
+                    input_line >> input_word;
+                }
+                if (input_word[0] == '#') {
+                    break;
+                }
+                average_box_length_.push_back(stod(input_word));
+            }
+            continue;
+        }
         
         //check for everything else
         cerr << "WARNING: no matching input type for: ";
@@ -341,10 +376,12 @@ void BondOrderParameter::read_input_file()
 
 
 // Function calaculate the bond order paramter
+// GSL
 // Y_l,m(theta, phi) = gsl_sf_legendre_sphPlm(l, m, cos(theta))*(cos(m*phi)+i*sin(m*phi))
+// BOOST
+// Y_l,m(theta, phi) = boost::math::spherical_harmonic_r(bond_parameter_order_, i_m, theta, phi);
 void BondOrderParameter::compute_BOP()
 {
-#ifdef GSL
     if (!is_wrapped_) {
         wrap_coordinates();
     }
@@ -353,7 +390,7 @@ void BondOrderParameter::compute_BOP()
     compute_time_array();
     
     // select the indexes of atom_types_
-    size_t number_of_atoms;
+    size_t number_of_atoms = 0;
     vector < vector< unsigned int > > atom_types_indexes(atom_types_.size());
     
     determine_atom_indexes(atom_types_indexes, number_of_atoms);
@@ -373,26 +410,100 @@ void BondOrderParameter::compute_BOP()
     }
     
     if (is_averaged_) {
-        bond_order_parameter_.resize(number_of_time_points_, vector<double> (1, 0));
+        bond_order_parameter_.resize(number_of_time_points_, vector<double> (1, 0.0));
     }
     else {
-        bond_order_parameter_.resize(number_of_time_points_, vector<double> (number_of_system_atoms_, 0));
+        bond_order_parameter_.resize(number_of_time_points_, vector<double> (number_of_atoms, 0.0));
     }
 
     size_t status = 0;
     cout << "\nComputing ..." << endl;
     
-
-    cout << endl << gsl_sf_legendre_sphPlm(6, 6, .5)*cos(6*.5) <<" + i" << gsl_sf_legendre_sphPlm(6, 6, .5)*sin(6*.5) << endl;
-
     for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+        size_t current_frame = time_array_indexes_[time_point];
+        size_t i_atom_number = 0;
+        
+        vector<double> real_term      (bond_parameter_order_ + 1, 0.0);
+        vector<double> imaginary_term (bond_parameter_order_ + 1, 0.0);
+        
+        size_t number_neighbors = 0;
+        
         for (size_t i_atom_type1 = 0; i_atom_type1 < atom_types_.size(); ++i_atom_type1) {
             for (size_t i_atom1 = 0; i_atom1 < atom_types_indexes[i_atom_type1].size(); ++i_atom1) {
+                
+                if (!is_averaged_) {
+                    real_term      = vector<double> (bond_parameter_order_ + 1, 0.0);
+                    imaginary_term = vector<double> (bond_parameter_order_ + 1, 0.0);
+                
+                    number_neighbors = 0;
+                }
+                
                 for (size_t i_atom_type2 = 0; i_atom_type2 < atom_types_.size(); ++i_atom_type2) {
                     for (size_t i_atom2 = 0; i_atom2 < atom_types_indexes[i_atom_type2].size(); ++i_atom2) {
-                        continue;
+                        size_t atom1_index = atom_types_indexes[i_atom_type1][i_atom1];
+                        size_t atom2_index = atom_types_indexes[i_atom_type2][i_atom2];
+                        
+                        if (atom1_index == atom2_index) {
+                            continue;
+                        }
+                        double distance = 0.0;
+                        vector<double> delta_r(dimension_,0);
+                        
+                        for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+                            delta_r[i_dimension] = trajectory_[current_frame][atom2_index][i_dimension] - trajectory_[current_frame][atom1_index][i_dimension];
+                            delta_r[i_dimension] -= box_length_[current_frame][i_dimension] * round(delta_r[i_dimension]/box_length_[current_frame][i_dimension]);
+                            distance += delta_r[i_dimension]*delta_r[i_dimension];
+                        }
+                        distance = sqrt(distance);
+                        
+                        if (distance < max_cutoff_length_) {
+                            number_neighbors += 1;
+
+                            double theta = acos(delta_r[2]/distance);
+                            double phi   = atan2(delta_r[1], delta_r[0]);
+                            
+                            // bond_order_degree is the term "m" in the spherical harmonics equation
+                            // i_m is the iterator over the vector, and bond_order_degree is the conversion to the order "m"
+                            for (size_t i_m = 0; i_m < bond_parameter_order_ + 1; ++i_m) {
+                            #ifdef GSL
+                                real_term[i_m]      += gsl_sf_legendre_sphPlm(bond_parameter_order_, i_m, cos(theta))*cos(i_m*phi);
+                                imaginary_term[i_m] += gsl_sf_legendre_sphPlm(bond_parameter_order_, i_m, cos(theta))*sin(i_m*phi);
+                            #elif BOOST
+                                real_term[i_m]      += boost::math::spherical_harmonic_r(bond_parameter_order_, i_m, theta, phi);
+                                imaginary_term[i_m] += boost::math::spherical_harmonic_i(bond_parameter_order_, i_m, theta, phi);
+                            #endif
+                            }
+                        }
                     }
                 }
+                if (!is_averaged_ && !add_bar_) {
+                    if (number_neighbors != 0) {
+                        // q_l = q_l0*q_l0 + 2.0*sum_1:l q_li
+                        bond_order_parameter_[time_point][i_atom_number] = (real_term[0]*real_term[0] + imaginary_term[0]*imaginary_term[0]);
+                        for (size_t i_m = 1; i_m < bond_parameter_order_ + 1; ++i_m) {
+                            bond_order_parameter_[time_point][i_atom_number] += 2.0*(real_term[i_m]*real_term[i_m] + imaginary_term[i_m]*imaginary_term[i_m]);
+                        }
+                        bond_order_parameter_[time_point][i_atom_number] = sqrt(bond_order_parameter_[time_point][i_atom_number]);
+                        bond_order_parameter_[time_point][i_atom_number] *= sqrt(4.0*M_PI/(2.0*bond_parameter_order_ + 1.0))/number_neighbors;
+                    }
+                    // increment the itarator for bond_order_parameter_
+                    i_atom_number += 1;
+                    if (i_atom_number > number_of_atoms) {
+                        cerr << "An error has occured" << endl;
+                        exit(1);
+                    }
+                }
+            }
+        }
+        if (is_averaged_ && !add_bar_) {
+            if (number_neighbors != 0) {
+                // Q_l = Q_l0*Q_l0 + 2.0*sum_1:l Q_li
+                bond_order_parameter_[time_point][0] = (real_term[0]*real_term[0] + imaginary_term[0]*imaginary_term[0]);
+                for (size_t i_m = 1; i_m < bond_parameter_order_ + 1; ++i_m) {
+                    bond_order_parameter_[time_point][0] += 2.0*(real_term[i_m]*real_term[i_m] + imaginary_term[i_m]*imaginary_term[i_m]);
+                }
+                bond_order_parameter_[time_point][0] = sqrt(bond_order_parameter_[time_point][0]);
+                bond_order_parameter_[time_point][0] *= sqrt(4.0*M_PI/(2.0*bond_parameter_order_ + 1.0))/number_neighbors;
             }
         }
         if (is_run_mode_verbose_) {
@@ -402,12 +513,13 @@ void BondOrderParameter::compute_BOP()
             }
         }
     }
-#endif
+    cout << endl;
 }
 
 
 void BondOrderParameter::write_BOP()
 {
+    // set the time step of the system if not defined
     if (trajectory_delta_time_ == 0.0) {
         cerr << endl;
         cerr << "WARNING: time step of simulation could not be derived from trajectory,\n";
@@ -416,9 +528,27 @@ void BondOrderParameter::write_BOP()
         trajectory_delta_time_ = 1.0;
     }
     
+    size_t number_of_atoms = 0;
+    vector < vector< unsigned int > > atom_types_indexes(atom_types_.size());
+    
+    if (!is_averaged_) {
+        // redict output so not printed to screen
+        streambuf *standard = cout.rdbuf();
+        stringstream temp_stream;
+        cout.rdbuf(temp_stream.rdbuf());
+        
+        // select the indexes of atom_types_
+        determine_atom_indexes(atom_types_indexes, number_of_atoms);
+        
+        // reset cout to print to screen
+        cout.rdbuf(standard);
+    }
+
+    // open output file
     ofstream output_BOP_file(output_file_name_);
     
-    output_BOP_file    << "#Bonded Order Parameter for ";
+    // print the header of the file
+    output_BOP_file    << "# Bonded Order Parameter for ";
     output_BOP_file << "# { ";
     for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
         output_BOP_file << atom_types_[i_atom_type];
@@ -426,12 +556,14 @@ void BondOrderParameter::write_BOP()
     }
     output_BOP_file << "}";
     output_BOP_file << "in " << atom_group_ << ".\n";
-    output_BOP_file << "#using " << time_scale_type_ << " scale\n";
+    output_BOP_file << "# using " << time_scale_type_ << " scale\n";
     if (is_averaged_) {
-        output_BOP_file << "#time | Q_" << bond_parameter_order_ << "\n";
+        output_BOP_file << "# time | Q_" << bond_parameter_order_ << "\n";
+        output_BOP_file << "#\n";
         output_BOP_file << setiosflags(ios::scientific) << setprecision(output_precision_);
+        
+        // print BOP
         for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
-            cout << time_point << endl;
             output_BOP_file << time_array_indexes_[time_point]*trajectory_delta_time_;
             output_BOP_file << " ";
             output_BOP_file << bond_order_parameter_[time_point][0];
@@ -439,11 +571,20 @@ void BondOrderParameter::write_BOP()
         }
     }
     else {
-        output_BOP_file << "#time | q_" << bond_parameter_order_ << "(atom)\n";
-        output_BOP_file    << setiosflags(ios::scientific) << setprecision(output_precision_);
+        output_BOP_file << "# time | q_" << bond_parameter_order_ << "(atom)\n";
+        output_BOP_file << "# atom | ";
+        for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
+            for (size_t i_atom = 0; i_atom < atom_types_indexes[i_atom_type].size(); ++i_atom) {
+                output_BOP_file << atom_types_indexes[i_atom_type][i_atom] << " ";
+            }
+        }
+        output_BOP_file << endl;
+        output_BOP_file << setiosflags(ios::scientific) << setprecision(output_precision_);
+        
+        //print BOP
         for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
             output_BOP_file << time_array_indexes_[time_point]*trajectory_delta_time_;
-            for (size_t i_atom = 0; i_atom < number_of_system_atoms_; ++i_atom) {
+            for (size_t i_atom = 0; i_atom < number_of_atoms; ++i_atom) {
                 output_BOP_file << " ";
                 output_BOP_file << bond_order_parameter_[time_point][i_atom];
             }
@@ -526,6 +667,12 @@ void BondOrderParameter::check_parameters() throw()
     if (max_cutoff_length_ <= 0.0) {
         cerr << "ERROR: A postive non-zero cutoff length must be provided\n";
         cerr << "     : The recommended value is the distance to the first minimum of the pair distribution\n";
+        cerr << endl;
+        exit(1);
+    }
+    
+    if (dimension_ != 3) {
+        cerr << "ERROR: Dimension must be 3 for this quantity\n";
         cerr << endl;
         exit(1);
     }

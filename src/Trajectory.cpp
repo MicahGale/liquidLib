@@ -877,7 +877,10 @@ void Trajectory::read_abc_file()
     
     // set number of system atoms
     trajectory_file >> read_word;
-    number_of_system_atoms_ = stod(read_word);
+    number_of_system_atoms_ = stoi(read_word);
+    getline(trajectory_file, read_word);
+    getline(trajectory_file, read_word);
+    getline(trajectory_file, read_word);
     
     // determine the system atom types
     system_atom_types_.resize(number_of_system_atoms_);
@@ -898,6 +901,8 @@ void Trajectory::read_abc_file()
         frame_gap_to_report = 1;
     }
     
+    getline(trajectory_file, read_word);
+    
     // Read in the trajectory
     for (size_t i_frame = 0; i_frame < end_frame_ - start_frame_; ++i_frame) {
         if (trajectory_file.eof()) {
@@ -907,9 +912,10 @@ void Trajectory::read_abc_file()
             cerr << endl;
             exit(1);
         }
+
+        getline(trajectory_file, read_word);
+        getline(trajectory_file, read_word);
         
-        getline(trajectory_file, read_word);
-        getline(trajectory_file, read_word);
         for (size_t i_atom = 0; i_atom < number_of_system_atoms_; ++i_atom) {
             trajectory_file >> read_word;
             for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
@@ -926,9 +932,14 @@ void Trajectory::read_abc_file()
                 cout.flush();
             }
         }
+        
+        // set boxlength equal to average_box_length
+        for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+            box_length_[i_frame][i_dimension] = average_box_length_[i_dimension];
+        }
     }
     cout << "\r" << (end_frame_ - start_frame_) << " frames read";
-    cout.flush();
+    cout << endl;
     
     trajectory_file.close();
 }
@@ -1010,5 +1021,5 @@ void Trajectory::allocate_memory()
     }
     
     // allocate memory for average_box_length_
-    average_box_length_ = vector< double > (dimension_);
+    average_box_length_.resize(dimension_, 0.0);
 }
