@@ -54,6 +54,6 @@ void print_executable_header()
     cout << "--            Bond Order Parameter            --\n";
     cout << "------------------------------------------------\n";
     cout << "------------------------------------------------\n";
-    cout << "-i: input file name (default input file: Q6.in)\n";
+    cout << "-i: input file name (default input file: BOP.in)\n";
     cout << "\n";
 }
