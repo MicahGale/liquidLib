@@ -41,6 +41,7 @@
 	\item \hyperref[sec::Grt]{Coherent van Hove Correlation}
 	\item \hyperref[sec::Fsqt]{Self Intermediate Scattering Function}
 	\item \hyperref[sec::Fqt]{Coherent Intermediate Scattering Function}
+	\item \hyperref[sec::BOP]{Bond Order Parameter}
 \end{itemize}
 
 \section{Acknowledgments}
@@ -72,6 +73,9 @@ Once libxdrfile.a and xdrfile.h, xdrfile$\_$trr.h, and xdrfile$\_$xtc.h have bee
 \\
 \\
 To build parallelized OpenMP support, open Makefile in a text editor and in the optional components section change "USE$\_$OMP" to "yes.  This will add the apporpriate flags for \textit{LiquidLib} to be built with OpenMP support included.  Recompile the program thereafter.
+\\
+\\
+In order for the bond order parameter calculation to be performed, \textit{LiquidLib} requires either Boost or GSL to be installed.  Once one of these has been installed, in the makefile switch either USE$\_$BOOST or USE$\_$GSL to ``yes," if both are set to yes, then GSL will be used with priority.
 \\
 \\
 All user options for the Makefile are listed at the beginning of the Makefile.
@@ -155,6 +159,36 @@ Coherent Intermediate Scattering Functions (CISF) is defined as the spatial Four
 F(k,t) = \frac{1}{N\langle b_{coh}\rangle^2} \left\langle \sum_{l=1}^{N}\sum_{l'=1}^{N} b_lb_{l'}\exp{\{-i\mathbf{k}\cdot[\mathbf{r}_l(t) - \mathbf{r}_{l'}(0)]}\}\right\rangle.
 \end{equation}  
 
+\subsection{Bond Order Parameter: $q_l(i,t)$, $\bar{q}_l(i,t)$, $Q_l(t)$} \label{sec::BOP}
+Bond Order Parameter is a quantity for measuring medium range order in a system.  $q$ is the bond order parameter for an individual atom, $Q$ is the system wide bond order parameter, $l$ is the order of the bond order parameter (typical values are 4 and 6), $i$ is the atom number, $t$ is the time.  This quantity cannot be compared to expirements but can be very useful for determining structural order and phases in a system.  The quantities are defined as below
+\begin{equation}
+q_{lm}(i,t) = \frac{1}{N(i)}\sum_{j=1}^{N(i)}Y_{lm}(\hat{r}_{ij}(t))
+\end{equation}
+where $m$ ranges from $-l$ to $l$, $N(i)$ is the number of nearest neighbors around atom $i$, and $Y_{lm}$ is the spherical harmonic of order $l$ and $m$, and $\hat{r}_{ij}$ is the unit vector between atom $i$ and $j$.  The unit vector can be converted to spherical coordinates which are required for the spherical harmonics
+\begin{equation}
+q_l(i,t) = \sqrt{\frac{4\pi}{2l+1} \sum_{m=-l}^l\left|q_{lm}(i,t)^2\right|}
+\end{equation}
+this is the bond order parameter per atom.
+\begin{equation}
+Q_{lm}(t) = \frac{\sum_{i=1}^NN(i)q_{lm}(i,t)}{\sum_{i=1}^NN(i)}
+\end{equation}
+where N is the number of atoms in the system.
+\begin{equation}
+Q_l(t) = \sqrt{\frac{4\pi}{2l+1} \sum_{m=-l}^l\left|Q_{lm}(t)^2\right|}
+\end{equation}
+This is the bond order parameter of the system
+\begin{equation}
+\bar{q}_{lm}(i,t) = \frac{1}{N(i)}\sum_{j=0}^{N(i)}q_{lm}(j,t)
+\end{equation}
+and 
+\begin{equation}
+\bar{q}_l(i,t) = \sqrt{\frac{4\pi}{2l+1} \sum_{m=-l}^l\left|\bar{q}_{lm}(i,t)^2\right|}
+\end{equation}
+this is the nearest neighbor averaged bond order parameter.  Lastly,
+\begin{equation}
+\bar{Q}_l(t) = Q_l(t)
+\end{equation}
+there is no difference between the system bond order parameter and the nearest neighbor averaged system bond order parameter.
 
 \section{Execution}
 \textit{LiquidLib} provides source code to several binaries.  Each binary is designed to calculate one quantity.  To calculate a quantity, one must provide an input file.  The input file contains all of the parameters, essential and optional, necessary for \textit{LiquidLib} to compute the respective quantity.  By default, \textit{LiquidLib} executables search the current directory for the input file with the abbreviation for the quantity with the file extension .in.  Similarly, when the quantity is written to file, the file is named by default the quantity abbreviation .txt, and is placed in the current directory.  The following list summarizes the default file names used.
@@ -190,6 +224,9 @@ F(k,t) = \frac{1}{N\langle b_{coh}\rangle^2} \left\langle \sum_{l=1}^{N}\sum_{l'
 \item \textbf{Coherent Intermediate Scattering Function:}
 \\F$\_$kt.in
 \\F$\_$kt.txt
+\item \textbf{Bond Order Paramter:}
+\\BOP.in
+\\BOP.txt
 \end{itemize}
 \end{multicols}
 \noindent While these are the default files that will be used by \textit{LiquidLib}, the file names used are ultimately up to the user.  The user may use any input and output name they please.  To use a non-default input name, the file used must be specified during command line operation, and to use a non-default output name, the file used must be specified in the input file under the option outputfilename.  The command line operation to compute a quantity (for example MeanSquaredDisplacement) is as follows:  
@@ -234,6 +271,9 @@ This section of the manual describes the potential options that can be used in t
 	
 	\item[trajectory$\_$file$\_$name] \hfill \\
 	- [\textbf{mandatory}] This option sets the name and location of the trajectory file.  As of now, the only file types that are recognized for reading the trajectory are .trr, .xtc, .xyz, .dump, .atom, and XDATCAR.  dump and atom extensions are for LAMMPS trajectories and XDATCAR is for VASP.  .trr and .xtc can only be read if \textit{LiquidLib} is built in GROMACS compatible mode.
+	
+	\item[trajectory$\_$file$\_$type] \hfill \\
+	- [optional] This option can be set to ``abc'' in order to signal to the program that a ABC trajectory is being read in.  ABC trajetories are produced by a module created in GROMACS by our research group.  ABC is also only usable with bond order parameter, since there is no time in ABC trajectories.
 	
 	\item[trajectory$\_$data$\_$type] \hfill \\
 	- [default: coordinate, optional] This sets the type of information that will be read from the trajectory file.  For .trr files, this will change how the file is read.  This needs to be set to velocity for VACF.  
@@ -451,7 +491,36 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	- [default: 0, optional] This value determines the first multiple of $\delta k$ used, where $\delta k = 2*\pi/\textbf{boxlength}$.  
 	
 	\item[number$\_$of$\_$bins] \hfill \\
-	- [default: 50, optional] This sets the number of multiples of $\delta k$ where the self intermediate scattering function will be calculated at, starting from kstartindex and ending at kstartindex + numberofbins. 	
+	- [default: 50, optional] This sets the number of multiples of $\delta k$ where the self intermediate scattering function will be calculated at, starting from kstartindex and ending at kstartindex + numberofbins.
+	
+\end{description}
+
+
+\subsection{Bond Order Parameter: $q_l(i,t)$, $\bar{q}_l(i,t)$, $Q_l(t)$} \label{sec::BOP_parm}
+User can input selected atom types using only the \textbf{atom$\_$types} parameter.
+\begin{description}	
+	\item[number$\_$of$\_$time$\_$points]\hfill \\
+	- [default: 0, optional] This is the number of points that will be calculated for the self intermediate scattering function.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.
+	
+	\item[time$\_$scale$\_$type] \hfill \\
+	- [default: linear, optional] This can be set to ``linear'' or ``'log''.  This sets the time scale of the output. Self intermediate scattering function can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps).
+	
+	\item[frame$\_$interval] \hfill \\
+	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a timestep of .1 ps, and you wish for the self intermediate scattering function to be computed every .2 ps, this value should be set to 2. 
+	
+	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the self intermediate scattering function.  For example, if this value is set to 1.5, then the self intermediate scattering function will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$. 
+	
+	\item[is$\_$averaged] \hfill \\
+	- [default: no, optional]  This is a boolean value.  Availble options include, no, yes, false, true, or a integer numeric.  0 is considered false, and any other numerical value is considered true.  This value determines whether the bond order parameter is calculated per atom or per the system.  If false, the bond order parameter is calculated for each atom, if true the bond order parameter is calculated for the system at each frame.
+	
+	\item[add$\_$bar] \hfill \\
+	- [default: no, optional] This is a boolean value.  Availble options include, no, yes, false, true, or a integer numeric.  0 is considered false, and any other numerical value is considered true.  This value determines whether the bond order parameter is calculated or if the nearest neighbor averaged bond order parameter is calculated.  If false, the bond order parameter is calculated.  If true, the nearest neighbor averaged bond order parameter is calculated.
+	
+	\item[bond$\_$parameter$\_$order] \hfill \\
+	- [required] This value sets the order, $l$, of the bond order parameter.  A non-negative integer is required for this option.  This determines if say $q_6$ or $q_4$ is calculated
+	
+	\item[max$\_$cutoff] \hfill \\
+	- [required] This value sets the distance to search for nearest neighbors.  This should be set to the first minimum of the pair distribution function.	
 	
 \end{description}
 
