@@ -409,6 +409,7 @@ void BondOrderParameter::compute_BOP()
         max_cutoff_length_ = min_box_length/2.0;
     }
     
+    // resize the bond_order_parameter_
     if (is_averaged_) {
         bond_order_parameter_.resize(number_of_time_points_, vector<double> (1, 0.0));
     }
@@ -416,10 +417,12 @@ void BondOrderParameter::compute_BOP()
         bond_order_parameter_.resize(number_of_time_points_, vector<double> (number_of_atoms, 0.0));
     }
     
+    // declare vectors for the real and imaginary term from spherical harmonics
     vector< vector<double> > real_term;
     vector< vector<double> > imaginary_term;
     
-    if (add_bar_) {
+    // resize the real and imaginary term
+    if (add_bar_ && !is_averaged_) {
         real_term.resize(number_of_atoms, vector<double> (bond_parameter_order_ + 1, 0.0));
         imaginary_term.resize(number_of_atoms, vector<double> (bond_parameter_order_ + 1, 0.0));
     }
@@ -431,23 +434,29 @@ void BondOrderParameter::compute_BOP()
     size_t status = 0;
     cout << "\nComputing ..." << endl;
     
+    // main loop
+#pragma omp parallel for firstprivate(real_term, imaginary_term)
     for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
-        if (is_averaged_ && !add_bar_) {
+        
+        // reinitialize the vectors
+        if (add_bar_ && !is_averaged_) {
+            real_term         = vector< vector <double> > (number_of_system_atoms_, vector<double> (bond_parameter_order_ + 1, 0.0));
+            imaginary_term    = vector< vector <double> > (number_of_system_atoms_, vector<double> (bond_parameter_order_ + 1, 0.0));
+        }
+        else {
             real_term[0]      = vector<double> (bond_parameter_order_ + 1, 0.0);
             imaginary_term[0] = vector<double> (bond_parameter_order_ + 1, 0.0);
-        }
-        if (add_bar_) {
-            real_term         = vector< vector <double> > (number_of_atoms, vector<double> (bond_parameter_order_ + 1, 0.0));
-            imaginary_term    = vector< vector <double> > (number_of_atoms, vector<double> (bond_parameter_order_ + 1, 0.0));
         }
         
         size_t current_frame    = time_array_indexes_[time_point];
         size_t i_atom_number    = 0;
         size_t number_neighbors = 0;
         
+        // loop over all the atoms
         for (size_t i_atom_type1 = 0; i_atom_type1 < atom_types_.size(); ++i_atom_type1) {
-            for (size_t i_atom1 = 0; i_atom1 < atom_types_indexes[i_atom_type1].size(); ++i_atom1) {
-                
+            for (size_t i_atom1 = 0; i_atom1 < atom_types_indexes[i_atom_type1].size(); ++i_atom1, ++i_atom_number) {
+                size_t atom1_index = atom_types_indexes[i_atom_type1][i_atom1];
+
                 if (!is_averaged_) {
                     number_neighbors = 0;
                     
@@ -457,17 +466,18 @@ void BondOrderParameter::compute_BOP()
                     }
                 }
                 
+                // loop over all the atoms again
                 for (size_t i_atom_type2 = 0; i_atom_type2 < atom_types_.size(); ++i_atom_type2) {
                     for (size_t i_atom2 = 0; i_atom2 < atom_types_indexes[i_atom_type2].size(); ++i_atom2) {
-                        size_t atom1_index = atom_types_indexes[i_atom_type1][i_atom1];
                         size_t atom2_index = atom_types_indexes[i_atom_type2][i_atom2];
                         
                         if (atom1_index == atom2_index) {
                             continue;
                         }
                         
-                        if (add_bar_) {
-                            compute_harmonic(atom1_index, atom2_index, current_frame, number_neighbors, real_term[i_atom_number], imaginary_term[i_atom_number]);
+                        // compute the spherical harmonic terms
+                        if (add_bar_ && !is_averaged_) {
+                            compute_harmonic(atom1_index, atom2_index, current_frame, number_neighbors, real_term[atom1_index], imaginary_term[atom1_index]);
                         }
                         else {
                             compute_harmonic(atom1_index, atom2_index, current_frame, number_neighbors, real_term[0], imaginary_term[0]);
@@ -475,43 +485,30 @@ void BondOrderParameter::compute_BOP()
                     }
                 }
                 
-                if (add_bar_) {
+                if (add_bar_ && !is_averaged_) {
                     if (number_neighbors != 0) {
                         for (size_t i_m = 0; i_m < bond_parameter_order_ + 1; ++i_m) {
-                            real_term[i_atom_number][i_m]      /= number_neighbors;
-                            imaginary_term[i_atom_number][i_m] /= number_neighbors;
-                         }
+                            real_term[atom1_index][i_m]      /= number_neighbors;
+                            imaginary_term[atom1_index][i_m] /= number_neighbors;
+                        }
                     }
                 }
                 else if (!is_averaged_) {
                     if (number_neighbors != 0) {
-                        // q_l = q_l0*q_l0 + 2.0*sum_1:l q_li
-                        bond_order_parameter_[time_point][i_atom_number] = (real_term[0][0]*real_term[0][0] + imaginary_term[0][0]*imaginary_term[0][0]);
-                        for (size_t i_m = 1; i_m < bond_parameter_order_ + 1; ++i_m) {
-                            bond_order_parameter_[time_point][i_atom_number] += 2.0*(real_term[0][i_m]*real_term[0][i_m] + imaginary_term[0][i_m]*imaginary_term[0][i_m]);
-                        }
-                        bond_order_parameter_[time_point][i_atom_number] = sqrt(bond_order_parameter_[time_point][i_atom_number]);
-                        bond_order_parameter_[time_point][i_atom_number] *= sqrt(4.0*M_PI/(2.0*bond_parameter_order_ + 1.0))/number_neighbors;
-                    }
-                }
-                
-                if (!is_averaged_) {
-                    // increment the itarator for bond_order_parameter_
-                    i_atom_number += 1;
-                    if (i_atom_number > number_of_atoms) {
-                        cerr << "An error has occured" << endl;
-                        exit(1);
+                        calculate_BOP(real_term[0], imaginary_term[0], number_neighbors, time_point, i_atom_number);
                     }
                 }
             }
         }
         
-        if (add_bar_) {
+        // need to reloop the atoms if we want q bar
+        if (add_bar_ && !is_averaged_) {
             i_atom_number = 0;
             
             for (size_t i_atom_type1 = 0; i_atom_type1 < atom_types_.size(); ++i_atom_type1) {
-                for (size_t i_atom1 = 0; i_atom1 < atom_types_indexes[i_atom_type1].size(); ++i_atom1) {
-                    
+                for (size_t i_atom1 = 0; i_atom1 < atom_types_indexes[i_atom_type1].size(); ++i_atom1, ++i_atom_number) {
+                    size_t atom1_index = atom_types_indexes[i_atom_type1][i_atom1];
+
                     vector<double> real_term_bar      (bond_parameter_order_ + 1, 0.0);
                     vector<double> imaginary_term_bar (bond_parameter_order_ + 1, 0.0);
                     
@@ -519,17 +516,12 @@ void BondOrderParameter::compute_BOP()
                     
                     for (size_t i_atom_type2 = 0; i_atom_type2 < atom_types_.size(); ++i_atom_type2) {
                         for (size_t i_atom2 = 0; i_atom2 < atom_types_indexes[i_atom_type2].size(); ++i_atom2) {
-                            size_t atom1_index = atom_types_indexes[i_atom_type1][i_atom1];
                             size_t atom2_index = atom_types_indexes[i_atom_type2][i_atom2];
                             
                             double distance = 0.0;
-                            vector<double> delta_r(dimension_,0);
+                            vector<double> delta_r(dimension_, 0.0);
                             
-                            if (atom1_index != atom2_index) {                              
-                                //%#@@@#^&()(*&^%$#$%^&
-                                continue;
-                                //)(*&^%$#@#$%^&*()(*&^%$#@
-                                
+                            if (atom1_index != atom2_index) {
                                 for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
                                     delta_r[i_dimension] = trajectory_[current_frame][atom2_index][i_dimension] - trajectory_[current_frame][atom1_index][i_dimension];
                                     delta_r[i_dimension] -= box_length_[current_frame][i_dimension] * round(delta_r[i_dimension]/box_length_[current_frame][i_dimension]);
@@ -538,8 +530,9 @@ void BondOrderParameter::compute_BOP()
                                 distance = sqrt(distance);
                             }
                             
+                            // average q over the nearest neighbors
                             if (distance < max_cutoff_length_) {
-                                for (size_t i_m = 0; i_m < bond_parameter_order_; ++i_m) {
+                                for (size_t i_m = 0; i_m < bond_parameter_order_ + 1; ++i_m) {
                                     real_term_bar[i_m]      += real_term[atom2_index][i_m];
                                     imaginary_term_bar[i_m] += imaginary_term[atom2_index][i_m];
                                 }
@@ -549,38 +542,15 @@ void BondOrderParameter::compute_BOP()
                         }
                     }
                     
-                    if (!is_averaged_) {
-                        if (number_neighbors != 0) {
-                            // q_l = q_l0*q_l0 + 2.0*sum_1:l q_li
-                            bond_order_parameter_[time_point][i_atom_number] = (real_term_bar[0]*real_term_bar[0] + imaginary_term_bar[0]*imaginary_term_bar[0]);
-                            for (size_t i_m = 1; i_m < bond_parameter_order_ + 1; ++i_m) {
-                                bond_order_parameter_[time_point][i_atom_number] += 2.0*(real_term_bar[i_m]*real_term_bar[i_m] + imaginary_term_bar[i_m]*imaginary_term_bar[i_m]);
-                            }
-                            bond_order_parameter_[time_point][i_atom_number] = sqrt(bond_order_parameter_[time_point][i_atom_number]);
-                            bond_order_parameter_[time_point][i_atom_number] *= sqrt(4.0*M_PI/(2.0*bond_parameter_order_ + 1.0))/number_neighbors;
-                        }
-                    }
-                    
-                    if (!is_averaged_) {
-                        // increment the itarator for bond_order_parameter_
-                        i_atom_number += 1;
-                        if (i_atom_number > number_of_atoms) {
-                            cerr << "An error has occured" << endl;
-                            exit(1);
-                        }
+                    if (number_neighbors != 0) {
+                        calculate_BOP(real_term_bar, imaginary_term_bar, number_neighbors, time_point, i_atom_number);
                     }
                 }
             }
         }
         else if (is_averaged_) {
             if (number_neighbors != 0) {
-                // Q_l = Q_l0*Q_l0 + 2.0*sum_1:l Q_li
-                bond_order_parameter_[time_point][0] = (real_term[0][0]*real_term[0][0] + imaginary_term[0][0]*imaginary_term[0][0]);
-                for (size_t i_m = 1; i_m < bond_parameter_order_ + 1; ++i_m) {
-                    bond_order_parameter_[time_point][0] += 2.0*(real_term[0][i_m]*real_term[0][i_m] + imaginary_term[0][i_m]*imaginary_term[0][i_m]);
-                }
-                bond_order_parameter_[time_point][0] = sqrt(bond_order_parameter_[time_point][0]);
-                bond_order_parameter_[time_point][0] *= sqrt(4.0*M_PI/(2.0*bond_parameter_order_ + 1.0))/number_neighbors;
+                calculate_BOP(real_term[0], imaginary_term[0], number_neighbors, time_point, 0);
             }
         }
         
@@ -595,6 +565,21 @@ void BondOrderParameter::compute_BOP()
 }
 
 
+// method calculate and store bond_order_parameter
+// q_l = q_l0*q_l0 + 2.0*sum_1:l q_li
+void BondOrderParameter::calculate_BOP(vector<double> const & real_term, vector<double> const & imaginary_term,
+                                       size_t const & number_neighbors, size_t const & time_point, size_t const & atom_index)
+{
+    bond_order_parameter_[time_point][atom_index] = (real_term[0]*real_term[0] + imaginary_term[0]*imaginary_term[0]);
+    for (size_t i_m = 1; i_m < bond_parameter_order_ + 1; ++i_m) {
+        bond_order_parameter_[time_point][atom_index] += 2.0*(real_term[i_m]*real_term[i_m] + imaginary_term[i_m]*imaginary_term[i_m]);
+    }
+    bond_order_parameter_[time_point][atom_index] = sqrt(bond_order_parameter_[time_point][atom_index]);
+    bond_order_parameter_[time_point][atom_index] *= sqrt(4.0*M_PI/(2.0*bond_parameter_order_ + 1.0))/number_neighbors;
+}
+
+
+// method to perform the spherical harmonics
 void BondOrderParameter::compute_harmonic(size_t const & atom1_index, size_t const & atom2_index, size_t const & current_frame,
                                           size_t & number_neighbors, vector<double> & real_term, vector<double> & imaginary_term)
 {
@@ -683,7 +668,12 @@ void BondOrderParameter::write_BOP()
         }
     }
     else {
-        output_BOP_file << "# time | q_" << bond_parameter_order_ << "(atom)\n";
+        if (add_bar_) {
+            output_BOP_file << "# time | qbar_" << bond_parameter_order_ << "(atom)\n";
+        }
+        else {
+            output_BOP_file << "# time | q_" << bond_parameter_order_ << "(atom)\n";
+        }
         output_BOP_file << "# atom | ";
         for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
             for (size_t i_atom = 0; i_atom < atom_types_indexes[i_atom_type].size(); ++i_atom) {
