@@ -245,19 +245,19 @@ void Trajectory::select_atoms(vector< unsigned int > & selected_atom_indexes, st
     for (unsigned int i_atom = 0; i_atom < system_atom_types_.size(); ++i_atom) {
         // compare atom types using strings of equal length
         // this helps distringuish atoms at different levels, e.g., H vs HW vs HW1,HW2
-        if (system_atom_types_[i_atom].compare(0, atom_type_to_select.size(), atom_type_to_select) == 0 || atom_type_to_select == "all") {
+        if (system_atom_types_[i_atom].find(atom_type_to_select) != string::npos || atom_type_to_select == "all") {
             if (atom_group_to_select == "system") {
                 selected_atom_indexes.push_back(i_atom);
                 continue;
             }
             else if (atom_group_to_select == "solvent" || atom_group_to_select == "SOL") {
-                if (molecule_id_[i_atom].rfind("SOL") != string::npos) {    //TODO: Note that this selection only works for gromacs files
+                if (molecule_id_[i_atom].find("SOL") != string::npos) {    //TODO: Note that this selection only works for gromacs files
                     selected_atom_indexes.push_back(i_atom);
                 }
                 continue;
             }
             else if (atom_group_to_select == "non-solvent") {
-                if (molecule_id_[i_atom].rfind("SOL") == string::npos) {
+                if (molecule_id_[i_atom].find("SOL") == string::npos) {
                     selected_atom_indexes.push_back(i_atom);
                 }
                 continue;
@@ -306,8 +306,16 @@ void Trajectory::read_gro_file()
     getline(gro_file, line); 	// discard first two lines: 'system name' and 'number of atoms'
     getline(gro_file, line);
         
-    for (size_t i_atom = 0; i_atom < number_of_system_atoms_ && !gro_file.eof(); ++i_atom) {
-        gro_file >> molecule_id_[i_atom] >> system_atom_types_[i_atom];
+    for (size_t i_atom = 0; i_atom < number_of_system_atoms_ && !gro_file.eof(); ++i_atom) {     
+        char * read_id   = new char [10];
+        char * read_type = new char [5];
+        
+        gro_file.read(read_id, 10);
+        molecule_id_[i_atom] = read_id;
+
+        gro_file.read(read_type, 5);
+        system_atom_types_[i_atom] = read_type;
+
         getline(gro_file, line);
     }
     
