@@ -5,9 +5,9 @@ SHELL=/bin/bash
 ##########################
 # Set to “yes” if OpenMP or xdrfile library should be used
 USE_OMP    = no
-USE_XDRLIB = yes
-USE_GSL    = yes
-USE_BOOST  = yes
+USE_XDRLIB = no
+USE_GSL    = no
+USE_BOOST  = no
 
 # Locations of the xdrfile library if USE_XDRLIB is yes
 ifeq ($(USE_XDRLIB), yes)
@@ -86,7 +86,7 @@ ifeq ($(USE_BOOST), yes)
 	# add directories where the boost headers and libraries were installed
 	#
 	CXXFLAGS  := $(CXXFLAGS) -I/opt/local/include
-	MAINFLAGS := $(MAINFLAGS) -I/opt/local/include -lgsl -lgslcblas -L/opt/local/lib
+	MAINFLAGS := $(MAINFLAGS) -I/opt/local/include
 endif
 ##
 
