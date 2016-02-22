@@ -78,6 +78,7 @@ private:
     
     void read_vasp_file();
     void read_dump_file();
+    void read_xyz_file();
     void read_abc_file();
     
 #ifdef GROMACS

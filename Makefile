@@ -5,9 +5,9 @@ SHELL=/bin/bash
 ##########################
 # Set to “yes” if OpenMP or xdrfile library should be used
 USE_OMP    = no
-USE_XDRLIB = no
-USE_GSL    = no
-USE_BOOST  = no
+USE_XDRLIB = yes
+USE_GSL    = yes
+USE_BOOST  = yes
 
 # Locations of the xdrfile library if USE_XDRLIB is yes
 ifeq ($(USE_XDRLIB), yes)

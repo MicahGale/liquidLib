@@ -334,6 +334,20 @@ void CoherentIntermediateScattering::read_input_file()
             output_precision_ = stod(input_word);
             continue;
         }
+        if (input_word == "boxlength") {
+            getline(input_file, input_word);
+            stringstream input_line(input_word);
+            while (input_line >> input_word) {
+                if (input_word[0] == '=') {
+                    input_line >> input_word;
+                }
+                if (input_word[0] == '#') {
+                    break;
+                }
+                average_box_length_.push_back(stod(input_word));
+            }
+            continue;
+        }
 
 		//check for everything else
 		cerr << "WARNING: no matching input type for: ";
