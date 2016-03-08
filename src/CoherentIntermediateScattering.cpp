@@ -400,7 +400,7 @@ void CoherentIntermediateScattering::compute_F_kt()
         double k_value_temp = delta_k_ * (k_index + k_start_index_);
         
         // Compute the integer value based on user input k_value
-        unsigned int k_squared = static_cast<unsigned int> (k_value_temp * k_value_temp * min_box_length * min_box_length / (4.0 * M_PI * M_PI));
+        unsigned int k_squared = round(k_value_temp * k_value_temp * min_box_length * min_box_length / (4.0 * M_PI * M_PI));
         
         // Compute the avaible k_vectors
         compute_k_vectors( k_squared, k_vectors[k_index] );
@@ -412,6 +412,8 @@ void CoherentIntermediateScattering::compute_F_kt()
         // Compute normalization factor
         normalization_factor[k_index] = 1.0 / (number_of_frames_to_average_ * number_of_atoms * number_of_k_vectors_[k_index]);
         normalization_factor[k_index] /= ( average_scattering_length * average_scattering_length );
+        
+        cout << "\n\n" << normalization_factor[k_index] << "\n\n";
         
         // Print num of vectors and values
         cout << "Corrected kvalue for : " << k_value_temp << " is : " << k_values_[k_index] << endl;
@@ -472,15 +474,11 @@ void CoherentIntermediateScattering::compute_F_kt()
                                 k_dot_r0 += k_vectors[k_index][i_k_vector][i_dimension] * (trajectory_[initial_frame][atom_index][i_dimension] - periodic_image_counts[initial_frame][atom_index][i_dimension]);
                                 k_dot_rt += k_vectors[k_index][i_k_vector][i_dimension] * (trajectory_[current_frame][atom_index][i_dimension] - periodic_image_counts[initial_frame][atom_index][i_dimension]);
                             }
-                            sum_cos_term_r0 += cos(k_min * k_dot_r0);
-                            sum_sin_term_c0 += sin(k_min * k_dot_r0);
-                            sum_cos_term_rt += cos(k_min * k_dot_rt);
-                            sum_sin_term_ct += sin(k_min * k_dot_rt);
+                            sum_cos_term_r0 += cos(k_min * k_dot_r0)*scattering_lengths_[i_atom_type];
+                            sum_sin_term_c0 += sin(k_min * k_dot_r0)*scattering_lengths_[i_atom_type];
+                            sum_cos_term_rt += cos(k_min * k_dot_rt)*scattering_lengths_[i_atom_type];
+                            sum_sin_term_ct += sin(k_min * k_dot_rt)*scattering_lengths_[i_atom_type];
                         }
-                        sum_cos_term_r0 *= scattering_lengths_[i_atom_type];
-                        sum_sin_term_c0 *= scattering_lengths_[i_atom_type];
-                        sum_cos_term_rt *= scattering_lengths_[i_atom_type];
-                        sum_sin_term_ct *= scattering_lengths_[i_atom_type];
                     }
                     F_kt_[k_index][time_point] += (sum_cos_term_rt * sum_cos_term_r0 + sum_sin_term_ct * sum_sin_term_c0);
                 }
