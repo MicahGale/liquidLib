@@ -45,6 +45,8 @@ protected:
     
     vector< unsigned int > time_array_indexes_;
     vector< double > r2_t_;
+    vector< vector < double > > x2_t_;  // r2_t components along each dimension
+    bool is_partial_msd_output;
     
     string input_file_name_;
     string output_file_name_;

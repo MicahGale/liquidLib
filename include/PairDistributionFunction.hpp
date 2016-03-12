@@ -9,8 +9,8 @@
 //                        Nathan Walter
 //  -----------------------------------------------------
 //
-#ifndef LiquidLib_PairDistributionFuntion_hpp
-#define LiquidLib_PairDistributionFuntion_hpp
+#ifndef LiquidLib_PairDistributionFunction_hpp
+#define LiquidLib_PairDistributionFunction_hpp
 
 #include <vector>
 #include <string>
@@ -70,4 +70,4 @@ private:
     vector< double > g_r_;
 };
 
-#endif // defined (LiquidLib_PairDistributionFuntion_hpp)
+#endif // defined (LiquidLib_PairDistributionFunction_hpp)

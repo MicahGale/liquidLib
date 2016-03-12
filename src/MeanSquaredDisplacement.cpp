@@ -35,6 +35,7 @@ MeanSquaredDisplacement::MeanSquaredDisplacement() :
     number_of_time_points_(0),
     number_of_frames_to_average_(1),
     frame_interval_(1.0),
+    is_partial_msd_output(false),
     input_file_name_("r2_t.in"),
     output_file_name_("r2_t.txt"),
     time_scale_type_("linear"),
@@ -129,6 +130,22 @@ void MeanSquaredDisplacement::read_input_file()
             }
             else {
                 is_wrapped_ = stoi(input_word);
+            }
+            continue;
+        }
+        if (input_word == "is_partial_msd_output") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            if (input_word == "true" || input_word == "yes") {
+                is_partial_msd_output = true;
+            }
+            else if(input_word == "false" || input_word == "no") {
+                is_partial_msd_output = false;
+            }
+            else {
+                is_partial_msd_output = stoi(input_word);
             }
             continue;
         }
@@ -329,7 +346,8 @@ void MeanSquaredDisplacement::compute_r2_t()
         unwrap_coordinates();
     }
     
-    r2_t_.resize(number_of_time_points_);
+    r2_t_.resize(number_of_time_points_, 0.0);
+    x2_t_.resize(dimension_, vector < double >(number_of_time_points_, 0.0));
     
     // Form Array of time index values for a given type of timescale computation
     compute_time_array();
@@ -352,19 +370,27 @@ void MeanSquaredDisplacement::compute_r2_t()
 #pragma omp parallel for
     for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {
         double total_squared_distance = 0.0;
+        vector < double > partial_squared_distance(dimension_, 0.0);
         for (size_t initial_frame = 0; initial_frame < number_of_frames_to_average_; ++initial_frame) {
             size_t current_frame = initial_frame + time_array_indexes_[time_point];
             for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
                 for (size_t i_atom = 0; i_atom < atom_types_indexes[i_atom_type].size(); ++i_atom) {
                     size_t atom_index = atom_types_indexes[i_atom_type][i_atom];
-                    for (size_t dimension_index = 0; dimension_index < dimension_; ++dimension_index) {
-                        double delta_x = trajectory_[current_frame][atom_index][dimension_index] - trajectory_[initial_frame][atom_index][dimension_index];
+                    for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+                        double delta_x = trajectory_[current_frame][atom_index][i_dimension] - trajectory_[initial_frame][atom_index][i_dimension];
+                        
                         total_squared_distance += delta_x * delta_x;
+                        partial_squared_distance[i_dimension] += delta_x * delta_x;
                     }
                 }
             }
         }
-        r2_t_[time_point] = total_squared_distance*normalization_factor;
+        r2_t_[time_point] = total_squared_distance * normalization_factor;
+        
+        for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+            x2_t_[i_dimension][time_point] = partial_squared_distance[i_dimension] * normalization_factor;
+        }
+
         
         if (is_run_mode_verbose_) {
 #pragma omp critical
@@ -401,10 +427,17 @@ void MeanSquaredDisplacement::write_r2_t()
     output_r2_t_file << "#time               MSD\n";
     
     output_r2_t_file    << setiosflags(ios::scientific) << setprecision(output_precision_);
+    
     for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
-        output_r2_t_file << time_array_indexes_[time_point]*trajectory_delta_time_;
+        output_r2_t_file << time_array_indexes_[time_point] * trajectory_delta_time_;
         output_r2_t_file << "        ";
         output_r2_t_file << r2_t_[time_point];
+        if (is_partial_msd_output) {
+            for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+                output_r2_t_file << "        ";
+                output_r2_t_file << x2_t_[i_dimension][time_point];
+            }
+        }
         output_r2_t_file << "\n";
     }
     

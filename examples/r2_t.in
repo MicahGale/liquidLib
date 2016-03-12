@@ -4,18 +4,19 @@
 is_run_mode_verbose         = yes
 
 # input & output
-trajectory_file_name        = ../../1bar_300K/md_unwrapped.trr
+trajectory_file_name        = ../../trajFiles/md_unwrapped.trr
 is_wrapped                  = no
-gro_file_name               = ../../1bar_300K/md.gro
-output_file_name            = msd_1bar_300K.txt
+gro_file_name               = ../../trajFiles/md.gro
+output_file_name            = msd_OW_300K.txt
+is_partial_msd_output       = yes
 
 # select atoms
-atom_types                   = OW
+atom_types                  = OW
 atom_group                  = system
 
 # reading parameters
 dimension                   = 3   
-start_frame	                = 0
+start_frame	            = 0
 end_frame                   = 16000
 
 # computation parameters
