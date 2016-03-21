@@ -352,6 +352,9 @@ The binary to compute Mean Squared Displacement is /bin/computeMeanSquaredDispla
 	
 	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the mean squared displacement.  For example, if this value is set to 1.5, then the mean squared displacement will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
 	
+	\item[is$\_$partial$\_$msd$\_$output] \hfill \\
+	- [default: false, optional] This parameter specifies whether partial mean squared displacements along each dimension are also output or not. For example, for a 3D system, setting this parameter to ``true" or ``yes" will write, besides $\langle r^2(t) \rangle$, the three components $\langle x^2(t) \rangle$, $\langle y^2(t) \rangle$ and $\langle z^2(t) \rangle$ to the output file. 
+		
 \end{description}
 
 

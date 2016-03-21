@@ -8,7 +8,7 @@ trajectory_file_name        = ../../trajFiles/md_unwrapped.trr
 is_wrapped                  = no
 gro_file_name               = ../../trajFiles/md.gro
 output_file_name            = msd_OW_300K.txt
-is_partial_msd_output       = yes
+is_partial_msd_output       = false
 
 # select atoms
 atom_types                  = OW
