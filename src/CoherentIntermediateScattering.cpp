@@ -440,10 +440,6 @@ void CoherentIntermediateScattering::compute_F_kt()
         periodic_image_counts[i_frame] = new double * [number_of_system_atoms_];
         for (size_t i_atom = 0; i_atom < number_of_system_atoms_; ++i_atom) {
             periodic_image_counts[i_frame][i_atom] = new double [dimension_];
-        }
-    }
-    for (size_t i_frame = 0; i_frame < number_of_frames_to_average_; ++i_frame) {
-        for (size_t i_atom = 0; i_atom < number_of_system_atoms_; ++i_atom) {
             for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
                 periodic_image_counts[i_frame][i_atom][i_dimension] = box_length_[i_frame][i_dimension] * round( trajectory_[i_frame][i_atom][i_dimension] / box_length_[i_frame][i_dimension] );
             }

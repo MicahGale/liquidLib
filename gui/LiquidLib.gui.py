@@ -530,7 +530,7 @@ def write_bin_options(input_file):
 def write_bop_options(input_file):
     input_file.write("\n# Bond Order Quantities\n")
     input_file.write("bond_parameter_order  = " + str(bondorder_value.get()) + "\n")
-    input_file.write("max_cutoff            = " + str(cutofflength_value.get()) + "\n")
+    input_file.write("max_cutoff_length     = " + str(cutofflength_value.get()) + "\n")
     input_file.write("is_averaged           = " + str(is_averaged.get()) + "\n")
     input_file.write("add_bar               = " + str(add_bar.get()) + "\n")
     
