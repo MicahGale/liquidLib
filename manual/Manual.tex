@@ -342,10 +342,10 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 The binary to compute Mean Squared Displacement is /bin/computeMeanSquaredDisplacement. User can input selected atom types using only the \textbf{atom$\_$types} parameter. The options that can be included in the input file in addition to those listed in \hyperref[sec::general_parameters]{Trajectory Parameters} are as follows:
 \begin{description}	
 	\item[number$\_$of$\_$time$\_$points]\hfill \\
-	- [default: 0, optional] This is the number of points that will be calculated for the mean squared displacement.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.
+	- [default: 0, optional] This is the number of points that will be calculated for the mean squared displacement.  If this value is not included it will be derived from the number of frames provided and the number of frames to average.  This sets the final frame that will be studied.  For linear scale, we will compute the quantity at every frame$\_$interval until number$\_$of$\_$time$\_$points*frame$\_$interval.  For log scale, we will compute the quantity at every frame$\_$interval$\string^$t where t are integers from 0 to number$\_$of$\_$time$\_$points.  This means the final frame used is frame$\_$interval$\string^$number$\_$of$\_$time$\_$points.  This can result in the output having less than number$\_$of$\_$time$\_$points because there will be repeated points.
 	
 	\item[time$\_$scale$\_$type] \hfill \\
-	- [default: linear, optional] This can be set to ``linear'' or ``'log''.  This sets the time scale of the output. Mean squared displacement can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps).
+	- [default: linear, optional] This can be set to ``linear'' or ``log''.  This sets the time scale of the output. Mean squared displacement can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps).
 	
 	\item[frame$\_$interval] \hfill \\
 	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater than or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a timestep of .1 ps, and you wish for the mean squared displacement to be computed every .2 ps, this value should be set to 2. 
