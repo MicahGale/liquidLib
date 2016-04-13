@@ -343,10 +343,10 @@ void VelocityAutoCorrelation::compute_vacf_t()
         compute_velocities();
     }
     
-    vacf_t_.resize(number_of_time_points_);
-    
     // Form Array of time index values for a given type of timescale computation
     compute_time_array();
+    
+    vacf_t_.resize(time_array_indexes_.size());
     
     // select the indexes of atom_type_ in atom_group_
     // select the indexes of atom_types_
@@ -366,7 +366,7 @@ void VelocityAutoCorrelation::compute_vacf_t()
     
     // Perform time averaging of vacf
 #pragma omp parallel for
-    for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+    for (size_t time_point = 0; time_point < time_array_indexes_.size(); ++time_point) {
         vacf_t_[time_point] = 0.0;
         for (size_t initial_frame = 0; initial_frame < number_of_frames_to_average_; ++initial_frame) {
             size_t current_frame = initial_frame + time_array_indexes_[time_point];
@@ -412,13 +412,16 @@ void VelocityAutoCorrelation::write_vacf_t()
     }
     output_vacf_file << "}";
     output_vacf_file << "in " << atom_group_ << ".\n";
-    output_vacf_file << "# using ";
-    output_vacf_file << time_scale_type_;
-    output_vacf_file << " scale\n";
+    if (time_scale_type_ == "linear") {
+        output_vacf_file << "# using " << time_scale_type_ << " scale\n";
+    }
+    else if (time_scale_type_ == "log") {
+        output_vacf_file << "# using " << time_scale_type_ << " scale, logscale resulted in " << number_of_time_points_ - time_array_indexes_.size() << " repeated points ignored\n";
+    }
     output_vacf_file << "# time              vacf\n";
     
     output_vacf_file << setiosflags(ios::scientific) << setprecision(output_precision_);
-    for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+    for (size_t time_point = 0; time_point < time_array_indexes_.size(); ++time_point) {
         output_vacf_file << time_array_indexes_[time_point]*trajectory_delta_time_;
         output_vacf_file << "\t";
         output_vacf_file << vacf_t_[time_point];
@@ -434,8 +437,14 @@ void VelocityAutoCorrelation::write_vacf_t()
 // not have with needing enough data points
 void VelocityAutoCorrelation::check_parameters() throw()
 {
+    if (number_of_frames_to_average_ > end_frame_ - start_frame_) {
+        cerr << "ERROR: Cannot have the number of frames to average be greater than the number supplied\n";
+        cerr << endl;
+        exit(1);
+    }
+    
     if (end_frame_ == 0 && number_of_time_points_ == 0) {
-        cerr << "ERROR: We require more information to proceed, either frameend or numberoftimepoints\n";
+        cerr << "ERROR: We require more information to proceed, either end_frame or number_of_time_points\n";
         cerr << "       must be povided for us to continue.";
         cerr << endl;
         exit(1);
@@ -463,6 +472,9 @@ void VelocityAutoCorrelation::check_parameters() throw()
     else if (time_scale_type_ == "log") {
         if (end_frame_ == 0) {
             end_frame_ = start_frame_ + pow(frame_interval_,number_of_time_points_)  + number_of_frames_to_average_;
+        }
+        if (number_of_time_points_ == 0) {
+            number_of_time_points_ = static_cast<unsigned int>(log(end_frame_ - start_frame_ - number_of_frames_to_average_)/log(frame_interval_));
         }
         if (static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5) + number_of_frames_to_average_ > end_frame_ - start_frame_) {
             end_frame_ = start_frame_ + static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5)  + number_of_frames_to_average_;
@@ -542,27 +554,28 @@ void VelocityAutoCorrelation::check_parameters() throw()
 
 void VelocityAutoCorrelation::compute_time_array()
 {
-    time_array_indexes_.resize(number_of_time_points_);
-    time_array_indexes_[0] = 0;
+    // first time point is always zero
+    time_array_indexes_.push_back(0);
     
     double       total_time     = frame_interval_;
     unsigned int frame_previous = 0;
     
+    // TODO switch to try catch
     for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {
+        // check that we have not exceeded allowed frames
+        assert(static_cast<unsigned int>(total_time) + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
+        
         if (time_scale_type_ == "linear") {
-            time_array_indexes_[time_point] = static_cast<unsigned int>(total_time);
+            time_array_indexes_.push_back(static_cast<unsigned int>(total_time));
             total_time += frame_interval_;
         }
-        else {
-            time_array_indexes_[time_point] = time_array_indexes_[time_point - 1];
-            while (time_array_indexes_[time_point] == frame_previous) {
-                time_array_indexes_[time_point] = static_cast<unsigned int>(total_time + 0.5);
-                total_time *= frame_interval_;
+        else if (time_scale_type_ == "log") {
+            if (static_cast<unsigned int>(total_time) != frame_previous) {
+                time_array_indexes_.push_back(static_cast<unsigned int>(total_time));
+                frame_previous = static_cast<unsigned int>(total_time);
             }
-            frame_previous = time_array_indexes_[time_point];
+            total_time *= frame_interval_;
         }
-        
-        assert(time_array_indexes_[time_point] + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
     }
 }
 
@@ -596,7 +609,7 @@ void VelocityAutoCorrelation::print_status(size_t & status)
 {
     ++status;
     cout << "\rcurrent progress of calculating the velocity auto correlation is: ";
-    cout << status * 100.0/number_of_time_points_;
+    cout << status * 100.0/time_array_indexes_.size();
     cout << " \%";
     cout << flush;
 }

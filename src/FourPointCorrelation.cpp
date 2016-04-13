@@ -336,10 +336,10 @@ void FourPointCorrelation::compute_chi4_t()
         unwrap_coordinates();
     }
     
-    chi4_t_.resize(number_of_time_points_, vector< double > (2, 0.0));
-    
     // Form Array of time index values for a given type of timescale computation
     compute_time_array();
+    
+    chi4_t_.resize(time_array_indexes_.size(), vector< double > (2, 0.0));
     
     // select the indexes of atom_types_
     size_t number_of_atoms;
@@ -359,7 +359,7 @@ void FourPointCorrelation::compute_chi4_t()
     
     // Perform time averaging of Four Point Correlation Function
 #pragma omp parallel for
-    for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+    for (size_t time_point = 0; time_point < time_array_indexes_.size(); ++time_point) {
         double q_self = 0.0;
         double q_self2 = 0.0;
         for (size_t initial_frame = 0; initial_frame <  number_of_frames_to_average_; ++initial_frame) {
@@ -408,7 +408,7 @@ void FourPointCorrelation::write_chi4_t()
     
     ofstream output_chi4_t_file(output_file_name_);
     
-    output_chi4_t_file << "#Four point correlation function for ";
+    output_chi4_t_file << "# Four point correlation function for ";
     output_chi4_t_file << "# { ";
     for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
         output_chi4_t_file << atom_types_[i_atom_type];
@@ -416,11 +416,16 @@ void FourPointCorrelation::write_chi4_t()
     }
     output_chi4_t_file << "}";
     output_chi4_t_file << "in " << atom_group_ << ".\n";
-    output_chi4_t_file << "#using " << time_scale_type_ << "scale\n";
-    output_chi4_t_file << "#time        q_self_t        chi4_t \n";
+    if (time_scale_type_ == "linear") {
+        output_chi4_t_file << "# using " << time_scale_type_ << " scale\n";
+    }
+    else if (time_scale_type_ == "log") {
+        output_chi4_t_file << "# using " << time_scale_type_ << " scale, logscale resulted in " << number_of_time_points_ - time_array_indexes_.size() << " repeated points ignored\n";
+    }
+    output_chi4_t_file << "# time        q_self_t        chi4_t \n";
     
     output_chi4_t_file << setiosflags(ios::scientific) << setprecision(output_precision_);
-    for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+    for (size_t time_point = 0; time_point < time_array_indexes_.size(); ++time_point) {
         output_chi4_t_file << time_array_indexes_[time_point] * trajectory_delta_time_ << "        ";
         output_chi4_t_file << chi4_t_[time_point][0] << "        ";
         output_chi4_t_file << chi4_t_[time_point][1] << "\n";
@@ -432,8 +437,14 @@ void FourPointCorrelation::write_chi4_t()
 
 void FourPointCorrelation::check_parameters() throw()
 {
+    if (number_of_frames_to_average_ > end_frame_ - start_frame_) {
+        cerr << "ERROR: Cannot have the number of frames to average be greater than the number supplied\n";
+        cerr << endl;
+        exit(1);
+    }
+    
     if (end_frame_ == 0 && number_of_time_points_ == 0) {
-        cerr << "ERROR: We require more information to proceed, either frameend or numberoftimepoints\n";
+        cerr << "ERROR: We require more information to proceed, either end_frame or number_of_time_points\n";
         cerr << "       must be povided for us to continue.";
         cerr << endl;
         exit(1);
@@ -461,6 +472,9 @@ void FourPointCorrelation::check_parameters() throw()
     else if (time_scale_type_ == "log") {
         if (end_frame_ == 0) {
             end_frame_ = start_frame_ + pow(frame_interval_,number_of_time_points_)  + number_of_frames_to_average_;
+        }
+        if (number_of_time_points_ == 0) {
+            number_of_time_points_ = static_cast<unsigned int>(log(end_frame_ - start_frame_ - number_of_frames_to_average_)/log(frame_interval_));
         }
         if (static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5) + number_of_frames_to_average_ > end_frame_ - start_frame_) {
             end_frame_ = start_frame_ + static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5)  + number_of_frames_to_average_;
@@ -504,27 +518,28 @@ void FourPointCorrelation::check_parameters() throw()
 
 void FourPointCorrelation::compute_time_array()
 {
-    time_array_indexes_.resize(number_of_time_points_);
-    time_array_indexes_[0] = 0;
+    // first time point is always zero
+    time_array_indexes_.push_back(0);
     
     double       total_time     = frame_interval_;
     unsigned int frame_previous = 0;
     
+    // TODO switch to try catch
     for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {
+        // check that we have not exceeded allowed frames
+        assert(static_cast<unsigned int>(total_time) + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
+        
         if (time_scale_type_ == "linear") {
-            time_array_indexes_[time_point] = static_cast<unsigned int>(total_time);
+            time_array_indexes_.push_back(static_cast<unsigned int>(total_time));
             total_time += frame_interval_;
         }
-        else {
-            time_array_indexes_[time_point] = time_array_indexes_[time_point - 1];
-            while (time_array_indexes_[time_point] == frame_previous) {
-                time_array_indexes_[time_point] = static_cast<unsigned int>(total_time + 0.5);
-                total_time *= frame_interval_;
+        else if (time_scale_type_ == "log") {
+            if (static_cast<unsigned int>(total_time) != frame_previous) {
+                time_array_indexes_.push_back(static_cast<unsigned int>(total_time));
+                frame_previous = static_cast<unsigned int>(total_time);
             }
-            frame_previous = time_array_indexes_[time_point];
+            total_time *= frame_interval_;
         }
-        
-        assert(time_array_indexes_[time_point] + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
     }
 }
 
@@ -545,7 +560,7 @@ void FourPointCorrelation::print_status(size_t & status)
 {
     ++status;
     cout << "\rcurrent progress of calculating the four point correlation is: ";
-    cout << status * 100.0/number_of_frames_to_average_;
+    cout << status * 100.0/time_array_indexes_.size();
     cout << " \%";
     cout << flush;
 }

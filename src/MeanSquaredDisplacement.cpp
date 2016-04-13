@@ -346,11 +346,11 @@ void MeanSquaredDisplacement::compute_r2_t()
         unwrap_coordinates();
     }
     
-    r2_t_.resize(number_of_time_points_, 0.0);
-    x2_t_.resize(dimension_, vector < double >(number_of_time_points_, 0.0));
-    
     // Form Array of time index values for a given type of timescale computation
     compute_time_array();
+    
+    r2_t_.resize(time_array_indexes_.size(), 0.0);
+    x2_t_.resize(dimension_, vector < double >(time_array_indexes_.size(), 0.0));
     
     // select the indexes of atom_types_
     size_t number_of_atoms;
@@ -415,7 +415,7 @@ void MeanSquaredDisplacement::write_r2_t()
     
     ofstream output_r2_t_file(output_file_name_);
     
-    output_r2_t_file    << "#Mean Squared Displacement for ";
+    output_r2_t_file    << "# Mean Squared Displacement for ";
     output_r2_t_file << "# { ";
     for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
         output_r2_t_file << atom_types_[i_atom_type];
@@ -424,12 +424,12 @@ void MeanSquaredDisplacement::write_r2_t()
     output_r2_t_file << "}";
     output_r2_t_file << "in " << atom_group_ << ".\n";
     if (time_scale_type_ == "linear") {
-        output_r2_t_file << "#using " << time_scale_type_ << " scale\n";
+        output_r2_t_file << "# using " << time_scale_type_ << " scale\n";
     }
     else if (time_scale_type_ == "log") {
-        output_r2_t_file << "#using " << time_scale_type_ << " scale, logscale resulted in " << number_of_time_points_ - time_array_indexes_.size() << " points skipped\n";
+        output_r2_t_file << "# using " << time_scale_type_ << " scale, logscale resulted in " << number_of_time_points_ - time_array_indexes_.size() << " repeated points ignored\n";
     }
-    output_r2_t_file << "#time               MSD\n";
+    output_r2_t_file << "# time               MSD\n";
     
     output_r2_t_file    << setiosflags(ios::scientific) << setprecision(output_precision_);
     
@@ -455,8 +455,14 @@ void MeanSquaredDisplacement::write_r2_t()
 // not have with needing enough data points
 void MeanSquaredDisplacement::check_parameters() throw()
 {
+    if (number_of_frames_to_average_ > end_frame_ - start_frame_) {
+        cerr << "ERROR: Cannot have the number of frames to average be greater than the number supplied\n";
+        cerr << endl;
+        exit(1);
+    }
+    
     if (end_frame_ == 0 && number_of_time_points_ == 0) {
-        cerr << "ERROR: We require more information to proceed, either frameend or numberoftimepoints\n";
+        cerr << "ERROR: We require more information to proceed, either end_frame or number_of_time_points\n";
         cerr << "       must be povided for us to continue.";
         cerr << endl;
         exit(1);
@@ -484,6 +490,9 @@ void MeanSquaredDisplacement::check_parameters() throw()
     else if (time_scale_type_ == "log") {
         if (end_frame_ == 0) {
             end_frame_ = start_frame_ + pow(frame_interval_,number_of_time_points_) + number_of_frames_to_average_;
+        }
+        if (number_of_time_points_ == 0) {
+            number_of_time_points_ = static_cast<unsigned int>(log(end_frame_ - start_frame_ - number_of_frames_to_average_)/log(frame_interval_));
         }
         if (static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5) + number_of_frames_to_average_ > end_frame_ - start_frame_) {
             end_frame_ = start_frame_ + static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5)  + number_of_frames_to_average_;
@@ -540,6 +549,7 @@ void MeanSquaredDisplacement::compute_time_array()
     
     // TODO switch to try catch
     for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {
+        // check that we have not exceeded allowed frames
         assert(static_cast<unsigned int>(total_time) + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
 
         if (time_scale_type_ == "linear") {

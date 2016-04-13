@@ -286,6 +286,14 @@ void SelfIntermediateScattering::read_input_file()
             number_of_bins_ = stoi(input_word);
             continue;
         }
+        if (input_word == "delta_k") {
+            input_file >> input_word;
+            if (input_word[0] == '=') {
+                input_file >> input_word;
+            }
+            delta_k_ = stod(input_word);
+            continue;
+        }
 		if (input_word ==  "number_of_time_points") {
 			input_file >> input_word;
 			if (input_word[0] == '=') {
@@ -427,7 +435,7 @@ void SelfIntermediateScattering::compute_Fs_kt()
     cout << "Computing ..." << endl;
     
 #pragma omp parallel for firstprivate(k_vectors)
-    for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+    for (size_t time_point = 0; time_point < time_array_indexes_.size(); ++time_point) {
         for (size_t k_index = 0; k_index < number_of_bins_; ++k_index) {
 
             for (size_t initial_frame = 0; initial_frame < number_of_frames_to_average_; ++initial_frame) {
@@ -579,8 +587,12 @@ void SelfIntermediateScattering::write_Fs_kt()
     }
     output_Fskt_file << "}";
     output_Fskt_file << " in " << atom_group_ << endl;
-    output_Fskt_file << "# using " << time_scale_type_ << " time scale";
-    
+    if (time_scale_type_ == "linear") {
+        output_Fskt_file << "# using " << time_scale_type_ << " scale\n";
+    }
+    else if (time_scale_type_ == "log") {
+        output_Fskt_file << "# using " << time_scale_type_ << " scale, logscale resulted in " << number_of_time_points_ - time_array_indexes_.size() << " repeated points ignored\n";
+    }
     output_Fskt_file << setiosflags(ios::scientific) << setprecision(output_precision_);
     output_Fskt_file << "#" << endl;
     output_Fskt_file << "# k values" << endl;
@@ -589,7 +601,7 @@ void SelfIntermediateScattering::write_Fs_kt()
     }
     output_Fskt_file << "#" << endl;
     output_Fskt_file << "# t | Fs(k, t)" << endl;
-    for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+    for (size_t time_point = 0; time_point < time_array_indexes_.size(); ++time_point) {
         output_Fskt_file << time_array_indexes_[time_point]*trajectory_delta_time_;
         for (size_t k_index = 0; k_index < k_values_.size(); ++k_index) {
             output_Fskt_file << "\t" << Fs_kt_[k_index][time_point];
@@ -625,8 +637,14 @@ void SelfIntermediateScattering::write_Fs_kt()
 // not have with needing enough data points
 void SelfIntermediateScattering::check_parameters() throw()
 {
+    if (number_of_frames_to_average_ > end_frame_ - start_frame_) {
+        cerr << "ERROR: Cannot have the number of frames to average be greater than the number supplied\n";
+        cerr << endl;
+        exit(1);
+    }
+    
     if (end_frame_ == 0 && number_of_time_points_ == 0) {
-        cerr << "ERROR: We require more information to proceed, either frameend or numberoftimepoints\n";
+        cerr << "ERROR: We require more information to proceed, either end_frame or number_of_time_points\n";
         cerr << "       must be povided for us to continue.";
         cerr << endl;
         exit(1);
@@ -656,6 +674,9 @@ void SelfIntermediateScattering::check_parameters() throw()
 		if (end_frame_ == 0) {
 			end_frame_ = start_frame_ + pow(frame_interval_,number_of_time_points_)  + number_of_frames_to_average_;
 		}
+        if (number_of_time_points_ == 0) {
+            number_of_time_points_ = static_cast<unsigned int>(log(end_frame_ - start_frame_ - number_of_frames_to_average_)/log(frame_interval_));
+        }
         if (static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5) + number_of_frames_to_average_ > end_frame_ - start_frame_) {
             end_frame_ = start_frame_ + static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5)  + number_of_frames_to_average_;
 			cerr << "WARNING: the number of frames required is greater then the number supplied\n";
@@ -719,27 +740,28 @@ void SelfIntermediateScattering::check_parameters() throw()
 
 void SelfIntermediateScattering::compute_time_array()
 {
-    time_array_indexes_.resize(number_of_time_points_);
-    time_array_indexes_[0] = 0;
+    // first time point is always zero
+    time_array_indexes_.push_back(0);
     
     double       total_time     = frame_interval_;
     unsigned int frame_previous = 0;
     
+    // TODO switch to try catch
     for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {
+        // check that we have not exceeded allowed frames
+        assert(static_cast<unsigned int>(total_time) + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
+        
         if (time_scale_type_ == "linear") {
-            time_array_indexes_[time_point] = static_cast<unsigned int>(total_time);
+            time_array_indexes_.push_back(static_cast<unsigned int>(total_time));
             total_time += frame_interval_;
         }
-        else {
-            time_array_indexes_[time_point] = time_array_indexes_[time_point - 1];
-            while (time_array_indexes_[time_point] == frame_previous) {
-                time_array_indexes_[time_point] = static_cast<unsigned int>(total_time + 0.5);
-                total_time *= frame_interval_;
+        else if (time_scale_type_ == "log") {
+            if (static_cast<unsigned int>(total_time) != frame_previous) {
+                time_array_indexes_.push_back(static_cast<unsigned int>(total_time));
+                frame_previous = static_cast<unsigned int>(total_time);
             }
-            frame_previous = time_array_indexes_[time_point];
+            total_time *= frame_interval_;
         }
-        
-        assert(time_array_indexes_[time_point] + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
     }
 }
 
@@ -774,7 +796,7 @@ void SelfIntermediateScattering::print_status(size_t & status)
 {
     ++status;
     cout << "\rcurrent progress of calculating the self intermediate scattering function is: ";
-    cout << status * 100.0/number_of_time_points_;
+    cout << status * 100.0/time_array_indexes_.size();
     cout << " \%";
     cout << flush;
 }

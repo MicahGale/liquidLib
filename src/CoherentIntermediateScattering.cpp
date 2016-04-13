@@ -413,8 +413,6 @@ void CoherentIntermediateScattering::compute_F_kt()
         normalization_factor[k_index] = 1.0 / (number_of_frames_to_average_ * number_of_atoms * number_of_k_vectors_[k_index]);
         normalization_factor[k_index] /= ( average_scattering_length * average_scattering_length );
         
-        cout << "\n\n" << normalization_factor[k_index] << "\n\n";
-        
         // Print num of vectors and values
         cout << "Corrected kvalue for : " << k_value_temp << " is : " << k_values_[k_index] << endl;
         cout << "Number of k-vectors : " << number_of_k_vectors_[k_index] << endl;
@@ -450,7 +448,7 @@ void CoherentIntermediateScattering::compute_F_kt()
     cout << "Computing ..." << endl;
     
 #pragma omp parallel for firstprivate(k_vectors)
-    for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+    for (size_t time_point = 0; time_point < time_array_indexes_.size(); ++time_point) {
         for (size_t k_index = 0; k_index < number_of_bins_; ++k_index) {
             
             for (size_t initial_frame = 0; initial_frame < number_of_frames_to_average_; ++initial_frame) {
@@ -620,8 +618,12 @@ void CoherentIntermediateScattering::write_F_kt()
     }
     output_Fkt_file << "}";
 	output_Fkt_file << " in " << atom_group_ << endl;
-    output_Fkt_file << "# using " << time_scale_type_ << " time scale, " << endl;
-    
+    if (time_scale_type_ == "linear") {
+        output_Fkt_file << "# using " << time_scale_type_ << " scale\n";
+    }
+    else if (time_scale_type_ == "log") {
+        output_Fkt_file << "# using " << time_scale_type_ << " scale, logscale resulted in " << number_of_time_points_ - time_array_indexes_.size() << " repeated points ignored\n";
+    }
     output_Fkt_file << setiosflags(ios::scientific) << setprecision(output_precision_);
     output_Fkt_file << "#" << endl;
     output_Fkt_file << "# k values" << endl;
@@ -630,7 +632,7 @@ void CoherentIntermediateScattering::write_F_kt()
     }
     output_Fkt_file << "#" << endl;
     output_Fkt_file << "# t | F(k, t)" << endl;
-    for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+    for (size_t time_point = 0; time_point < time_array_indexes_.size(); ++time_point) {
         output_Fkt_file << time_array_indexes_[time_point]*trajectory_delta_time_;
         for (size_t k_index = 0; k_index < k_values_.size(); ++k_index) {
             output_Fkt_file << "\t" << F_kt_[k_index][time_point];
@@ -647,8 +649,14 @@ void CoherentIntermediateScattering::write_F_kt()
 // not have with needing enough data points
 void CoherentIntermediateScattering::check_parameters() throw()
 {
+    if (number_of_frames_to_average_ > end_frame_ - start_frame_) {
+        cerr << "ERROR: Cannot have the number of frames to average be greater than the number supplied\n";
+        cerr << endl;
+        exit(1);
+    }
+    
     if (end_frame_ == 0 && number_of_time_points_ == 0) {
-        cerr << "ERROR: We require more information to proceed, either frameend or numberoftimepoints\n";
+        cerr << "ERROR: We require more information to proceed, either end_frame or number_of_time_points\n";
         cerr << "       must be povided for us to continue.";
         cerr << endl;
         exit(1);
@@ -678,6 +686,10 @@ void CoherentIntermediateScattering::check_parameters() throw()
 		if (end_frame_ == 0) {
 			end_frame_ = start_frame_ + pow(frame_interval_,number_of_time_points_)  + number_of_frames_to_average_;
 		}
+        if (number_of_time_points_ == 0) {
+            number_of_time_points_ = static_cast<unsigned int>(log(end_frame_ - start_frame_ - number_of_frames_to_average_)/log(frame_interval_));
+            cout << number_of_time_points_ << endl;
+        }
         if (static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5) + number_of_frames_to_average_ > end_frame_ - start_frame_) {
             end_frame_ = start_frame_ + static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5)  + number_of_frames_to_average_;
 			cerr << "WARNING: the number of frames required is greater then the number supplied\n";
@@ -756,6 +768,34 @@ void CoherentIntermediateScattering::check_parameters() throw()
 }
 
 
+void CoherentIntermediateScattering::compute_time_array()
+{
+    // first time point is always zero
+    time_array_indexes_.push_back(0);
+    
+    double       total_time     = frame_interval_;
+    unsigned int frame_previous = 0;
+    
+    // TODO switch to try catch
+    for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {
+        // check that we have not exceeded allowed frames
+        assert(static_cast<unsigned int>(total_time) + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
+        
+        if (time_scale_type_ == "linear") {
+            time_array_indexes_.push_back(static_cast<unsigned int>(total_time));
+            total_time += frame_interval_;
+        }
+        else if (time_scale_type_ == "log") {
+            if (static_cast<unsigned int>(total_time) != frame_previous) {
+                time_array_indexes_.push_back(static_cast<unsigned int>(total_time));
+                frame_previous = static_cast<unsigned int>(total_time);
+            }
+            total_time *= frame_interval_;
+        }
+    }
+}
+
+
 void CoherentIntermediateScattering::determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
                                                      double & average_scattering_length,
                                                      size_t & number_of_atoms)
@@ -782,38 +822,11 @@ void CoherentIntermediateScattering::determine_atom_indexes(vector < vector < un
 }
 
 
-void CoherentIntermediateScattering::compute_time_array()
-{
-    time_array_indexes_.resize(number_of_time_points_);
-    time_array_indexes_[0] = 0;
-    
-    double       total_time     = frame_interval_;
-    unsigned int frame_previous = 0;
-    
-    for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {
-        if (time_scale_type_ == "linear") {
-            time_array_indexes_[time_point] = static_cast<unsigned int>(total_time);
-            total_time += frame_interval_;
-        }
-        else {
-            time_array_indexes_[time_point] = time_array_indexes_[time_point - 1];
-            while (time_array_indexes_[time_point] == frame_previous) {
-                time_array_indexes_[time_point] = static_cast<unsigned int>(total_time + 0.5);
-                total_time *= frame_interval_;
-            }
-            frame_previous = time_array_indexes_[time_point];
-        }
-        
-        assert(time_array_indexes_[time_point] + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
-    }
-}
-
-
 void CoherentIntermediateScattering::print_status(size_t & status)
 {
     ++status;
     cout << "\rcurrent progress of calculating the coherent intermediate scattering function is: ";
-    cout << status * 100.0/number_of_time_points_;
+    cout << status * 100.0/time_array_indexes_.size();
     cout << " \%";
     cout << flush;
 }

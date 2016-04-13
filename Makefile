@@ -5,7 +5,7 @@ SHELL=/bin/bash
 ##########################
 # Set to “yes” if OpenMP or xdrfile library should be used
 USE_OMP    = no
-USE_XDRLIB = yes
+USE_XDRLIB = no
 USE_GSL    = no
 USE_BOOST  = no
 

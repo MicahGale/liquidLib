@@ -436,8 +436,8 @@ void BondOrderParameter::compute_BOP()
     
     // main loop
 #pragma omp parallel for firstprivate(real_term, imaginary_term)
-    for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
-        
+    for (size_t time_point = 0; time_point < time_array_indexes_.size(); ++time_point) {
+
         // reinitialize the vectors
         if (add_bar_ && !is_averaged_) {
             real_term         = vector< vector <double> > (number_of_system_atoms_, vector<double> (bond_parameter_order_ + 1, 0.0));
@@ -561,6 +561,7 @@ void BondOrderParameter::compute_BOP()
             }
         }
     }
+
     cout << endl;
 }
 
@@ -653,14 +654,19 @@ void BondOrderParameter::write_BOP()
     }
     output_BOP_file << "}";
     output_BOP_file << "in " << atom_group_ << ".\n";
-    output_BOP_file << "# using " << time_scale_type_ << " scale\n";
+    if (time_scale_type_ == "linear") {
+        output_BOP_file << "# using " << time_scale_type_ << " scale\n";
+    }
+    else if (time_scale_type_ == "log") {
+        output_BOP_file << "# using " << time_scale_type_ << " scale, logscale resulted in " << number_of_time_points_ - time_array_indexes_.size() << " repeated points ignored\n";
+    }
     if (is_averaged_) {
         output_BOP_file << "# time | Q_" << bond_parameter_order_ << "\n";
         output_BOP_file << "#\n";
         output_BOP_file << setiosflags(ios::scientific) << setprecision(output_precision_);
         
         // print BOP
-        for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+        for (size_t time_point = 0; time_point < time_array_indexes_.size(); ++time_point) {
             output_BOP_file << time_array_indexes_[time_point]*trajectory_delta_time_;
             output_BOP_file << " ";
             output_BOP_file << bond_order_parameter_[time_point][0];
@@ -684,7 +690,7 @@ void BondOrderParameter::write_BOP()
         output_BOP_file << setiosflags(ios::scientific) << setprecision(output_precision_);
         
         //print BOP
-        for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+        for (size_t time_point = 0; time_point < time_array_indexes_.size(); ++time_point) {
             output_BOP_file << time_array_indexes_[time_point]*trajectory_delta_time_;
             for (size_t i_atom = 0; i_atom < number_of_atoms; ++i_atom) {
                 output_BOP_file << " ";
@@ -701,7 +707,7 @@ void BondOrderParameter::write_BOP()
 void BondOrderParameter::check_parameters() throw()
 {
     if (end_frame_ == 0) {
-        cerr << "ERROR: We require more information to proceed, either frameend or numberoftimepoints\n";
+        cerr << "ERROR: We require more information to proceed, either end_frame or number_of_time_points\n";
         cerr << "       must be povided for us to continue.";
         cerr << endl;
         exit(1);
@@ -729,6 +735,10 @@ void BondOrderParameter::check_parameters() throw()
     else if (time_scale_type_ == "log") {
         if (end_frame_ == 0) {
             end_frame_ = start_frame_ + pow(frame_interval_,number_of_time_points_);
+        }
+        if (number_of_time_points_ == 0) {
+            number_of_time_points_ = static_cast<unsigned int>(log(end_frame_ - start_frame_)/log(frame_interval_));
+            cout << number_of_time_points_ << endl;
         }
         if (static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5) > end_frame_ - start_frame_) {
             end_frame_ = start_frame_ + static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5);
@@ -796,27 +806,28 @@ void BondOrderParameter::check_parameters() throw()
 
 void BondOrderParameter::compute_time_array()
 {
-    time_array_indexes_.resize(number_of_time_points_);
-    time_array_indexes_[0] = 0;
+    // first time point is always zero
+    time_array_indexes_.push_back(0);
     
     double       total_time     = frame_interval_;
     unsigned int frame_previous = 0;
+    
     // TODO switch to try catch
     for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {
+        // check that we have not exceeded allowed frames
+        assert(static_cast<unsigned int>(total_time) < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
+        
         if (time_scale_type_ == "linear") {
-            time_array_indexes_[time_point] = static_cast<unsigned int>(total_time);
+            time_array_indexes_.push_back(static_cast<unsigned int>(total_time));
             total_time += frame_interval_;
         }
-        else {
-            time_array_indexes_[time_point] = time_array_indexes_[time_point - 1];
-            while (time_array_indexes_[time_point] == frame_previous) {
-                time_array_indexes_[time_point] = static_cast<unsigned int>(total_time + 0.5);
-                total_time *= frame_interval_;
+        else if (time_scale_type_ == "log") {
+            if (static_cast<unsigned int>(total_time) != frame_previous) {
+                time_array_indexes_.push_back(static_cast<unsigned int>(total_time));
+                frame_previous = static_cast<unsigned int>(total_time);
             }
-            frame_previous = time_array_indexes_[time_point];
+            total_time *= frame_interval_;
         }
-        
-        assert(time_array_indexes_[time_point] < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
     }
 }
 
@@ -837,7 +848,7 @@ void BondOrderParameter::print_status(size_t & status)
 {
     ++status;
     cout << "\rcurrent progress of calculating the bond order parameter is: ";
-    cout << status * 100.0/number_of_time_points_;
+    cout << status * 100.0/time_array_indexes_.size();
     cout << " \%";
     cout << flush;
 }

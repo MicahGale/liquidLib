@@ -391,12 +391,12 @@ void SelfVanHoveFunction::compute_Gs_rt()
     
     Gs_rt_.resize(number_of_bins_, vector< double >(time_array_indexes_.size(), 0.0));		// add one row Gs(r, t = 0)
     
-    size_t status = 0;
+    size_t status = 1;
     cout << "Computing ..." << endl;
     
 	// Perform time averaging for Gs_rt_
 #pragma omp parallel for
-	for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {	// shift 1 to retain a row for Gs(r, t = 0)
+	for (size_t time_point = 1; time_point < time_array_indexes_.size(); ++time_point) {	// shift 1 to retain a row for Gs(r, t = 0)
 		for (size_t initial_frame = 0; initial_frame < number_of_frames_to_average_; ++initial_frame) {
 			size_t current_frame = initial_frame + time_array_indexes_[time_point];
             for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
@@ -447,7 +447,7 @@ void SelfVanHoveFunction::compute_Gs_rt()
 		if (i_bin == 0) {
 			Gs_rt_[0][0] = 1.0/volume_of_shell;	// Gs(r, t = 0) = 1.0/volume_of_shell * delta_function(r)
 		}
-		for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {
+		for (size_t time_point = 1; time_point < time_array_indexes_.size(); ++time_point) {
 			Gs_rt_[i_bin][time_point] *= normalization_factor;
 		}
 	}
@@ -475,11 +475,17 @@ void SelfVanHoveFunction::write_Gs_rt()
     }
     output_Gsrt_file << "}";
     output_Gsrt_file << "in " << atom_group_ << ".\n";
+    if (time_scale_type_ == "linear") {
+        output_Gsrt_file << "# using " << time_scale_type_ << " scale\n";
+    }
+    else if (time_scale_type_ == "log") {
+        output_Gsrt_file << "# using " << time_scale_type_ << " scale, logscale resulted in " << number_of_time_points_ - time_array_indexes_.size() << " repeated points ignored\n";
+    }
     
     output_Gsrt_file << setiosflags(ios::scientific) << setprecision(output_precision_);
     output_Gsrt_file << "#" << endl;
     output_Gsrt_file << "# t values" << endl;
-    for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+    for (size_t time_point = 0; time_point < time_array_indexes_.size(); ++time_point) {
         output_Gsrt_file << time_array_indexes_[time_point]*trajectory_delta_time_ << endl;
     }
     output_Gsrt_file << "#" << endl;
@@ -487,7 +493,7 @@ void SelfVanHoveFunction::write_Gs_rt()
     
     for (size_t i_bin = 0; i_bin < number_of_bins_; ++i_bin) {
         output_Gsrt_file << r_values_[i_bin];
-        for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+        for (size_t time_point = 0; time_point < time_array_indexes_.size(); ++time_point) {
             output_Gsrt_file << "\t" << Gs_rt_[i_bin][time_point];
         }
         output_Gsrt_file << endl;
@@ -521,8 +527,14 @@ void SelfVanHoveFunction::write_Gs_rt()
 // not have with needing enough data points
 void SelfVanHoveFunction::check_parameters() throw()
 {
+    if (number_of_frames_to_average_ > end_frame_ - start_frame_) {
+        cerr << "ERROR: Cannot have the number of frames to average be greater than the number supplied\n";
+        cerr << endl;
+        exit(1);
+    }
+    
     if (end_frame_ == 0 && number_of_time_points_ == 0) {
-        cerr << "ERROR: We require more information to proceed, either frameend or numberoftimepoints\n";
+        cerr << "ERROR: We require more information to proceed, either end_frame or number_of_time_points\n";
         cerr << "       must be povided for us to continue.";
         cerr << endl;
         exit(1);
@@ -551,6 +563,9 @@ void SelfVanHoveFunction::check_parameters() throw()
 		if (end_frame_ == 0) {
 			end_frame_ = start_frame_ + pow(frame_interval_,number_of_time_points_)  + number_of_frames_to_average_;
 		}
+        if (number_of_time_points_ == 0) {
+            number_of_time_points_ = static_cast<unsigned int>(log(end_frame_ - start_frame_ - number_of_frames_to_average_)/log(frame_interval_));
+        }
         if (static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5) + number_of_frames_to_average_ > end_frame_ - start_frame_) {
             end_frame_ = start_frame_ + static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5)  + number_of_frames_to_average_;
 			cerr << "WARNING: the number of frames required is greater then the number supplied\n";
@@ -609,27 +624,28 @@ void SelfVanHoveFunction::check_parameters() throw()
 
 void SelfVanHoveFunction::compute_time_array()
 {
-    time_array_indexes_.resize(number_of_time_points_);
-    time_array_indexes_[0] = 0;
+    // first time point is always zero
+    time_array_indexes_.push_back(0);
     
     double       total_time     = frame_interval_;
     unsigned int frame_previous = 0;
     
+    // TODO switch to try catch
     for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {
+        // check that we have not exceeded allowed frames
+        assert(static_cast<unsigned int>(total_time) + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
+        
         if (time_scale_type_ == "linear") {
-            time_array_indexes_[time_point] = static_cast<unsigned int>(total_time);
+            time_array_indexes_.push_back(static_cast<unsigned int>(total_time));
             total_time += frame_interval_;
         }
-        else {
-            time_array_indexes_[time_point] = time_array_indexes_[time_point - 1];
-            while (time_array_indexes_[time_point] == frame_previous) {
-                time_array_indexes_[time_point] = static_cast<unsigned int>(total_time + 0.5);
-                total_time *= frame_interval_;
+        else if (time_scale_type_ == "log") {
+            if (static_cast<unsigned int>(total_time) != frame_previous) {
+                time_array_indexes_.push_back(static_cast<unsigned int>(total_time));
+                frame_previous = static_cast<unsigned int>(total_time);
             }
-            frame_previous = time_array_indexes_[time_point];
+            total_time *= frame_interval_;
         }
-        
-        assert(time_array_indexes_[time_point] + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
     }
 }
 
@@ -664,7 +680,7 @@ void SelfVanHoveFunction::print_status(size_t & status)
 {
     ++status;
     cout << "\rcurrent progress of calculating the self van hove function is: ";
-    cout << status * 100.0/number_of_time_points_;
+    cout << status * 100.0/time_array_indexes_.size();
     cout << " \%";
     cout << flush;
 }

@@ -53,11 +53,11 @@ void NonGaussianParameter::compute_alpha2_t()
         unwrap_coordinates();
     }
     
-    r2_t_.resize(number_of_time_points_, 0.0);
-    alpha2_t_.resize(number_of_time_points_, 0.0);
-    
     // Form Array of time index values for a given type of timescale computation
     compute_time_array();
+    
+    r2_t_.resize(time_array_indexes_.size(), 0.0);
+    alpha2_t_.resize(time_array_indexes_.size(), 0.0);
     
     // select the indexes of atom_types_
     size_t number_of_atoms;
@@ -72,7 +72,7 @@ void NonGaussianParameter::compute_alpha2_t()
     
     // Perform time averaging of Non Gaussian Parameter
 #pragma omp parallel for
-    for (size_t time_point = 1; time_point <  number_of_time_points_; ++time_point) {
+    for (size_t time_point = 1; time_point <  time_array_indexes_.size(); ++time_point) {
         double total_squared_displacement = 0.0;
         double total_bisquared_displacement = 0.0;
         for (size_t initial_frame = 0; initial_frame < number_of_frames_to_average_; ++initial_frame) {
@@ -116,7 +116,7 @@ void NonGaussianParameter::write_alpha2_t()
     
     ofstream output_alpha2_t_file(output_file_name_);
     
-    output_alpha2_t_file << "#Non Gaussian Parameter and Mean Squared Displacement for ";
+    output_alpha2_t_file << "# Non Gaussian Parameter and Mean Squared Displacement for ";
     output_alpha2_t_file << "# { ";
     for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
         output_alpha2_t_file << atom_types_[i_atom_type];
@@ -124,11 +124,16 @@ void NonGaussianParameter::write_alpha2_t()
     }
     output_alpha2_t_file << "}";
     output_alpha2_t_file << "in " << atom_group_ << ".\n";
-    output_alpha2_t_file << "Using " << time_scale_type_ << "scale\n";
-    output_alpha2_t_file << "#time               MSD                 NGP \n";
+    if (time_scale_type_ == "linear") {
+        output_alpha2_t_file << "# using " << time_scale_type_ << " scale\n";
+    }
+    else if (time_scale_type_ == "log") {
+        output_alpha2_t_file << "# using " << time_scale_type_ << " scale, logscale resulted in " << number_of_time_points_ - time_array_indexes_.size() << " repeated points ignored\n";
+    }
+    output_alpha2_t_file << "# time               MSD                 NGP \n";
     
     output_alpha2_t_file << setiosflags(ios::scientific) << setprecision(output_precision_);
-    for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+    for (size_t time_point = 0; time_point < time_array_indexes_.size(); ++time_point) {
         output_alpha2_t_file << time_array_indexes_[time_point] * trajectory_delta_time_;
         output_alpha2_t_file << "        ";
         output_alpha2_t_file << r2_t_[time_point];
@@ -144,7 +149,7 @@ void NonGaussianParameter::print_status(size_t & status)
 {
     ++status;
     cout << "\rcurrent progress of calculating the nongaussian parameter is: ";
-    cout << status * 100.0/number_of_frames_to_average_;
+    cout << status * 100.0/time_array_indexes_.size();
     cout << " \%";
     cout << flush;
 }
