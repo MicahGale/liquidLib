@@ -363,12 +363,12 @@ void MeanSquaredDisplacement::compute_r2_t()
     cout << setiosflags(ios::fixed);
     cout << setprecision(4);
     
-    size_t status = 0;
+    size_t status = 1;
     cout << "Computing ..." << endl;
     
     // Perform time averaging of Mean Squared Displacement
 #pragma omp parallel for
-    for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {
+    for (size_t time_point = 1; time_point < time_array_indexes_.size(); ++time_point) {
         double total_squared_distance = 0.0;
         vector < double > partial_squared_distance(dimension_, 0.0);
         for (size_t initial_frame = 0; initial_frame < number_of_frames_to_average_; ++initial_frame) {
@@ -423,12 +423,17 @@ void MeanSquaredDisplacement::write_r2_t()
     }
     output_r2_t_file << "}";
     output_r2_t_file << "in " << atom_group_ << ".\n";
-    output_r2_t_file << "#using " << time_scale_type_ << " scale\n";
+    if (time_scale_type_ == "linear") {
+        output_r2_t_file << "#using " << time_scale_type_ << " scale\n";
+    }
+    else if (time_scale_type_ == "log") {
+        output_r2_t_file << "#using " << time_scale_type_ << " scale, logscale resulted in " << number_of_time_points_ - time_array_indexes_.size() << " points skipped\n";
+    }
     output_r2_t_file << "#time               MSD\n";
     
     output_r2_t_file    << setiosflags(ios::scientific) << setprecision(output_precision_);
     
-    for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
+    for (size_t time_point = 0; time_point < time_array_indexes_.size(); ++time_point) {
         output_r2_t_file << time_array_indexes_[time_point] * trajectory_delta_time_;
         output_r2_t_file << "        ";
         output_r2_t_file << r2_t_[time_point];
@@ -462,7 +467,7 @@ void MeanSquaredDisplacement::check_parameters() throw()
             end_frame_ = start_frame_ + number_of_time_points_*frame_interval_ + number_of_frames_to_average_;
         }
         if (number_of_time_points_ == 0) {
-            number_of_time_points_ = (end_frame_ - start_frame_ - number_of_frames_to_average_)/frame_interval_;
+            number_of_time_points_ = static_cast<unsigned int>((end_frame_ - start_frame_ - number_of_frames_to_average_)/frame_interval_);
         }
         if (number_of_time_points_*frame_interval_ + number_of_frames_to_average_ > end_frame_ - start_frame_) {
             end_frame_ = start_frame_ + number_of_time_points_*frame_interval_ + number_of_frames_to_average_;
@@ -478,7 +483,7 @@ void MeanSquaredDisplacement::check_parameters() throw()
     }
     else if (time_scale_type_ == "log") {
         if (end_frame_ == 0) {
-            end_frame_ = start_frame_ + pow(frame_interval_,number_of_time_points_)  + number_of_frames_to_average_;
+            end_frame_ = start_frame_ + pow(frame_interval_,number_of_time_points_) + number_of_frames_to_average_;
         }
         if (static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5) + number_of_frames_to_average_ > end_frame_ - start_frame_) {
             end_frame_ = start_frame_ + static_cast<unsigned int>(pow(frame_interval_, number_of_time_points_) + 0.5)  + number_of_frames_to_average_;
@@ -527,27 +532,27 @@ void MeanSquaredDisplacement::check_parameters() throw()
 
 void MeanSquaredDisplacement::compute_time_array()
 {
-    time_array_indexes_.resize(number_of_time_points_);
-    time_array_indexes_[0] = 0;
+    // first time point is always zero
+    time_array_indexes_.push_back(0);
     
     double       total_time     = frame_interval_;
     unsigned int frame_previous = 0;
+    
     // TODO switch to try catch
     for (size_t time_point = 1; time_point < number_of_time_points_; ++time_point) {
+        assert(static_cast<unsigned int>(total_time) + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
+
         if (time_scale_type_ == "linear") {
-            time_array_indexes_[time_point] = static_cast<unsigned int>(total_time);
+            time_array_indexes_.push_back(static_cast<unsigned int>(total_time));
             total_time += frame_interval_;
         }
-        else {
-            time_array_indexes_[time_point] = time_array_indexes_[time_point - 1];
-            while (time_array_indexes_[time_point] == frame_previous) {
-                time_array_indexes_[time_point] = static_cast<unsigned int>(total_time + 0.5);
-                total_time *= frame_interval_;
+        else if (time_scale_type_ == "log") {
+            if (static_cast<unsigned int>(total_time) != frame_previous) {
+                time_array_indexes_.push_back(static_cast<unsigned int>(total_time));
+                frame_previous = static_cast<unsigned int>(total_time);
             }
-            frame_previous = time_array_indexes_[time_point];
+            total_time *= frame_interval_;
         }
-        
-        assert(time_array_indexes_[time_point] + number_of_frames_to_average_ < end_frame_ - start_frame_ && "Error: Not eneough frames for calculation on log time scale");
     }
 }
 
@@ -568,7 +573,7 @@ void MeanSquaredDisplacement::print_status(size_t & status)
 {
     ++status;
     cout << "\rcurrent progress of calculating the mean squared displacement is: ";
-    cout << status * 100.0/number_of_time_points_;
+    cout << status * 100.0/time_array_indexes_.size();
     cout << " \%";
     cout << flush;
 }
