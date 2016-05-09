@@ -400,7 +400,7 @@ void SelfVanHoveFunction::compute_Gs_rt()
 		for (size_t initial_frame = 0; initial_frame < number_of_frames_to_average_; ++initial_frame) {
 			size_t current_frame = initial_frame + time_array_indexes_[time_point];
             for (size_t i_atom_type = 0; i_atom_type < atom_types_.size(); ++i_atom_type) {
-                for (size_t i_atom = 0; i_atom < atom_types_indexes.size(); ++i_atom) {
+                for (size_t i_atom = 0; i_atom < atom_types_indexes[i_atom_type].size(); ++i_atom) {
                     size_t atom_index = atom_types_indexes[i_atom_type][i_atom];
                     double total_distance = 0.0;
                     for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
