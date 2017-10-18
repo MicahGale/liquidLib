@@ -919,9 +919,16 @@ void Trajectory::read_xyz_file()
     
     // set the box length if not already set
     if (!is_boxlength_set) {
+        cout << "Determined boxlength to be: ";
         for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
             average_box_length_[i_dimension] = box_high[i_dimension] - box_low[i_dimension];
             cout << average_box_length_[i_dimension] << " ";
+        }
+#pragma omp parallel for
+        for (size_t i_frame = 0; i_frame < end_frame_ - start_frame_; ++i_frame) {
+            for (size_t i_dimension = 0; i_dimension < dimension_; ++i_dimension) {
+                box_length_[i_frame][i_dimension] = average_box_length_[i_dimension];
+            }
         }
         cout << endl;
     }
