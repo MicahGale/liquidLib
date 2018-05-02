@@ -1,0 +1,55 @@
+\begin{thebibliography}{1}
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{\texttt{#1}}\fi
+\expandafter\ifx\csname urlprefix\endcsname\relax\def\urlprefix{URL }\fi
+\expandafter\ifx\csname href\endcsname\relax
+  \def\href#1#2{#2} \def\path#1{#1}\fi
+
+\bibitem{EGELSTAFF}
+P.~Egelstaff, An Introduction to the Liquid State, Academic Press, 1967.
+\newblock \href {http://dx.doi.org/10.1016/B978-0-12-395515-9.50006-0}
+  {\path{doi:10.1016/B978-0-12-395515-9.50006-0}}.
+
+\bibitem{Hansen}
+J.-P. Hansen, I.~R. McDonald, Theory of Simple Liquids, 3rd Edition, Academic
+  Press, Burlington, 2006.
+\newblock \href {http://dx.doi.org/10.1016/B978-012370535-8/50003-3}
+  {\path{doi:10.1016/B978-012370535-8/50003-3}}.
+
+\bibitem{Squires}
+G.~L. Squires, Introduction to the Theory of Thermal Neutron Scattering, 3rd
+  Edition, Cambridge University Press, 2012.
+
+\bibitem{BOP_first}
+P.~J. Steinhardt, D.~R. Nelson, M.~Ronchetti, Bond-orientational order in
+  liquids and glasses, Phys. Rev. B 28~(2) (1983) 784.
+\newblock \href {http://dx.doi.org/10.1103/PhysRevB.28.784}
+  {\path{doi:10.1103/PhysRevB.28.784}}.
+
+\bibitem{BOP}
+W.~Lechner, C.~Dellago, Accurate determination of crystal structures based on
+  averaged local bond order parameters, The Journal of Chemical Physics
+  129~(11) (2008) 114707.
+
+\bibitem{Stillinger2005}
+M.~S. Shell, P.~G. Debenedetti, F.~H. Stillinger,
+  \href{http://stacks.iop.org/0953-8984/17/i=49/a=002}{Dynamic heterogeneity
+  and non-gaussian behaviour in a model supercooled liquid}, Journal of
+  Physics: Condensed Matter 17~(49) (2005) S4035.
+\newline\urlprefix\url{http://stacks.iop.org/0953-8984/17/i=49/a=002}
+
+\bibitem{chi4}
+N.~Lačević, F.~W. Starr, T.~B. Schrøder, S.~C. Glotzer, Spatially
+  heterogeneous dynamics investigated via a time-dependent four-point density
+  correlation function, The Journal of Chemical Physics 119~(14) (2003)
+  7372--7387.
+
+\bibitem{Glotzer2000}
+S.~C. Glotzer, V.~N. Novikov, T.~B. Schrøder, Time-dependent, four-point
+  density correlation function description of dynamical heterogeneity and
+  decoupling in supercooled liquids, The Journal of Chemical Physics 112~(2)
+  (2000) 509--512.
+\newblock \href {http://dx.doi.org/10.1063/1.480541}
+  {\path{doi:10.1063/1.480541}}.
+
+\end{thebibliography}

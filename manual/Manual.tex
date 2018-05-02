@@ -6,7 +6,7 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{multicol}
 \usepackage{color}
-
+\usepackage{enumitem}
 \usepackage{listings}
 
 \lstdefinestyle{BashInputStyle}{
@@ -24,7 +24,7 @@
 	\end{figure}
 {
 \centering
-\Large A comprehensive tool for post processing of liquid molecular dynamic simulations
+\Large A comprehensive toolbox for analyzing classical and ab initio molecular dynamics simulations of liquids and liquid-like matter with applications to neutron scattering experiments
 }
 \newpage
 
@@ -45,14 +45,16 @@
 \end{itemize}
 
 \section{Acknowledgments}
-\textit{LiquidLib} is an open source code and is published under the MIT License.  The core contributors are Zhikun Cai, Abhishek Jaiswal, Nathan Walter, and Yang Zhang.   
+\textit{LiquidLib} is an open source code and is published under the GNU Lesser General Public License.  The core contributors are Zhikun Cai, Abhishek Jaiswal, Nathan Walter, and Yang Zhang.   
 \\
 \\
-If you distribute a modified code or release any of the source code that includes \textit{LiquidLib} source files then it must also be open sourced.  Anyone is free to use modify or extend.  This has been a joint effort by Zhang research group at University of Illinois at Champaign-Urbana.  More information can be found at \url{http://zhang.npre.illinois.edu/}.  Contact information for any of the contributors can also be found at the former address, any issues, bugs, or other related material can be sent to us via our contact information listed at the group webpage.
+If you distribute a modified code or release any of the source code that includes \textit{LiquidLib} source files then it must also be open sourced.  Anyone is free to use modify or extend.  This has been a joint effort by Zhang research group at University of Illinois at Champaign-Urbana.  More information can be found at \url{http://zhang.npre.illinois.edu/}.  Contact information for any of the contributors can also be found at the former address. Any issues, bugs, or other related material can be sent to us via our contact information listed on the group webpage.
 \\
 \\
-Please cite as:\\
-\hspace*{1cm}Zhikun Cai, Abhishek Jaiswal, Nathan Walter, Yang Zhang. \textit{LiquidLib User Manual v0.2} \url{http://zhang-group.github.io/LiquidLib/} 
+Please cite the following reference:
+\begin{itemize}
+	\item N. P. Walter, A. Jaiswal, Z. Cai, and Y. Zhang, “LiquidLib: A comprehensive toolbox for analyzing classical and ab initio molecular dynamics simulations of liquids and liquid-like matter with applications to neutron scattering experiments,” Comput. Phys. Commun., vol. 228, pp. 209–218, 2018. \url{https://www.sciencedirect.com/science/article/pii/S0010465518300778} 
+\end{itemize}
 
 \section{Installation}
 To make a quick and basic installation of \textit{LiquidLib}, begin by opening a terminal window.
@@ -66,13 +68,13 @@ $ make
 This will create a directory /liquidlib/bin/ with all of the executables contained within it.
 \\
 \\
-To make a GROMACS compatible build, open Makefile and in the optional components section change "USE$\_$XDRLIB" to "yes".  This will add the appropriate flags for \textit{LiquidLib} to be built to read .xtc and .trr trajectory files.  Follow the instructions in Makefile for linking the xdrfile headers to make a build that can read trajectories that are dumped as .trr or .xtc binary files, such as GROMACS does, or .xtc for LAMMPS.  In order to read these file types, LiquidLib relies on the open source library libxdrfile.  The source code can be downloaded from the GROMACS website or the following link: \url{ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.1.tar.gz} Newer versions of the xdfile library should be compatible with LiquidLib, however, we recommend 1.1.1 as this is the version used for testing purposes.
+To make a GROMACS compatible build, open Makefile and in the optional components section change ``USE$\_$XDRLIB" to ``yes".  This will add the appropriate flags for \textit{LiquidLib} to be built to read .xtc and .trr trajectory files.  Follow the instructions in Makefile for linking the xdrfile headers to make a build that can read trajectories that are dumped as .trr or .xtc binary files, such as GROMACS does, or .xtc for LAMMPS.  In order to read these file types, LiquidLib relies on the open source library libxdrfile.  The source code can be downloaded from the GROMACS website or the following link: \url{ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.1.tar.gz} Newer versions of the xdfile library should be compatible with LiquidLib, however, we recommend 1.1.1 as this is the version used for testing purposes.
 \\
 \\
 Once libxdrfile.a and xdrfile.h, xdrfile$\_$trr.h, and xdrfile$\_$xtc.h have been installed, open the \textit{LiquidLib} Makefile, and edit the lines contained in the comment section for the GROMACS build.  For compiling, the libxdrfile.a and xdrfile.h, xdrfile$\_$trr.h, and xdrfile$\_$xtc.h headers can be placed inside of the \textit{LiquidLib} include directory, or you can specify the location inside of the Makefile.  Recompile LiquidLib and the binaries should be compatible with GROMACS.
 \\
 \\
-To build parallelized OpenMP support, open Makefile in a text editor and in the optional components section change "USE$\_$OMP" to "yes.  This will add the apporpriate flags for \textit{LiquidLib} to be built with OpenMP support included.  Recompile the program thereafter.
+To build parallelized OpenMP support, open Makefile in a text editor and in the optional components section change ``USE$\_$OMP" to "yes.  This will add the apporpriate flags for \textit{LiquidLib} to be built with OpenMP support included.  Recompile the program thereafter.
 \\
 \\
 In order for the bond order parameter calculation to be performed, \textit{LiquidLib} requires either Boost or GSL to be installed.  Once one of these has been installed, in the makefile switch either USE$\_$BOOST or USE$\_$GSL to ``yes," if both are set to yes, then GSL will be used with priority.
@@ -81,117 +83,189 @@ In order for the bond order parameter calculation to be performed, \textit{Liqui
 All user options for the Makefile are listed at the beginning of the Makefile.
 
 
-\section{Description of Quantities}
-This section provides a brief overview of the quantities, including operating equations. Please refer to standard textbooks, journal articles for explanation of physical meaning, and how to interpret your results.  The quantities can be weighted by the appropriate scattering lengths (coherent or incoherent) if the user wants to compare to experimentally measurable quantities.
+\section{Description of Quantities}  
+This section briefly describes the theoretical background of neutron scattering lengths, the structural quantities, and the dynamical quantities that can be computed by LiquidLib. For more complete descriptions of the quantities, please refer to \cite{EGELSTAFF, Hansen}. The quantities can be weighted by the appropriate scattering lengths (coherent or incoherent) if the user wants to compare to experimentally measurable quantities.
+
+List of common variables relevant to all quantities:
+\begin{itemize}[noitemsep]
+	\item $d$ : the dimension of the system; can be any positive integer
+	\item $\mathbf{r}$ : the $d$-dimensional position vector of a particle 
+	\item $r$ : the scalar distance between two particles in space, or the distance of the same particle between two different times
+	\item $\rho$ : the total number density of the system
+	\item $t$: the time
+	\item $N$ : the number of particles in the system
+	\item $b_{coh}$ : the coherent neutron scattering length
+	\item $b_{inc}$ : the incoherent neutron scattering length
+	\item $\langle \cdot \rangle$: the ensemble average, represents averaging over multiple trajectory frames and time origins
+	\item $L$ : the size of the simulation box
+	\item $\mathbf{k}$ : the $d$-dimensional reciprocal space vector or wave vector transfer; can only take values of $\frac{2\pi}{L}(n_1,n_2, ... ,n_d)$, where $n_i$ is a non-negative integer
+	\item $V$ : the volume of the system
+	\item $T$ : the temperature of the system
+	\item $\delta(\cdot)$ : the Dirac delta function
+\end{itemize} 
+
+\subsection{Neutron Scattering Lengths}
+The interaction between a neutron (in a wide energy range) and a nucleus can be quantified by the scattering length $b$, which depends on the species of the nucleus and the spin state of the nucleus. Here, the magnetic scattering is ignored. When the interference of scattered neutrons from multiple nuclei is considered, the total double differential cross section can be readily separated into two parts: the coherent scattering and incoherent scattering. The coherent scattering length $b_{coh}$ describes the average of the spin-dependent scattering lengths. The incoherent scattering length $b_{inc}$ describes their standard deviation \cite{Squires}. Therefore, LiquidLib computations can weigh the relevant quantities by the appropriate neutron scattering lengths in order to directly compare LiquidLib results to neutron scattering experiments. Unweighted calculations can be performed in LiquidLib by omitting the scattering lengths or setting the scattering lengths to unity. For more information on the theory of neutron scattering and scattering lengths, please refer to \cite{EGELSTAFF, Hansen, Squires}.
 
 \subsection{Pair Distribution Function: $g(r)$} \label{sec::gofr}
-For an isotropic and homogenous liquid system, the pair distribution function (PDF) or radial distribution function (RDF), depends only on the modulus of relative atomic distance and can be computed as follows:
+A widely used quantity to describe the microscopic structure of a system is the Pair Distribution Function (PDF) or Radial Distribution Function (RDF) $g(r)$. $g(r)$ measures the probability of finding a particle a distance $r$ from the reference particle. From this quantity, the average distance of the nearest neighbors, second nearest neighbors, the coordination number (number of nearest neighbors), etc. can be directly determined. For crystalline materials, $g(r)$ shows sharp peaks corresponding to the periodic arrangements of particles. For isotropic systems such as liquids, $g(r)$ only depends on the modulus of relative atomic distance $r$ and can be computed as follows:
 \begin{equation}
-g(r) = \frac{1}{4\pi r^2dr\rho N \langle b_{coh}\rangle^2}\left\langle\sum\limits_{l\neq l'} b_lb_{l'}\delta(\mathbf{r}-|\mathbf{r}_l-\mathbf{r}_{l'}|)\right\rangle.
+	g(r) = \frac{1}{4\pi r^2dr} \frac{1}{\rho N \langle b_{coh}\rangle^2}\left\langle\sum\limits_{l\neq l'} b_l b_{l'}\delta(r-|\mathbf{r}_l-\mathbf{r}_{l'}|)\right\rangle
 \end{equation}
-where $r$ is the distance between two particles, $\rho$ is the particle density, $N$ is the number of particles, and $b$ is the coherent scattering length, where $\langle\rangle$ represents the average of the values.
+LiquidLib can compute both the partial $g(r)$ between two individual types of atoms (e.g. oxygen to oxygen in water), and the total $g(r)$ of a selected group of atoms. The non-weighted $g(r)$ can be readily obtained by setting the neutron coherent scattering lengths $b_l$ and $b_{l'}$ to unity. The total $g(r)$ can also be obtained by the summation of the partial $g(r)$ weighted by the respective atomic number densities and the respective coherent neutron scattering lengths, if applicable.
 
 \subsection{Structure Factor: $S(k)$} \label{sec::sofk}
-The static structure factor $S(k)$ is a quantity that can be directly measured by scattering experiments such as with neutrons or X-rays. For an isotropic system there are no preferred orientation and hence the structure factor depends only on the modulus of the wave vector transfer $k$. The experimentally measured structure factor by neutrons is weighed by the proper coherent bound neutron scattering lengths `$b$' and needs to be factored in when computing the total $S(k)$ of the system as shown:
+The static structure factor, $S(k)$, is another widely used quantity to describe the microscopic structure of a system. Unlike the pair distribution function $g(r)$, which is a measure of the structure in real space, the structure factor $S(k)$ measures the structure of the system in the reciprocal space. $S(k)$ can be directly measured by elastic scattering (diffraction) experiments such as with neutrons, X-rays, and electrons. Once again, for isotropic systems such as liquids, $S(k)$ only depends on the modulus of the wave vector transfer $k$. $S(k)$ can be computed directly from its definition: 
 \begin{equation}
-\label{eq:Sq1}
-S(k) = \frac{1}{N\langle b\rangle^2}\left\langle\sum_{l,l'=1}^{N} b_lb_{l'}\exp{\{-i\mathbf{k}\cdot[\mathbf{r}_l - \mathbf{r}_{l'}]\}}\right\rangle.
+	\label{eq:Sq1}
+	S(k) = \frac{1}{N\langle b_{coh}\rangle^2}\left\langle\sum_{l,l'=1}^{N} b_lb_{l'}\exp{\{-i\mathbf{k}\cdot[\mathbf{r}_l - \mathbf{r}_{l'}]\}}\right\rangle
 \end{equation}
-A simplified representation of $S(k)$ is shown in Eq.~[\ref{eq:Sq2}]. In performing the computations of $S(k)$, the computational complexity of Eq.~[\ref{eq:Sq1}] is reduced to $\mathcal{O}(N)$ by performing angular average over preferred directions at a given $k$-value.
+Here, $S(k)$ is weighted by the proper coherent neutron scattering lengths $b_l$ and $b_{l'}$, thus it can be directly compared with a neutron diffraction experiment.
+
+A computationally efficient representation of $S(k)$ is shown in Eq.~\ref{eq:Sq2} by expanding the exponential in Eq.~\ref{eq:Sq1}:
 \begin{equation}
-\label{eq:Sq2}
-S(k) = \frac{1}{N\langle b_{coh}\rangle^2}\left\langle\left[\sum_{l=1}^{N} b_l\cos(\mathbf{k}\cdot\mathbf{r}_l)\right]^2+\left[\sum_{l=1}^{N} b_l\sin(\mathbf{k}\cdot\mathbf{r}_l)\right]^2\right\rangle.
+	\label{eq:Sq2}
+	S(k) = \frac{1}{N\langle b_{coh}\rangle^2}\left\langle\left[\sum_{l=1}^{N} b_l\cos(\mathbf{k}\cdot\mathbf{r}_l)\right]^2+\left[\sum_{l=1}^{N} b_l\sin(\mathbf{k}\cdot\mathbf{r}_l)\right]^2\right\rangle
 \end{equation} 
+The computational complexity is reduced to $\mathcal{O}(N)$ by using Eq.~(\ref{eq:Sq2}) in performing the computation of $S(k)$. The sampled directions are determined by the implementation of periodic boundary conditions of the simulation. Furthermore, in LiquidLib, the structure factor $S(k)$ can be computed for individual atom types (e.g. oxygen in water) or for any selected atom types in any selected groups (e.g. all water molecules). This is especially useful to identify the origin of features in the experimentally measured structure factor.
+
+An alternative way to compute $S(k)$ is through the Fourier transform of $g(r)$. To be more precise,
+\begin{equation}
+	\label{eq:Sq-gr}
+	S(k) = 1 + 4 \pi \rho \int_0^\infty (g(r)-1) \frac{\sin{(kr)}}{kr} r^2 dr
+\end{equation}
+Therefore, $S(k)$ and $g(r)$ can be obtained from one another by Fourier transform. Under certain conditions, the Fast Fourier Transform (FFT) algorithm can be applied.
+
+\subsection{Bond Order Parameter: $q_l(i,t)$, $\bar{q}_l(i,t)$, $Q_l(t)$} \label{sec::BOP}
+The bond orientational order parameter is a quantity that measures, as its name indicates, the local bond orientational order in a system \cite{BOP_first, BOP}. The bond orientational parameter cannot be directly compared to scattering experiments. However, it is very useful for determining the microscopic structural order and phases in a system. For example, the bond orientational order parameter can be used to determine if a system is BCC or FCC or amorphous. Further, this quantity measures local structural order for each atom, whereas, the structure factor and the pair distribution function measure the structure of the complete system.
+
+We use $q_l$ for the bond orientational order parameter of individual atoms in the system, and $Q_l$ for the system-wide bond orientational order parameter. $\bar{q}_l$ is equivalent to $q_l$ averaged over an atom's nearest neighbors. Thus, $\bar{q}_l$ has the benefit of reducing the overlapping $q_l$ values between liquids and crystals \cite{BOP}. Hence, $Q_l$ is equivalent to $q_l$ averaged over all the atoms in the system \cite{BOP_first}.  The bond orientational order parameter of individual atoms $q_l$ is defined as
+\begin{equation}
+	q_l(i,t) = \sqrt{\frac{4\pi}{2l+1} \sum_{m=-l}^l\left|q_{lm}(i,t)^2\right|}
+\end{equation}
+where
+\begin{equation}
+	q_{lm}(i,t) = \frac{1}{N(i)}\sum_{j=1}^{N(i)}Y_{lm}(\hat{\mathbf{r}}_{ij}(t))
+\end{equation}
+$m$ ranges from $-l$ to $l$; $l$ is the order of the bond orientational order parameter, which has a typical value 4 and 6, and should not be confused with the dummy summation index $l$ used previously; $i$ is the index of an atom; $N(i)$ is the number of nearest neighbors around atom $i$; $Y_{lm}$ is the spherical harmonic function of order $l$ and $m$; and $\hat{\mathbf{r}}_{ij}$ is the unit vector from atom $i$ to atom $j$, which can be converted to spherical coordinates. 
+
+The nearest neighbor averaged bond orientational order parameter $\bar{q}_l$ is defined as
+\begin{equation}
+	\bar{q}_l(i,t) = \sqrt{\frac{4\pi}{2l+1} \sum_{m=-l}^l\left|\bar{q}_{lm}(i,t)^2\right|}
+\end{equation}
+where
+\begin{equation}
+	\bar{q}_{lm}(i,t) = \frac{1}{N(i)}\sum_{j=0}^{N(i)}q_{lm}(j,t)
+\end{equation}
+
+The system-wide bond orientational order parameter $Q_l$ is defined as
+\begin{equation}
+	Q_l(t) = \sqrt{\frac{4\pi}{2l+1} \sum_{m=-l}^l\left|Q_{lm}(t)^2\right|}
+\end{equation}
+where 
+\begin{equation}
+	Q_{lm}(t) = \frac{\sum_{i=1}^NN(i)q_{lm}(i,t)}{\sum_{i=1}^NN(i)}
+\end{equation}
+
+Lastly,
+\begin{equation}
+	\bar{Q}_l(t) = Q_l(t)
+\end{equation}
+because the averaging is taken over the entire system.
 
 \subsection{Mean Squared Displacement: $\left<r^2(t)\right>$} \label{sec::MSD}
-The mean-squared displacement of particles at an elapsed time `t' is related to the second moment of the self van Hove correlation function. Typically for liquids, particle will show ballistic motions at very short times, followed by particle collisions resulting in a plateau, and eventually undergo random walk.
+A commonly used dynamical quantity is the Mean Squared Displacement (MSD), which measures on average how far a particle moves in the system as a function of time:
 \begin{equation}
-\langle r^2(t)\rangle = \frac{1}{N}\left\langle\sum\limits_{l=1}^N |\mathbf{r}_l(t) - \mathbf{r}_l(0)|^2\right\rangle.
+	\langle r^2(t)\rangle = \frac{1}{N}\left\langle\sum\limits_{l=1}^N |\mathbf{r}_l(t) - \mathbf{r}_l(0)|^2\right\rangle
+\end{equation}
+It is related to the second moment of the self van Hove correlation function, which will be discussed later in the paper. The implementation of MSD involves averaging of displacements of all particles of interest at two time points. In LiquidLib, the MSD, like many other quantities computable by LiquidLib, can be computed for any selected atom types in any selected groups. 
+
+Typically for liquids, particles will show ballistic motions at very short times, and eventually undergo random walk diffusive motion. The self-diffusion coefficient $D$ can be extracted from the slope of the long time diffusive tail of the MSD using the Einstein equation:
+\begin{equation}
+	\lim_{t\rightarrow\infty} \langle r^2(t) \rangle = 2dDt
 \end{equation}
 
 \subsection{Non-Gaussian Parameter: $\alpha_2(t)$} \label{sec::alpha2}
-The non-Gaussian parameter measures the deviation from the gaussian behavior of particles. It is commonly used as a measure of dynamic heterogeneity in the system. For brownian diffusion $\alpha_2(t) = 0$. If all particles have same displacement then it takes the theoretical minimum of -2/5. When there is heterogeneity in particle displacements, then $\alpha_2(t) > 0$. It can be computed as follows:
+While the MSD is dependent on the second order of the particle locations, the non-Gaussian parameter, $\alpha_2(t)$, is dependent on the forth order of the particle locations. It is defined as follows:
 \begin{equation}
-\alpha_2(t) = \frac{3\left\langle\sum\limits_{l=1}^N[\mathbf{r}_l(t) - \mathbf{r}_l(0)]^4\right\rangle}{5\left\langle\sum\limits_{l=1}^N[\mathbf{r}_l(t) - \mathbf{r}_l(0)]^2\right\rangle^2} - 1.
-\end{equation}
- 
- \subsection{Four Point Correlation: $\chi_4(t)$} \label{sec::chi4}
-Direct quantification of a length scale characterizing correlated particles motion in liquids involves the motion of two or more particles, and hence are probed using a four-point, time-dependent density correlation functions that contain information about the density at two spatial points and two times. To capture the correlated motions between particles in liquids, we utilize a `coarse graining' approach by using an `overlap' function that measures overlap between configurations at time $t=0$ and a future time $t$.  The overlap function $w(|r_1~-~r_2|)$ is unity for $|r_1~-~r_2|~\leq~a$ and 0 otherwise. The distance parameter `$a$' is chosen to be larger than the square root of the plateau of $\left<r^2(t)\right>$. The program doesn't normalize by the temperature as this input is not provided in the trajectory or user input file. Hence the user must do this in post-processing.
-\begin{equation}
-\begin{split}
-\chi_4(t) &= \frac{V}{T}[\langle Q_s^2(t)\rangle - \langle Q_s(t)\rangle^2],\\
-Q_s(t) &= \frac{1}{N} \sum_{l=1}^N \textit{w}(|\mathbf{r}_l(t) - \mathbf{r}_l(0)|).
-\end{split}
+	\alpha_2(t) = \frac{3\left\langle\sum\limits_{l=1}^N[\mathbf{r}_l(t) - \mathbf{r}_l(0)]^4\right\rangle}{5\left\langle\sum\limits_{l=1}^N[\mathbf{r}_l(t) - \mathbf{r}_l(0)]^2\right\rangle^2} - 1
 \end{equation}
 
-\subsection{Velocity Auto Correlation: $C_{vv}(t)$} \label{sec::VACF}
-Velocity auto correlation function is a statistical correlation between particle velocities at two points in time, 0 and some later time `$t$'. It can be used to measure the self-diffusion coefficient or the vibrational properties of a given system.
+The non-Gaussian parameter measures the deviation from the Gaussian behavior of the motion of particles. For ballistic motion and Brownian diffusion, the distribution of particle displacements, $P(\Delta \mathbf{r}(t)) = \left|\mathbf{r}_l(t) - \mathbf{r}_l(0)\right|$, is Gaussian for a given time, t. Thus, $\alpha_2(t)$ is zero for Brownian diffusion and ballistic motions. However, at intermediate times, the distribution of particle displacements become non-Gaussian as clusters of mobile and immobile particles develops in the system. At these times, the non-Gaussian parameter, $\alpha_2(t)$, is greater than zero. Thus, $\alpha_2(t)$ is used to measure the dynamic heterogeneity of a system \cite{Stillinger2005}. In LiquidLib, $\alpha_2(t)$ can be computed for any selected atom types in any selected groups.
+ 
+\subsection{Four Point Correlation: $\chi_4(t)$} \label{sec::chi4}
+Continuing from the non-Gaussian parameter, the four point density correlation function $\chi_4(t)$ is another higher order quantity commonly used to quantify the dynamic heterogeneity \cite{chi4}. Direct quantification of a length scale characterizing correlated dynamics involves correlations of more than two points. $chi_4(t)$ measures the dynamic heterogeneity by computing the susceptibility of a system to fourth-order density fluctuations or density-density correlations. Equivalently, $\chi_4(t)$ is defined as:
 \begin{equation}
-\label{eq:vacf}
- C_{vv}(t) = \frac{1}{\langle b^2\rangle}\langle b_i\textbf{v}_i(0)\cdot b_i\textbf{v}_i(t)\rangle
+	\chi_4(t) = \frac{V}{T}\int G_4(\mathbf{r}_1, \mathbf{r}_2, \mathbf{r}_3, \mathbf{r}_4, t) d\mathbf{r}_1 d\mathbf{r}_2 d\mathbf{r}_3 d\mathbf{r}_4 
+\end{equation}
+where, $G_4(\mathbf{r}_1, \mathbf{r}_2, \mathbf{r}_3, \mathbf{r}_4, t)$ is a four-point, time-dependent, density-density correlation function. For more information on the physical meaning of $chi_4$, we refer readers to \cite{chi4} and \cite{Glotzer2000}.
+
+We adopt the ``coarse graining'' approach \cite{chi4} by using an overlap function, $w(|r_1-r_2)$, to measure the overlap between configurations at two times. The overlap function is defined as unity for $|r_1~-~r_2|~\leq~a$ and 0 otherwise. The distance parameter $a$ is chosen to be larger than the square root of the plateau value of $\left<r^2(t)\right>$ to filter out vibrational contributions. Consequently, the four point correlation function $\chi_4(t)$ is defined as:
+\begin{equation}
+	\label{eq:chi4}
+	\chi_4(t) = \frac{V}{T}[\langle Q_s^2(t)\rangle - \langle Q_s(t)\rangle^2]
+\end{equation}
+where 
+\begin{equation}
+	\label{eq:Qs}
+	Q_s(t) = \frac{1}{N} \sum_{l=1}^N \textit{w}(|\mathbf{r}_l(t) - \mathbf{r}_l(0)|)
+\end{equation}
+
+Contribution to $\chi_4(t)$ arises from both localized particles characterizing self correlations and non-localized particles characterizing distinct correlations. However, the distinct correlations have been shown to be much smaller and thus $\chi_4(t)$ is essentially dominated by the self correlations. Therefore, only the self correlations have been assessed in Eq.~\ref{eq:chi4} and \ref{eq:Qs}.
+
+\subsection{Velocity Auto Correlation: $C_{vv}(t)$} \label{sec::VACF}
+The mean squared displacement, non-Gaussian parameter, and the four point correlation function are measures of the dynamics based on the positions of atoms, but the Velocity Auto Correlation Function (VACF) is a measure of the dynamics based on the velocities of atoms. The velocity auto correlation function is a self correlation between the velocities of the same particle at two times \cite{EGELSTAFF, Hansen}:
+\begin{equation}
+	\label{eq:vacf}
+	C_{vv}(t) = \frac{1}{\langle b_{inc}^2\rangle}\langle b_i\textbf{v}_i(0)\cdot b_i\textbf{v}_i(t)\rangle
+\end{equation} 
+It can be used to determine the self-diffusion coefficient via the Green-Kubo relation:
+\begin{equation}
+	D = \frac{1}{d} \int_0^\infty C_{vv}(t) dt
+\end{equation}
+and the phonon Density Of States (DOS) via the Fourier transform:
+\begin{equation}
+	g(\omega) = \frac{1}{2\pi} \int_{-\infty}^\infty C_{vv}(t) e^{-i\omega t} dt
 \end{equation} 
 
 \subsection{Self van Hove Correlation: $G_s(r,t)$} \label{sec::Gofrt}
-Single particle's motion can be studied using the self-part of the van Hove correlation function. In the liquid state, the system is isotropic and hence this quantity depend only on the magnitude of displacements not their directions. The physical meaning of $G_s(r,t)$ is the probability of finding a particle $i$ in the vicinity of some distance `$r$' at some other time `$t$' given that it was at origin at $t = 0$.
+Single particle's motion can be studied using the self-part of the van Hove correlation function. In the liquid state, the system is isotropic and hence this quantity depends only on the magnitude of displacements, but not their directions. The physical meaning of $G_s(r,t)$ is the volumetric probability density of finding a particle $i$ in the vicinity of some distance $r$ at some other time $t$ given that it was at the origin at time $t = 0$ \cite{EGELSTAFF, Hansen}.
 \begin{equation}
-\label{eq:gr}
-G_s(r,t) = \frac{1}{N\langle b_{inc}^2\rangle}\left\langle\sum\limits_{l=1}^N b_l^2\delta(\mathbf{r}+\mathbf{r}_l(0)-\mathbf{r}_l(t))\right\rangle.
+	\label{eq:gr}
+	G_s(r,t) = \frac{1}{4\pi r^2dr}\frac{1}{ N\langle b_{inc}^2\rangle}\left\langle\sum\limits_{l=1}^N b_l^2\delta(\mathbf{r}+\mathbf{r}_l(0)-\mathbf{r}_l(t))\right\rangle
 \end{equation}
 
 \subsection{Coherent van Hove Correlation: $G(r,t)$} \label{sec::Grt}
-The coherent van Hove correlation function is a measure of the density-density correlations at two spatial points as a function of time. In the liquid state, the system is isotropic and hence this quantity depend only on the magnitude of displacements, but not their directions. One can separate this function into two parts, self and distinct. The physical meaning of this function is the probability density of finding a particle $i$ in the vicinity of \textbf{r} at a givrn time $t$ knowing that another particle $j$ is in the vicinity of the origin at time $t = 0$. In the long time limit, the system loses memory of its initial configuration and this the correlation function becomes independent of the distance \textbf{r}.
+The collective van Hove correlation function is a measure of the density-density correlation at two spatial points as a function of time. In the liquid state, the system is isotropic and hence this quantity depends only on the magnitude of the displacements, but not their directions. The physical meaning of this function is the probability density of finding a particle $l'$ in the vicinity of \textbf{r} at a given time $t$ knowing that another particle $l$ is in the vicinity of the origin at time $t = 0$. In the long time limit, the system loses memory of its initial configuration and this the correlation function becomes independent of the distance \textbf{r} \cite{EGELSTAFF, Hansen}.
 \begin{equation}
-\label{eq:grc}
-G(r,t) = \frac{1}{N\langle b_{coh}\rangle^2}\left\langle\sum\limits_{l=1}^N\sum\limits_{l'=1}^N b_lb_{l'}\delta(\mathbf{r}+\mathbf{r}_l(0)-\mathbf{r}_{l'}(t))\right\rangle.
+	\label{eq:grc}
+	G(r,t) = \frac{1}{4\pi r^2drN\langle b_{coh}\rangle^2}\left\langle\sum\limits_{l=1}^N\sum\limits_{l'=1}^N b_lb_{l'}\delta(\mathbf{r}+\mathbf{r}_l(0)-\mathbf{r}_{l'}(t))\right\rangle
 \end{equation}
 
 \subsection{Self Intermediate Scattering Function: $F_s(k,t)$} \label{sec::Fsqt}
-Self Intermediate Scattering Functions (SISF) is defined as the spatial Fourier transform of $G_s(r,t)$ to the reciprocal space, which can be measured either directly by correlation spectroscopy and neutron spin echo technique. SISF characterizes the density fluctuations of the same particle in the system at time $t = 0$ and at another subsequent time $t$. The incoherent neutron scattering arising from isotopic variations and/or spin fluctations provides a measure of the self-intermediate scattering function.
+Self Intermediate Scattering Functions (SISF) is defined as the spatial Fourier transform of $G_s(r,t)$ to the reciprocal space. SISF characterizes the density fluctuations of the same particle in the system at time $t = 0$ and at another subsequent time $t$ \cite{EGELSTAFF, Hansen}.
 \begin{equation}
-\label{eq:fsqt}
-F_s(k,t) = \frac{1}{N\langle b_{inc}^2\rangle} \left\langle \sum_{l=1}^{N} b_l^2\exp{\{-i\mathbf{k}\cdot[\mathbf{r}_l(t) - \mathbf{r}_l(0)]}\}\right\rangle.
+	\label{eq:fsqt}
+	F_s(k,t) = \frac{1}{N\langle b_{inc}^2\rangle} \left\langle \sum_{l=1}^{N} b_l^2\exp{\{-i\mathbf{k}\cdot[\mathbf{r}_l(t) - \mathbf{r}_l(0)]}\}\right\rangle
+\end{equation}
+The SISF and the following CISF can be measured directly by photon correlation spectroscopy or neutron spin echo technique, or indirectly by inelastic neutron scattering experiments. Oftentimes, either the SISF or CISF may dominate the scattering process depending on the relative contributions from coherent and incoherent scattering in the system. The incoherent dynamic structure factor, $S_s(k,E)$, which is directly measured by incoherent inelastic neutron scattering experiments, and the $F_s(k,t)$ are Fourier pairs:
+\begin{equation}
+	S_s(k,E) = \frac{1}{2\pi} \int_{-\infty}^\infty F_s(k,t) e^{-iEt} dt
 \end{equation}
 
 \subsection{Coherent Intermediate Scattering Function: $F(k,t)$} \label{sec::Fqt}
-Coherent Intermediate Scattering Functions (CISF) is defined as the spatial Fourier transform of $G(r,t)$ to the reciprocal space, which can be measured either directly by correlation spectroscopy and neutron spin echo technique, or indirectly by inelastic scattering experiments. 
+Coherent Intermediate Scattering Functions (CISF) is defined as the spatial Fourier transform of $G(r,t)$ to the reciprocal space. CISF characterizes the density correlation between one particle at time $t = 0$ and another particle at subsequent time $t$ \cite{EGELSTAFF, Hansen}.
 \begin{equation}
-\label{eq:fqt}
-F(k,t) = \frac{1}{N\langle b_{coh}\rangle^2} \left\langle \sum_{l=1}^{N}\sum_{l'=1}^{N} b_lb_{l'}\exp{\{-i\mathbf{k}\cdot[\mathbf{r}_l(t) - \mathbf{r}_{l'}(0)]}\}\right\rangle.
+	\label{eq:fqt}
+	F(k,t) = \frac{1}{N\langle b_{coh}\rangle^2} \left\langle \sum_{l=1}^{N}\sum_{l'=1}^{N} b_lb_{l'}\exp{\{-i\mathbf{k}\cdot[\mathbf{r}_l(t) - \mathbf{r}_{l'}(0)]}\}\right\rangle
+\end{equation} 
+The coherent dynamic structure factor, $S(k,E)$, which is directly measured by coherent inelastic neutron scattering experiments, and the $F(k,t)$ are Fourier pairs:
+\begin{equation}
+	S(k,E) = \frac{1}{2\pi} \int_{-\infty}^\infty F(k,t) e^{-iEt} dt
 \end{equation}  
 
-\subsection{Bond Order Parameter: $q_l(i,t)$, $\bar{q}_l(i,t)$, $Q_l(t)$} \label{sec::BOP}
-Bond Order Parameter is a quantity for measuring medium range order in a system.  $q$ is the bond order parameter for an individual atom, $Q$ is the system wide bond order parameter, $l$ is the order of the bond order parameter (typical values are 4 and 6), $i$ is the atom number, $t$ is the time.  This quantity cannot be compared to expirements but can be very useful for determining structural order and phases in a system.  The quantities are defined as below
-\begin{equation}
-q_{lm}(i,t) = \frac{1}{N(i)}\sum_{j=1}^{N(i)}Y_{lm}(\hat{r}_{ij}(t))
-\end{equation}
-where $m$ ranges from $-l$ to $l$, $N(i)$ is the number of nearest neighbors around atom $i$, and $Y_{lm}$ is the spherical harmonic of order $l$ and $m$, and $\hat{r}_{ij}$ is the unit vector between atom $i$ and $j$.  The unit vector can be converted to spherical coordinates which are required for the spherical harmonics
-\begin{equation}
-q_l(i,t) = \sqrt{\frac{4\pi}{2l+1} \sum_{m=-l}^l\left|q_{lm}(i,t)^2\right|}
-\end{equation}
-this is the bond order parameter per atom.
-\begin{equation}
-Q_{lm}(t) = \frac{\sum_{i=1}^NN(i)q_{lm}(i,t)}{\sum_{i=1}^NN(i)}
-\end{equation}
-where N is the number of atoms in the system.
-\begin{equation}
-Q_l(t) = \sqrt{\frac{4\pi}{2l+1} \sum_{m=-l}^l\left|Q_{lm}(t)^2\right|}
-\end{equation}
-This is the bond order parameter of the system
-\begin{equation}
-\bar{q}_{lm}(i,t) = \frac{1}{N(i)}\sum_{j=0}^{N(i)}q_{lm}(j,t)
-\end{equation}
-and 
-\begin{equation}
-\bar{q}_l(i,t) = \sqrt{\frac{4\pi}{2l+1} \sum_{m=-l}^l\left|\bar{q}_{lm}(i,t)^2\right|}
-\end{equation}
-this is the nearest neighbor averaged bond order parameter.  Lastly,
-\begin{equation}
-\bar{Q}_l(t) = Q_l(t)
-\end{equation}
-there is no difference between the system bond order parameter and the nearest neighbor averaged system bond order parameter.
-
 \section{Execution}
-\textit{LiquidLib} provides source code to several binaries.  Each binary is designed to calculate one quantity.  To calculate a quantity, one must provide an input file.  The input file contains all of the parameters, essential and optional, necessary for \textit{LiquidLib} to compute the respective quantity.  By default, \textit{LiquidLib} executables search the current directory for the input file with the abbreviation for the quantity with the file extension .in.  Similarly, when the quantity is written to file, the file is named by default the quantity abbreviation .txt, and is placed in the current directory.  The following list summarizes the default file names used.
+\textit{LiquidLib} provides several binaries, where each binary is designed to calculate one quantity. Each quantity requires an input file providing all essential and optional parameters.  If no file is provided, \textit{LiquidLib} searches the current directory for a default named input file.  Similarly, if no output path is provided, \textit{LiquidLib} uses a default path.  The following list summarizes the default input (.in) and output (.txt) file names.
 \begin{multicols}{2} \label{input_output}
 \begin{itemize}
 \item \textbf{Pair Distribution Function:}
@@ -291,7 +365,7 @@ This section of the manual describes the potential options that can be used in t
 	- [default: ``system'', optional]  Only useful for trajectories, where groups of atoms exists.  This parameter sets if the computation is performed on particular type(s) of atom from the whole system [default], or a sub group such as the solvent [solvent], or protein [protein] or, or non-solvent [non-solvent].
 	
 	\item[number$\_$of$\_$frames$\_$to$\_$average] \hfill \\
-	- [default: 1, optional] This parameter sets the number of frames that will be used to average with.  For example, if set to N frames, this quantity will use N unique frames to compute the value of the static quantities, i.e. will use N frames to calculate the radial distribution function.  Or, for dynamic quantites, N frames will be used to average the value at every time point, i.e. N frames will be used to average the mean squared displacement at each time point $t$.
+	- [default: 1, optional] This parameter sets the number of frames that will be used to average with.  For example, if set to N frames, this quantity will use N unique frames to compute the value of the static quantities, i.e. will use N frames to calculate the radial distribution function.  Or, for dynamic quantities, N frames will be used to average the value at every time point, i.e. N frames will be used to average the mean squared displacement at each time point $t$.
 	
 	\item[output$\_$precision] \hfill \\
 	- [default: 15, optional] This parameter sets the scientific precision of the output file.
@@ -308,32 +382,38 @@ User can input two atom types using the \textbf{atom$\_$types1} and \textbf{atom
 	\item[atom$\_$types2] \hfill \\
 	- [default: empty, mandatory] The parameter sets the second types being studied.  If this parameter is not set, the program requires atom types to be provided in order for computation to proceed.
 	
-	\item[atom$\_$group] \hfill \\
+	\item[atom$\_$group1] \hfill \\
 	- [default: ``system'', optional] This parameter can be set if user wants only the atomtype to be from a sub-group solvent[solvent].  The options available are system, solvent, and non-solvent
 	
 	\item[atom$\_$group2] \hfill \\
 	- [default: equal to atomgroup, optional] This parameter can be set if user wants only the atomtype2 to be from a sub-group solvent[solvent].  The options available are system, solvent, and non-solvent
+	
+	\item[scattering$\_$lengths1] \hfill \\
+	- [default: 1, optional] This sets the scattering lengths for the atom types request from atom$\_$types1.  The order of the scattering lengths must be provided in the same order as the atom$\_$types1 were in order for the scattering lengths to be paired correctly to their corresponding atom type. 
 		
+	\item[scattering$\_$lengths2] \hfill \\
+	- [default: 1, optional] This sets the scattering lengths for the atom types request from atom$\_$types2.  The order of the scattering lengths must be provided in the same order as the atom$\_$types2 were in order for the scattering lengths to be paired correctly to their corresponding atom type. 
+	
 	\item[number$\_$of$\_$bins] \hfill \\
 	- [default: 200, optional] This value sets the number of spatial ($|r|$) bins used between 0 and maxcutofflength.
 	
 	\item[max$\_$cutoff$\_$length] \hfill \\
 	- [default: half of the smallest box side] This value sets the max $|r|$ used for g(r).  By default this value will be set to the smallest boxlength in any dimension.  If a max value greater than half the smallest boxlength is provided, the value will be reset to the half the smallest boxlength as spatial correlations for values of $|r|$ greater than half of box length cannot be accurately determined and thus should not be used.
 	
+	\item[boxlength] \hfill \\
+	- [default: read from file] This parameter is for file types that do not contain box information. For file types such as .trr, this will be read from the file. 
+	
 \end{description}
 
 
 \subsection{Structure Factor: $S(k)$} \label{sec::sofk_parm}
-User can input selected atom types using only the \textbf{atom$\_$types} parameter.  Scattering lengths can be provided in the same order of atom types in order to compute the total structure factor comparable to experiments.
+User can input selected atom types using only the \textbf{atom$\_$types} parameter.  Scattering lengths can be provided in the same order of atom types in order to compute the total structure factor comparable to experiments. Structure Factor is now computed with fixed k vectors based on multiples of the box.
 \begin{description}		
 	\item[k$\_$start$\_$index] \hfill \\
 	- [default: 0, optional] This value determines the first multiple of $\delta k$ used, where $\delta k = 2*\pi/\textbf{boxlength}$.  
 		
 	\item[number$\_$of$\_$bins] \hfill \\
-	- [default: 50, optional] This sets the number of multiples of $\delta k$ where structure factor will be computed starting from k$\_$start$\_$index and ending at k$\_$start$\_$index + number$\_$of$\_$bins. 
-	
-	\item[number$\_$of$\_$kvectors] \hfill \\
-	- [default: 1, optional] This value sets the number of directional \textbf{k} vectors sampled for every value of $|\bm{k}|$.  
+	- [default: 50, optional] This sets the number of multiples of $\delta k$ where structure factor will be computed starting from k$\_$start$\_$index and ending at k$\_$start$\_$index + number$\_$of$\_$bins.  
 
 \end{description}
 
@@ -549,7 +629,7 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	This occurs usually when the number of frames needed to be read exceeds the number of frames in the trajectory file.  If this occurs check the values of endframe, startframe, and numberofframestoaverage to see that they do not add to a value in excess of the number of frames in the trajectory.
 	
 	\item[ERROR: The amount of memory to store all of the frames exceeds memory allotment] \hfill \\
-	There is currently no fix to this problem other then to decrease the number of frames you are attempting to read in from a trajectory file and use for the computation.  Improvements for reading very large trajectory files will be made in future releases to mitigate such memory issues.
+	There is currently no fix to this problem other then to decrease the number of frames you are attempting to read in from a trajectory file and use for the computation. To help with this, the development version of LiquidLib can be used. 
 	
 	\item[ERROR: Input file location, BLANK does not exist, please check input] \hfill \\
 	The input file provided at the command line does not exist.  Most likely this is an incorrect path problem.
@@ -577,5 +657,11 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	
 	
 \end{description}
+
+\section*{Acknowledgments}
+This work is supported by the U.S. Department of Energy, Office of Science, Office of Basic Energy Sciences, Materials Sciences and Engineering Division, under Award Number DE-SC-0014804.
+
+\bibliographystyle{elsarticle-num}
+\bibliography{LiquidLib.bib}
 
 \end{document}
