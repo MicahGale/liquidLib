@@ -465,7 +465,7 @@ def write_trajectory_options(input_file):
         input_file.write("trajectory_delta_time  = " + str(timestep_value.get()) + "\n")
 
     if boxlength_value.get() != "":
-        input_file.write("boxlength  = " + str(timestep_value.get()) + "\n")
+        input_file.write("boxlength  = " + str(boxlength_value.get()) + "\n")
     
     input_file.write("dimension              = " + str(dimension_value.get()) + "\n")
     if outputfile_value.get() == "":

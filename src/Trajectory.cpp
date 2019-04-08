@@ -983,8 +983,6 @@ void Trajectory::read_xyz_file()
             }
         }
     }
-    cout << "hello" << endl;
-
     trajectory_file.close();
 }
 
