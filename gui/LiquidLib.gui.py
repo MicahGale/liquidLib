@@ -216,6 +216,10 @@ def hide_trajectory_widgets():
     timestep_label.pack_forget()
     timestep_value.pack_forget()
     
+    boxlength_frame.pack_forget()
+    boxlength_label.pack_forget()
+    boxlength_value.pack_forget()
+    
     gro_frame.pack_forget()
     gro_label.pack_forget()
     gro_value.pack_forget()
@@ -357,6 +361,11 @@ def show_trajectory_options():
     timestep_value.configure(width = 40)
     timestep_value.pack(side = Tkinter.LEFT)
     
+    boxlength_frame.pack()
+    boxlength_label.pack(side = Tkinter.LEFT)
+    boxlength_value.configure(width = 40)
+    boxlength_value.pack(side = Tkinter.LEFT)
+    
     dimension_frame.pack()
     dimension_label.pack(side = Tkinter.LEFT)
     dimension_value.configure(width=39)
@@ -454,7 +463,10 @@ def write_trajectory_options(input_file):
     input_file.write("end_frame              = " + str(endframe_value.get()) + "\n")
     if timestep_value.get() != "":
         input_file.write("trajectory_delta_time  = " + str(timestep_value.get()) + "\n")
-        
+
+    if boxlength_value.get() != "":
+        input_file.write("boxlength  = " + str(timestep_value.get()) + "\n")
+    
     input_file.write("dimension              = " + str(dimension_value.get()) + "\n")
     if outputfile_value.get() == "":
         input_file.write("output_file_name       = output.out\n")
@@ -650,6 +662,10 @@ timestep_frame = Tkinter.Frame(top)
 timestep_label = Tkinter.Label(timestep_frame, text = "Trajectory Time Step", width = 20, justify = Tkinter.LEFT, anchor = Tkinter.W)
 timestep_value = Tkinter.Entry(timestep_frame, bd = 5)
 
+boxlength_frame = Tkinter.Frame(top)
+boxlength_label = Tkinter.Label(boxlength_frame, text = "boxlength (x y z)", width = 20, justify = Tkinter.LEFT, anchor = Tkinter.W)
+boxlength_value = Tkinter.Entry(boxlength_frame, bd = 5)
+
 gro_frame = Tkinter.Frame(top)
 gro_label = Tkinter.Label(gro_frame, text = "Gro File (optional)", width = 20, justify = Tkinter.LEFT, anchor=Tkinter.W)
 gro_value = Tkinter.Entry(gro_frame, bd = 5)
@@ -703,7 +719,7 @@ timepoints_frame = Tkinter.Frame(top)
 timepoints_label = Tkinter.Label(timepoints_frame, text = "Number of Output\nTime Points", width = 20, justify = Tkinter.LEFT, anchor = Tkinter.W)
 timepoints_value = Tkinter.Spinbox(timepoints_frame, from_ = 1, to_ = 10**10)
 timepoints_value.delete(0,"end")
-timepoints_value.insert(0,100)
+#timepoints_value.insert(0,100)
 
 timescale = Tkinter.StringVar(top)
 timescale.set("linear")
