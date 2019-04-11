@@ -48,12 +48,12 @@
 \textit{LiquidLib} is an open source code and is published under the GNU Lesser General Public License.  The core contributors are Zhikun Cai, Abhishek Jaiswal, Nathan Walter, and Yang Zhang.   
 \\
 \\
-If you distribute a modified code or release any of the source code that includes \textit{LiquidLib} source files then it must also be open sourced.  Anyone is free to use modify or extend.  This has been a joint effort by Zhang research group at University of Illinois at Champaign-Urbana.  More information can be found at \url{http://zhang.npre.illinois.edu/}.  Contact information for any of the contributors can also be found at the former address. Any issues, bugs, or other related material can be sent to us via our contact information listed on the group webpage.
+If you distribute a modified code or release any of the source code that includes \textit{LiquidLib} source files then it must also be open sourced.  Anyone is free to use modify or extend.  This has been a joint effort by Z Lab at University of Illinois at Champaign-Urbana.  More information can be found at \url{http://zhang.npre.illinois.edu/}.  Contact information for any of the contributors can also be found at the former address. Any issues, bugs, or other related material can be sent to us via our contact information listed on the group webpage or on Github directly.
 \\
 \\
 Please cite the following reference:
 \begin{itemize}
-	\item N. P. Walter, A. Jaiswal, Z. Cai, and Y. Zhang, “LiquidLib: A comprehensive toolbox for analyzing classical and ab initio molecular dynamics simulations of liquids and liquid-like matter with applications to neutron scattering experiments,” Comput. Phys. Commun., vol. 228, pp. 209–218, 2018. \url{https://www.sciencedirect.com/science/article/pii/S0010465518300778} 
+	\item N. P. Walter, A. Jaiswal, Z. Cai, and Y. Zhang, “LiquidLib: A comprehensive toolbox for analyzing classical and ab initio molecular dynamics simulations of liquids and liquid-like matter with applications to neutron scattering experiments,” Comput. Phys. Commun., vol. 228, pp. 209–218, 2018. \href{https://doi.org/10.1016/j.cpc.2018.03.005}{DOI}
 \end{itemize}
 
 \section{Installation}
@@ -74,7 +74,7 @@ To make a GROMACS compatible build, open Makefile and in the optional components
 Once libxdrfile.a and xdrfile.h, xdrfile$\_$trr.h, and xdrfile$\_$xtc.h have been installed, open the \textit{LiquidLib} Makefile, and edit the lines contained in the comment section for the GROMACS build.  For compiling, the libxdrfile.a and xdrfile.h, xdrfile$\_$trr.h, and xdrfile$\_$xtc.h headers can be placed inside of the \textit{LiquidLib} include directory, or you can specify the location inside of the Makefile.  Recompile LiquidLib and the binaries should be compatible with GROMACS.
 \\
 \\
-To build parallelized OpenMP support, open Makefile in a text editor and in the optional components section change ``USE$\_$OMP" to "yes.  This will add the apporpriate flags for \textit{LiquidLib} to be built with OpenMP support included.  Recompile the program thereafter.
+To build parallelized OpenMP support, open Makefile in a text editor and in the optional components section change ``USE$\_$OMP" to "yes.  This will add the appropriate flags for \textit{LiquidLib} to be built with OpenMP support included.  This works for gcc and g++. If you use a different c complier, please also make sure the appropriate complier flags are added to CFLAGS. Recompile the program thereafter.
 \\
 \\
 In order for the bond order parameter calculation to be performed, \textit{LiquidLib} requires either Boost or GSL to be installed.  Once one of these has been installed, in the makefile switch either USE$\_$BOOST or USE$\_$GSL to ``yes," if both are set to yes, then GSL will be used with priority.
@@ -298,7 +298,7 @@ The coherent dynamic structure factor, $S(k,E)$, which is directly measured by c
 \item \textbf{Coherent Intermediate Scattering Function:}
 \\F$\_$kt.in
 \\F$\_$kt.txt
-\item \textbf{Bond Order Paramter:}
+\item \textbf{Bond Order Parameter:}
 \\BOP.in
 \\BOP.txt
 \end{itemize}
@@ -338,7 +338,7 @@ This section of the manual describes the potential options that can be used in t
 	- [default: 3, optional] This value determines the dimension of the trajectory.  LAMMPS can provide 2-d and 3-d trajectories.  GROMACS and VASP can provide 3-d trajectories.  However, \textit{LiquidLib} is capable of calculating the quantities in any finite dimension when supplied with a such a trajectory, such as the trajectories created by our groups' any dimensional md package. 
 	
 	\item[trajectory$\_$delta$\_$time] \hfill \\
-	- [default: 1, optional] This value determines the $\Delta t$ between frames in the trajectory.  For GROMACS, this value can be determined from the trajectory file.  However, for other programs, such as LAMMPS, VASP, or other trajectory sources, this parameter is not determined automatically from the trajectory.  Thus, for time dependent quantites, such as mean squared displacement or intermediate structure factor, the trajectory $\Delta t$ is required for proper output time$\_$scale provided by user.  If this parameter is not provided, the time step will be set to 1 (a.u.), or equivalently 1 step. 
+	- [default: 1, optional] This value determines the $\Delta t$ between frames in the trajectory.  For GROMACS, this value can be determined from the trajectory file.  However, for other programs, such as LAMMPS, VASP, or other trajectory sources, this parameter is not determined automatically from the trajectory.  Thus, for time dependent quantities, such as mean squared displacement or intermediate structure factor, the trajectory $\Delta t$ is required for proper output time$\_$scale provided by user.  If this parameter is not provided, the time step will be set to 1 (a.u.), or equivalently 1 step. 
 	
 	\item[output$\_$file$\_$name] \hfill \\
 	- [default: see \hyperref[input_output]{here} for defaults, optional] This value sets the name and location for the output data to be written to.  Only condition on the location of outputfile is the directory must exist prior to execution as \textit{LiquidLib} will not create the directory.
@@ -347,19 +347,19 @@ This section of the manual describes the potential options that can be used in t
 	- [\textbf{mandatory}] This option sets the name and location of the trajectory file.  As of now, the only file types that are recognized for reading the trajectory are .trr, .xtc, .xyz, .dump, .atom, and XDATCAR.  dump and atom extensions are for LAMMPS trajectories and XDATCAR is for VASP.  .trr and .xtc can only be read if \textit{LiquidLib} is built in GROMACS compatible mode.
 	
 	\item[trajectory$\_$file$\_$type] \hfill \\
-	- [optional] This option can be set to ``abc'' in order to signal to the program that a ABC trajectory is being read in.  ABC trajetories are produced by a module created in GROMACS by our research group.  ABC is also only usable with bond order parameter, since there is no time in ABC trajectories.
+	- [optional] This option can be set to ``abc'' in order to signal to the program that a ABC trajectory is being read in.  ABC trajectories are produced by a module created in GROMACS by our research group.  ABC is also only usable with bond order parameter, since there is no time in ABC trajectories.
 	
 	\item[trajectory$\_$data$\_$type] \hfill \\
 	- [default: coordinate, optional] This sets the type of information that will be read from the trajectory file.  For .trr files, this will change how the file is read.  This needs to be set to velocity for VACF.  
 	
 	\item[gro$\_$file$\_$name] \hfill \\
-	- [\textbf{Conditionally Required in GROMACS mode}] This sets the name and location of the .gro file for GROMACS trajectories.  This is needed to determine the atom types and groups in the system.  If the trajectory is monatomic or one wishes to compute a quantity for the entire system, this does not need to be provided.  However, if the user wants to compute a quantity for a specific atom type or group from a GROMACS trajectory, this is required.
+	- [\textbf{Conditionally Required in GROMACS mode}] This sets the name and location of the .gro file for GROMACS trajectories.  This is needed to determine the atom types and groups in the system.  If the trajectory is monoatomic or one wishes to compute a quantity for the entire system, this does not need to be provided.  However, if the user wants to compute a quantity for a specific atom type or group from a GROMACS trajectory, this is required.
 	
 	\item[atom$\_$types] \hfill \\
 	- [default: empty, mandatory]  This sets the type of atom that will be focused on for the computation.  For example, if user wishes to compute the mean squared displacement of only hydrogen this can be set to H.   The atom$\_$type value should be compatible with the types used in trajectory file. Can be a letter for GROMACS,  VASP,  LAMMPS trajectories, or a number for LAMMPS trajectories.  We now support multiple atom types, for example a user may request both Hydrogen and Oxygen by specifying HW OW
 	
 	\item[scattering$\_$lengths] \hfill \\
-	- [default: 1, optional] This sets the scattering lengths for the atom types request from atom$\_$types.  The order of the scattering lengths must be provided in the same order as the atom types were in order for the scattering lengths to be paired correctly to their corresponding atom type.  This parameter is used for weighting quanities based on the scattering lengths so that the quantity is more readily comparable to scattering experiments.
+	- [default: 1, optional] This sets the scattering lengths for the atom types request from atom$\_$types.  The order of the scattering lengths must be provided in the same order as the atom types were in order for the scattering lengths to be paired correctly to their corresponding atom type.  This parameter is used for weighting quantities based on the scattering lengths so that the quantity is more readily comparable to scattering experiments.
 	
 	\item[atom$\_$group] \hfill \\
 	- [default: ``system'', optional]  Only useful for trajectories, where groups of atoms exists.  This parameter sets if the computation is performed on particular type(s) of atom from the whole system [default], or a sub group such as the solvent [solvent], or protein [protein] or, or non-solvent [non-solvent].
@@ -369,6 +369,9 @@ This section of the manual describes the potential options that can be used in t
 	
 	\item[output$\_$precision] \hfill \\
 	- [default: 15, optional] This parameter sets the scientific precision of the output file.
+	
+	\item[boxlength] \hfill \\
+	- [optional] This parameter takes three values x, y, z to indicate the box lengths of the simulation. This property can be inferred from many trajectory types, such as .xtc or .trr, but for many other types, such as .xyz or XDATCAR, this value should be set to get exact computation.
 	
 	
 \end{description}
@@ -398,7 +401,7 @@ User can input two atom types using the \textbf{atom$\_$types1} and \textbf{atom
 	- [default: 200, optional] This value sets the number of spatial ($|r|$) bins used between 0 and maxcutofflength.
 	
 	\item[max$\_$cutoff$\_$length] \hfill \\
-	- [default: half of the smallest box side] This value sets the max $|r|$ used for g(r).  By default this value will be set to the smallest boxlength in any dimension.  If a max value greater than half the smallest boxlength is provided, the value will be reset to the half the smallest boxlength as spatial correlations for values of $|r|$ greater than half of box length cannot be accurately determined and thus should not be used.
+	- [default: half of the smallest box side] This value sets the max $|r|$ used for g(r).  By default this value will be set to the smallest box length in any dimension.  If a max value greater than half the smallest box length is provided, the value will be reset to the half the smallest box length as spatial correlations for values of $|r|$ greater than half of box length cannot be accurately determined and thus should not be used.
 	
 	\item[boxlength] \hfill \\
 	- [default: read from file] This parameter is for file types that do not contain box information. For file types such as .trr, this will be read from the file. 
@@ -428,7 +431,7 @@ The binary to compute Mean Squared Displacement is /bin/computeMeanSquaredDispla
 	- [default: linear, optional] This can be set to ``linear'' or ``log''.  This sets the time scale of the output. Mean squared displacement can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps).
 	
 	\item[frame$\_$interval] \hfill \\
-	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater than or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a timestep of .1 ps, and you wish for the mean squared displacement to be computed every .2 ps, this value should be set to 2. 
+	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater than or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a time step of .1 ps, and you wish for the mean squared displacement to be computed every .2 ps, this value should be set to 2. 
 	
 	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the mean squared displacement.  For example, if this value is set to 1.5, then the mean squared displacement will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
 	
@@ -448,7 +451,7 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	- [default: linear, optional] This can be set to ``linear'' or ``'log''.  This sets the time scale of the output. Non-Gaussian parameter can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps).
 	
 	\item[frame$\_$interval] \hfill \\
-	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a timestep of .1 ps, and you wish for the non-Gaussian parameter to be computed every .2 ps, this value should be set to 2. 
+	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a time step of .1 ps, and you wish for the non-Gaussian parameter to be computed every .2 ps, this value should be set to 2. 
 	
 	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the non-Gaussian parameter.   For example, if this value is set to 1.5, then the non-Gaussian parameter will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
 	
@@ -465,7 +468,7 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	- [default: linear, optional] This can be set to ``linear'' or ``'log''.  This sets the time scale of the output, four point correlation function can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps).
 	
 	\item[frame$\_$interval] \hfill \\
-	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a timestep of .1 ps, and you wish for the four point correlation function to be computed every .2 ps, this value should be set to 2. 
+	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a time step of .1 ps, and you wish for the four point correlation function to be computed every .2 ps, this value should be set to 2. 
 	
 	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the four point correlation function.  For example, if this value is set to 1.5, then the four point correlation function will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
 	
@@ -483,7 +486,7 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	- [default: linear, optional] This can be set to ``linear'' or ``'log''.  This sets the time scale of the output. Velocity auto-correlation can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps). We recommend usage of linear scale for future Fourier transform needs.
 	
 	\item[frame$\_$interval] \hfill \\
-	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a timestep of .1 ps, and you wish for the velocity auto-correlation function to be computed every .2 ps, this value should be set to 2. 
+	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a time step of .1 ps, and you wish for the velocity auto-correlation function to be computed every .2 ps, this value should be set to 2. 
 	
 	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the velocity auto-correlation function.  For example, if this value is set to 1.5, then the velocity auto-correlation will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
 	
@@ -500,7 +503,7 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	- [default: linear, optional] This can be set to ``linear'' or ``'log''.  This sets the time scale of the output. Self van Hove correlation can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps).
 	
 	\item[frame$\_$interval] \hfill \\
-	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a timestep of .1 ps, and you wish for the self van Hove correlation function to be computed every .2 ps, this value should be set to 2. 
+	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a time step of .1 ps, and you wish for the self van Hove correlation function to be computed every .2 ps, this value should be set to 2. 
 	
 	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the self van Hove correlation function.   For example, if this value is set to 1.5, then the self van Hove correlation will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
 	
@@ -508,7 +511,7 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	- [default: 200, optional] This value determines the number of spatial ($|r|$) bins used between 0 and max$\_$cutoff$\_$length to sample the self van hove correlation.
 	
 	\item[max$\_$cutoff$\_$length] \hfill \\
-	- [default: half of the smallest box side] This value sets the max $|r|$ used for g(r).  By default this value will be set to the smallest boxlength in any dimension.  If a max value greater than half the smallest boxlength is provided, the value will be reset to the half the smallest boxlength as spatial correlations for values of $|r|$ greater than half of box length cannot be accurately determined and thus should not be used.
+	- [default: half of the smallest box side] This value sets the max $|r|$ used for g(r).  By default this value will be set to the smallest box length in any dimension.  If a max value greater than half the smallest box length is provided, the value will be reset to the half the smallest box length as spatial correlations for values of $|r|$ greater than half of box length cannot be accurately determined and thus should not be used.
 \end{description}
 
 
@@ -522,7 +525,7 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	- [default: linear, optional] This can be set to ``linear'' or ``'log''.  This sets the time scale of the output. Self van Hove correlation can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps).
 	
 	\item[frame$\_$interval] \hfill \\
-	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a timestep of .1 ps, and you wish for the self van Hove correlation function to be computed every .2 ps, this value should be set to 2. 
+	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a time step of .1 ps, and you wish for the self van Hove correlation function to be computed every .2 ps, this value should be set to 2. 
 	
 	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the self van Hove correlation function.   For example, if this value is set to 1.5, then the self van Hove correlation will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
 	
@@ -530,7 +533,7 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	- [default: 200, optional] This value determines the number of spatial ($|r|$) bins used between 0 and max$\_$cutoff$\_$length to sample the self van hove correlation.
 	
 	\item[max$\_$cutoff$\_$length] \hfill \\
-	- [default: half of the smallest box side] This value sets the max $|r|$ used for g(r).  By default this value will be set to the smallest boxlength in any dimension.  If a max value greater than half the smallest boxlength is provided, the value will be reset to the half the smallest boxlength as spatial correlations for values of $|r|$ greater than half of box length cannot be accurately determined and thus should not be used.
+	- [default: half of the smallest box side] This value sets the max $|r|$ used for g(r).  By default this value will be set to the smallest box length in any dimension.  If a max value greater than half the smallest box length is provided, the value will be reset to the half the smallest box length as spatial correlations for values of $|r|$ greater than half of box length cannot be accurately determined and thus should not be used.
 \end{description}
 
 
@@ -544,7 +547,7 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	- [default: linear, optional] This can be set to ``linear'' or ``'log''.  This sets the time scale of the output. Self intermediate scattering function can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps).
 	
 	\item[frame$\_$interval] \hfill \\
-	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a timestep of .1 ps, and you wish for the self intermediate scattering function to be computed every .2 ps, this value should be set to 2. 
+	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a time step of .1 ps, and you wish for the self intermediate scattering function to be computed every .2 ps, this value should be set to 2. 
 	
 	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the self intermediate scattering function.  For example, if this value is set to 1.5, then the self intermediate scattering function will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
 	
@@ -566,7 +569,7 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	- [default: linear, optional] This can be set to ``linear'' or ``'log''.  This sets the time scale of the output. Self intermediate scattering function can either be computed in linear scale or log scale, log scale allows for a quicker calculation if the trajectory is very long (i.e. longer than 10000 time steps).
 	
 	\item[frame$\_$interval] \hfill \\
-	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a timestep of .1 ps, and you wish for the self intermediate scattering function to be computed every .2 ps, this value should be set to 2. 
+	- [default: 1, optional] This value has two meanings.  If the time$\_$scale is is set to ``linear'', this value should be an integer greater to or equal to 1, and sets how many time steps between each data point to skip.  For example, if the trajectory has a time step of .1 ps, and you wish for the self intermediate scattering function to be computed every .2 ps, this value should be set to 2. 
 	
 	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the self intermediate scattering function.  For example, if this value is set to 1.5, then the self intermediate scattering function will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$.
 	
@@ -594,10 +597,10 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	- If the time$\_$scale is set to ``log'', this value determines the base of the scaling for calculating the self intermediate scattering function.  For example, if this value is set to 1.5, then the self intermediate scattering function will be computed at nearest rounded integer time points 0, 1.5$^0$(1), 1.5$^1$(2), 1.5$^2$(2), 1.5$^3$(3), ... , 1.5$^{n}$. 
 	
 	\item[is$\_$averaged] \hfill \\
-	- [default: no, optional]  This is a boolean value.  Availble options include, no, yes, false, true, or a integer numeric.  0 is considered false, and any other numerical value is considered true.  This value determines whether the bond order parameter is calculated per atom or per the system.  If false, the bond order parameter is calculated for each atom, if true the bond order parameter is calculated for the system at each frame.
+	- [default: no, optional]  This is a boolean value.  Available options include, no, yes, false, true, or a integer numeric.  0 is considered false, and any other numerical value is considered true.  This value determines whether the bond order parameter is calculated per atom or per the system.  If false, the bond order parameter is calculated for each atom, if true the bond order parameter is calculated for the system at each frame.
 	
 	\item[add$\_$bar] \hfill \\
-	- [default: no, optional] This is a boolean value.  Availble options include, no, yes, false, true, or a integer numeric.  0 is considered false, and any other numerical value is considered true.  This value determines whether the bond order parameter is calculated or if the nearest neighbor averaged bond order parameter is calculated.  If false, the bond order parameter is calculated.  If true, the nearest neighbor averaged bond order parameter is calculated.
+	- [default: no, optional] This is a boolean value.  Available options include, no, yes, false, true, or a integer numeric.  0 is considered false, and any other numerical value is considered true.  This value determines whether the bond order parameter is calculated or if the nearest neighbor averaged bond order parameter is calculated.  If false, the bond order parameter is calculated.  If true, the nearest neighbor averaged bond order parameter is calculated.
 	
 	\item[bond$\_$parameter$\_$order] \hfill \\
 	- [required] This value sets the order, $l$, of the bond order parameter.  A non-negative integer is required for this option.  This determines if say $q_6$ or $q_4$ is calculated
@@ -617,7 +620,7 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	This means that the .gro file provided in the input file failed to be opened.  Most likely this means the path was incorrectly provided, there is read protection on the file that prevents opening, or an incompatible file type was provided..
 	
 	\item[ERROR: .trr files are not compatible in non GROMACS compatible version of LiquidLib.] \hfill \\
-	This means that a .trr or .xtc trajectory file was provided but \textit{LiquidLib} was not built with the neccessary header files and library provided.  If you attempted to build a GROMACS version and still obtained this error, this means that the paths provided in the Makefile are most likely incorrect and should be checked.
+	This means that a .trr or .xtc trajectory file was provided but \textit{LiquidLib} was not built with the necessary header files and library provided.  If you attempted to build a GROMACS version and still obtained this error, this means that the paths provided in the Makefile are most likely incorrect and should be checked.
 	
 	\item[ERROR: The trajectory file type: .EXTENSION does not match any known type] \hfill \\
 	At this time, only .xtc, .trrm ,xyz, .dump, .atom, and XDATCAR files can be provided.  We use these extensions to determine how to read in the trajectory, so we require this extension type.  We plan to expand on this option in future releases.
@@ -647,13 +650,13 @@ User can input selected atom types using only the \textbf{atom$\_$types} paramet
 	This means one of the options in the input file does not match one of our check variables for the given quantity.  Most likely this would result from a typo or a case inconsistency, remember program requires use of all lower case letters. 
 	
 	\item[WARNING: time step of simulation could not be derived from trajectory] \hfill \\
-	This merely means that the time step was not provided in the input file and could not be extracted from the trajectory, thus program will set the trajectory $\Delta t$ to 1 arbitrary step or a.u.  This warning is to inform the user to be cautious with the output since the units are arbritary.
+	This merely means that the time step was not provided in the input file and could not be extracted from the trajectory, thus program will set the trajectory $\Delta t$ to 1 arbitrary step or a.u.  This warning is to inform the user to be cautious with the output since the units are arbitrary.
 	
 	\item[WARNING: number of frames required is greater then the number supplied] \hfill \\
 	This means that the number of frames needed to compute the numberoftimepoints specified is greater than that given by frameend and framestart. Thus program will change the value of endframe to allow for the necessary number of frames.  Note this may still lead to needing more frames then are in the trajectory and thus an error will be thrown in this instance.
 	
 	\item[WARNING: max cutoff is greater than half of the boxlength] \hfill \\
-	The pair distribution function cannot be computed for values of $|r|$ greater than half the boxlength, the statistics are not accurate past this point.  Thus program will reset the maxcutoff to be half of the smallest boxlength of all dimensions.
+	The pair distribution function cannot be computed for values of $|r|$ greater than half the box length, the statistics are not accurate past this point.  Thus program will reset the maxcutoff to be half of the smallest box length of all dimensions.
 	
 	
 \end{description}
