@@ -52,6 +52,9 @@ include/xdrfile/
 *.log
 *.out
 *.gz
+*.bbl
+*.blg
+*.synctex.*
 
 # ignore xcode 
 DerivedData/
