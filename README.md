@@ -1,5 +1,8 @@
 # LiquidLib
 
+## Note 
+This is a copy of [liquidLib by Z lab](https://z-laboratory.github.io/LiquidLib/) program, which is licensed under the LGPL v. 3, and partially the MIT license. This conveyance is permitted by section 4 of the GPL v. 3, which is not altered by the LGPL v. 3. I apoligize this copy isn't actively maintained as I have not been permitted access to the main repository of this  austenisbly "Free Software". If this affront to the principles of Free Software bothers you consider reaching out to the Z Lab developers listed below. 
+
 ## Purpose
 A comprehensive toolbox for analyzing classical and ab initio molecular dynamics simulations of liquids and liquid-like matter with applications to neutron scattering experiments
 
