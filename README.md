@@ -32,7 +32,7 @@ And provides the further quantities in developed post publication:
 * Electric Current Correlation Function
 * Trajectory Type Converter
 
-Since the publication of the original LiquidLib, we have also added options for negative k vectors in k space quantities, progressive trajectory reading for memory limited computers or extremely large trajectories, a gui for easy input script construction, and fixed several bugs. These additions will be published in an extension paper soon and can currently be found in the develop branch on github.
+Since the publication of the original LiquidLib, they have also added options for negative k vectors in k space quantities, progressive trajectory reading for memory limited computers or extremely large trajectories, a gui for easy input script construction, and fixed several bugs. These additions will be published in an extension paper soon and can currently be found in the develop branch on github.
 
 ## Reference
 if used, please cite the following reference:
@@ -40,7 +40,7 @@ if used, please cite the following reference:
 * N. P. Walter, A. Jaiswal, Z. Cai, and Y. Zhang, “LiquidLib: A comprehensive toolbox for analyzing classical and ab initio molecular dynamics simulations of liquids and liquid-like matter with applications to neutron scattering experiments,” Comput. Phys. Commun., vol. 228, pp. 209–218, 2018.
 
 ## Contact
-This project is developed and maintained by Z Lab. Developers to this project were made by:
+This project is developed and maintained by Z Lab. Developments to this project were made by:
 
 * Nathan Walter (@walternathan6754)
 * Zhikun Cai (@caizkun)
@@ -50,4 +50,4 @@ This project is developed and maintained by Z Lab. Developers to this project we
 Previous developers
 * Abhishek Jaiswal (@jaisabhi)
 
-For obtaining user support please contact us at Z Lab.
+For obtaining user support please contact them at Z Lab
