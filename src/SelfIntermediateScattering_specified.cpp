@@ -1,7 +1,8 @@
 //
 //  SelfIntermediateScattering.cpp
 //
-//  Copyright (c) 2015 Zhang-Group. All rights reserved.
+//  Copyright  2015 Zhang-Group, 2020 Micah Gale.
+//  All rights reserved.
 //  This software is distributed under the MIT license
 //  -----------------------------------------------------
 //  Contributing authors: Zhikun Cai,
@@ -76,6 +77,7 @@ void SelfIntermediateScattering::read_command_inputs(int argc, char * argv[])
         cerr << "\nERROR: Unrecognized flag '" << argv[input] << "' from command inputs.\n";
         exit(1);
     }
+    // mgale TODO grab the inputs
 }
 
 
@@ -120,22 +122,22 @@ void SelfIntermediateScattering::read_input_file()
             }
             continue;
         }
-		if (input_word == "is_wrapped") {
+	if (input_word == "is_wrapped") {
+		input_file >> input_word;
+		if (input_word[0] == '=') {
 			input_file >> input_word;
-			if (input_word[0] == '=') {
-				input_file >> input_word;
-			}
-			if (input_word == "true" || input_word == "yes") {
-				is_wrapped_ = true;
-			}
-			else if(input_word == "false" || input_word == "no") {
-				is_wrapped_ = false;
-			}
-			else {
-				is_wrapped_ = stoi(input_word);
-			}
-			continue;
 		}
+		if (input_word == "true" || input_word == "yes") {
+			is_wrapped_ = true;
+		}
+		else if(input_word == "false" || input_word == "no") {
+			is_wrapped_ = false;
+		}
+		else {
+			is_wrapped_ = stoi(input_word);
+		}
+		continue;
+	}
 		
 		//check if equal to member strings
         if (input_word == "output_file_name") {
@@ -294,40 +296,40 @@ void SelfIntermediateScattering::read_input_file()
             delta_k_ = stod(input_word);
             continue;
         }
-		if (input_word ==  "number_of_time_points") {
+	if (input_word ==  "number_of_time_points") {
+		input_file >> input_word;
+		if (input_word[0] == '=') {
 			input_file >> input_word;
-			if (input_word[0] == '=') {
-				input_file >> input_word;
-			}
-			number_of_time_points_ = stoi(input_word);
-			continue;
 		}
-		if (input_word == "number_of_frames_to_average") {
+		number_of_time_points_ = stoi(input_word);
+		continue;
+	}
+	if (input_word == "number_of_frames_to_average") {
+		input_file >> input_word;
+		if (input_word[0] == '=') {
 			input_file >> input_word;
-			if (input_word[0] == '=') {
-				input_file >> input_word;
-			}
-			number_of_frames_to_average_ = stoi(input_word);
-			continue;
 		}
+		number_of_frames_to_average_ = stoi(input_word);
+		continue;
+	}
 
-		//check if equal to member doubles
-		if (input_word == "frame_interval") {
+	//check if equal to member doubles
+	if (input_word == "frame_interval") {
+		input_file >> input_word;
+		if (input_word[0] == '=') {
 			input_file >> input_word;
-			if (input_word[0] == '=') {
-				input_file >> input_word;
-			}
-			frame_interval_ = stod(input_word);
-			continue;
 		}
-		if (input_word == "trajectory_delta_time") {
+		frame_interval_ = stod(input_word);
+		continue;
+	}
+	if (input_word == "trajectory_delta_time") {
+		input_file >> input_word;
+		if (input_word[0] == '=') {
 			input_file >> input_word;
-			if (input_word[0] == '=') {
-				input_file >> input_word;
-			}
-			trajectory_delta_time_ = stod(input_word);
-			continue;
 		}
+		trajectory_delta_time_ = stod(input_word);
+		continue;
+	}
         if (input_word == "output_precision") {
             input_file >> input_word;
             if (input_word[0] == '=') {
@@ -350,15 +352,30 @@ void SelfIntermediateScattering::read_input_file()
             }
             continue;
         }
+        if (input_word == "k_vals") {
+            getline(input_file, input_word);
+            stringstream input_line(input_word);
+            while (input_line >> input_word) {
+                if (input_word[0] == '=') {
+                    input_line >> input_word;
+                }
+                if (input_word[0] == '#') {
+                    break;
+                }
+                input_k_values_.push_back(stod(input_word));
+            }
+	    number_of_k_ = input_k_values_.size();
+            continue;
+        }
 
-		//check for everything else
-		cerr << "WARNING: no matching input type for: ";
-		cerr << "\033[1;33m";
-		cerr << input_word;
-		cerr << "\033[0m";
-		cerr << " disregarding this variable and continueing to next line";
-		cerr << endl;
-		getline(input_file, input_word);
+	//check for everything else
+	cerr << "WARNING: no matching input type for: ";
+	cerr << "\033[1;33m";
+	cerr << input_word;
+	cerr << "\033[0m";
+	cerr << " disregarding this variable and continueing to next line";
+	cerr << endl;
+	getline(input_file, input_word);
 	}
 	check_parameters();
 	
@@ -373,15 +390,9 @@ void SelfIntermediateScattering::compute_Fs_kt()		// Fs_kt is the Self intermedi
 	}
 	
     // Form a array of time index values for a given type of timescale computation
-	////////////////////////////////////////////////////////////////////////
-	// is fine
-	////////////////////////////////////////////////////////////////////////
     compute_time_array();
     
     // select the indexes of atom_types_
-	////////////////////////////////////////////////////////////////////////
-	// is fine
-	////////////////////////////////////////////////////////////////////////
     size_t number_of_atoms;
     double average_squared_scattering_length = 0.0;
     vector < vector< unsigned int > > atom_types_indexes(atom_types_.size());
@@ -389,67 +400,32 @@ void SelfIntermediateScattering::compute_Fs_kt()		// Fs_kt is the Self intermedi
     determine_atom_indexes(atom_types_indexes, average_squared_scattering_length, number_of_atoms);
 
     // k resolution is determined by inverse box length
-	////////////////////////////////////////////////////////////////////////
-	// kill kill kill
-	////////////////////////////////////////////////////////////////////////
-    double min_box_length = average_box_length_[0];
-    for (size_t i_dimension = 1; i_dimension < dimension_; ++i_dimension) {
-        min_box_length = (min_box_length < average_box_length_[i_dimension]) ? min_box_length : average_box_length_[i_dimension];
-    }
-    double k_min = 2.0*M_PI/min_box_length;
-    delta_k_ = (delta_k_ < k_min ) ? k_min : delta_k_;
 
     // allocate k_values_
-	////////////////////////////////////////////////////////////////////////
-	// kill kill kill
-	// 
-	// But also, you'll need to allocate space for the array eventually
-	////////////////////////////////////////////////////////////////////////
-    k_values_.resize(number_of_bins_, 0.0);
-    number_of_k_vectors_.resize(number_of_bins_);
-    vector< vector< vector < unsigned int > > > k_vectors(number_of_bins_);
-    vector< double > normalization_factor(number_of_bins_, 0.0);
-    
-    for (size_t k_index = 0; k_index < number_of_bins_; ++k_index) {
-		////////////////////////////////////////////////////////////////////////
-		// This section both generates the list of k-values and computes their k-vectors
-		// So... we only need half of that
-		// You probably want to just want to completely remake this for-loop
-		// Pseudo-code:
-		//
-		// Allocate array space for k vectors, name it k_vectors to match remainder of code
-		// FOR j in input_list_of_k_values:
-		//      k_squared = integer((input_list_of_k_values[j])^2)
-		//      compute_k_vectors(k_squared,k_vectors[k_index])
-		//
-		//      // Everything else here is (mostly) the same as in original loop
-		//      // Skip the "k_values_[k_index] = blah blah blah" line
-		//      number_of_k_vectors_[k_index] = k_vectors[k_index].size()
-		//      normalization_factor[k_index] = 1.0 / (number_of_frames_to_average_ * number_of_atoms * number_of_k_vectors_[k_index]);
-        //      normalization_factor[k_index] /= ( average_squared_scattering_length );
-		//      // Copy pasta the rest of the cout lines to print the k-values to file
-		//      
-		////////////////////////////////////////////////////////////////////////
-        
-        // Compare delta_k_ with k_min allowed to select the larger of the two for first k-point
-        double k_value_temp = delta_k_ * (k_index + k_start_index_);
+    k_values_.resize(number_of_k_, 0.0);
+    number_of_k_vectors_.resize(number_of_k_);
+    vector< vector< vector < unsigned int > > > k_vectors(number_of_k_);
+    vector< double > normalization_factor(number_of_k_, 0.0);
+
+    double k_min = input_k_values_[0];
+    unsigned int k_squared; 
+
+    for (size_t k_index = 0; k_index < number_of_k_; ++k_index) {
         
         // Compute the integer value based on user input k_value
-        unsigned int k_squared = static_cast<unsigned int> (k_value_temp * k_value_temp * min_box_length * min_box_length / (4.0 * M_PI * M_PI));
+        k_squared = static_cast<unsigned int> (pow(input_k_values_[k_index] , 2));
         
         // Compute the avaible k_vectors
         compute_k_vectors( k_squared, k_vectors[k_index] );
         number_of_k_vectors_[k_index] = k_vectors[k_index].size();
         
-        // Corrected k_value on the grid with the new mag_kvec_sqr
-        k_values_[k_index] = 2.0 * M_PI * sqrt(1.0 * k_squared) / min_box_length;
         
         // Compute normalization factor
         normalization_factor[k_index] = 1.0 / (number_of_frames_to_average_ * number_of_atoms * number_of_k_vectors_[k_index]);
         normalization_factor[k_index] /= ( average_squared_scattering_length );
         
         // Print num of vectors and values
-        cout << "Corrected kvalue for : " << k_value_temp << " is : " << k_values_[k_index] << endl;
+        cout << "Corrected kvalue for : " << input_k_values_[k_index] << " is : " << k_values_[k_index] << endl;
         cout << "Number of k-vectors : " << number_of_k_vectors_[k_index] << endl;
         if (is_run_mode_verbose_) {
             for (size_t i_vec = 0; i_vec < number_of_k_vectors_[k_index]; ++i_vec) {
@@ -505,24 +481,8 @@ void SelfIntermediateScattering::compute_Fs_kt()		// Fs_kt is the Self intermedi
 void SelfIntermediateScattering::generate_k_vectors(unsigned int const & k_squared, vector< vector< unsigned int > > & k_vectors)
 {
     if (dimension_ == 3) {
-        //        if (method_of_k_generation_ == "moderate") {
-        //            unsigned int mag_k_vector = static_cast< unsigned int > (sqrt(mag_kvec_sqr));
-        //            for (unsigned int i = 0; i <= mag_k_vector; ++i) {
-        //                unsigned int j_max = static_cast< unsigned int > (sqrt(mag_kvec_sqr - i*i));
-        //                for (unsigned int j = 0; j <= j_max; ++j) {
-        //                    unsigned int k_sqr = mag_kvec_sqr - i*i - j*j;
-        //                    unsigned int k = static_cast< unsigned int > (sqrt(k_sqr));
-        //                    // check if k is a perfect square integer
-        //                    if ( fabs(k_sqr - k*k) < 1e-16) {
-        //                        vector< unsigned int > inds = {i, j, k};
-        //                        k_vectors.push_back( inds );
-        //                    }
-        //                }
-        //            }
-        //            return;
-        //        }
-        //        else if (method_of_k_generation_ == "fast") {
-        unsigned int i_max = static_cast< unsigned int > (sqrt(k_squared/3.0));
+        // I don't care if you didn't say to remove this block of code. Blocks of code commented out in a git master branch is just git incompetence.
+	unsigned int i_max = static_cast< unsigned int > (sqrt(k_squared/3.0));
         for (unsigned int i = 0; i <= i_max; ++i) {
             unsigned int j_max = static_cast< unsigned int > (sqrt((k_squared - i*i)/2.0));
             for (unsigned int j = i; j <= j_max; ++j) {
@@ -550,7 +510,6 @@ void SelfIntermediateScattering::generate_k_vectors(unsigned int const & k_squar
                 }
             }
         }
-        //        }
     }
     else {
         vector< unsigned int > k_vector_temp(dimension_, 0);
@@ -641,25 +600,6 @@ void SelfIntermediateScattering::write_Fs_kt()
         }
         output_Fskt_file << endl;
     }
-    
-    //    output_Fskt_file << "# ---------------------------" << endl;
-    //    output_Fskt_file << "#               k_1st_row    " << endl;
-    //    output_Fskt_file << "#            ----------------" << endl;
-    //    output_Fskt_file << "# t_1st_col | Fs(k, t)_matrix" << endl;
-    //    output_Fskt_file << "# ---------------------------" << endl;
-    //
-    //    output_Fskt_file << setiosflags(ios::scientific) << setprecision(output_precision_);
-    //	output_Fskt_file << "            ";
-    //    for (size_t k_index = 0; k_index < k_values_.size(); ++k_index) {
-    //		output_Fskt_file << "\t" << k_values_[k_index];
-    //	}
-    //	for (size_t time_point = 0; time_point < number_of_time_points_; ++time_point) {
-    //		output_Fskt_file << endl;
-    //        output_Fskt_file << time_array_indexes_[time_point]*trajectory_delta_time_;
-    //		for (size_t k_index = 0; k_index < k_values_.size(); ++k_index) {
-    //			output_Fskt_file << "\t" << Fs_kt_[k_index][time_point];
-    //		}
-    //	}
     
 	output_Fskt_file.close();
 }

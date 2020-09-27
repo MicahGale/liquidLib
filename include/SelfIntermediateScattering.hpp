@@ -1,7 +1,8 @@
 //
 //  SelfIntermediateScattering.cpp
 //
-//  Copyright (c) 2015 Zhang-Group. All rights reserved.
+//  Copyright 2015 Zhang-Group, 2020 Micah Gale.
+//  All rights reserved.
 //  This software is distributed under the MIT license
 //  -----------------------------------------------------
 //  Contributing authors: Zhikun Cai,
@@ -55,6 +56,7 @@ private:
     unsigned int k_start_index_;        // in unit of 2*M_PI/average_box_length
 	unsigned int number_of_time_points_;
     unsigned int number_of_frames_to_average_;
+    unsigned int number_of_k_;          // the number of input k-values
 	
 	double frame_interval_;
     double delta_k_;
@@ -63,6 +65,7 @@ private:
 	
     vector< double > k_values_;
     vector< double > scattering_lengths_;
+    vector< double > input_k_values_;
 	vector< unsigned int > time_array_indexes_;
     vector< unsigned int > number_of_k_vectors_;
     vector< vector< double > > Fs_kt_;
