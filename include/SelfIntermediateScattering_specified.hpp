@@ -1,7 +1,8 @@
 //
-//  SelfIntermediateScattering.cpp
+//  SelfIntermediateScattering_specified.cpp
 //
-//  Copyright (c) 2015 Zhang-Group. All rights reserved.
+//  Copyright 2015 Zhang-Group, 2020 Micah Gale.
+//  All rights reserved.
 //  This software is distributed under the MIT license
 //  -----------------------------------------------------
 //  Contributing authors: Zhikun Cai,
@@ -9,8 +10,8 @@
 //                        Nathan Walter
 //  -----------------------------------------------------
 //
-#ifndef LiquidLib_SelfIntermediateScattering_hpp
-#define LiquidLib_SelfIntermediateScattering_hpp
+#ifndef LiquidLib_SelfIntermediateScatteringSpecified_hpp
+#define LiquidLib_SelfIntermediateScatteringSpecified_hpp
 
 #include <vector>
 #include <string>
@@ -20,10 +21,10 @@
 
 using namespace std;
 
-class SelfIntermediateScattering : public Trajectory {
+class SelfIntermediateScatteringSpecified : public Trajectory {
 public:
-    SelfIntermediateScattering();
-    virtual ~SelfIntermediateScattering();
+    SelfIntermediateScatteringSpecified();
+    virtual ~SelfIntermediateScatteringSpecified();
     
     void read_command_inputs(int argc, char * argv[]);
     void read_input_file();
@@ -55,6 +56,7 @@ private:
     unsigned int k_start_index_;        // in unit of 2*M_PI/average_box_length
 	unsigned int number_of_time_points_;
     unsigned int number_of_frames_to_average_;
+    unsigned int number_of_k_;          // the number of input k-values
 	
 	double frame_interval_;
     double delta_k_;
@@ -63,9 +65,10 @@ private:
 	
     vector< double > k_values_;
     vector< double > scattering_lengths_;
+    vector< double > input_k_values_;
 	vector< unsigned int > time_array_indexes_;
     vector< unsigned int > number_of_k_vectors_;
     vector< vector< double > > Fs_kt_;
 };
 
-#endif // defined (LiquidLib_SelfIntermediateScattering_hpp)
+#endif // defined (LiquidLib_SelfIntermediateScatteringSpecified_hpp)

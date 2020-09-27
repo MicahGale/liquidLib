@@ -1,5 +1,5 @@
 //
-//  SelfIntermediateScattering.cpp
+//  SelfIntermediateScattering_specified.cpp
 //
 //  Copyright  2015 Zhang-Group, 2020 Micah Gale.
 //  All rights reserved.
@@ -10,7 +10,7 @@
 //                        Nathan Walter
 //  -----------------------------------------------------
 //
-#include "SelfIntermediateScattering.hpp"
+#include "SelfIntermediateScattering_specified.hpp"
 
 #ifdef OMP
 #include "omp.h"
@@ -31,7 +31,7 @@
 
 using namespace std;
 
-SelfIntermediateScattering::SelfIntermediateScattering() :
+SelfIntermediateScatteringSpecified::SelfIntermediateScatteringSpecified() :
 	input_file_name_("Fs_kt.in"),
 	output_file_name_("Fs_kt.txt"),
 	atom_group_("system"),
@@ -49,12 +49,12 @@ SelfIntermediateScattering::SelfIntermediateScattering() :
 }
 
 
-SelfIntermediateScattering::~SelfIntermediateScattering()
+SelfIntermediateScatteringSpecified::~SelfIntermediateScatteringSpecified()
 {
 }
 
 
-void SelfIntermediateScattering::read_command_inputs(int argc, char * argv[])
+void SelfIntermediateScatteringSpecified::read_command_inputs(int argc, char * argv[])
 {
     for (int input = 1; input < argc; ++input) {
         if (strcmp(argv[input], "-i") == 0) {
@@ -81,7 +81,7 @@ void SelfIntermediateScattering::read_command_inputs(int argc, char * argv[])
 }
 
 
-void SelfIntermediateScattering::read_input_file()
+void SelfIntermediateScatteringSpecified::read_input_file()
 {
 	ifstream input_file(input_file_name_);
 	
@@ -383,7 +383,7 @@ void SelfIntermediateScattering::read_input_file()
 }
 
 
-void SelfIntermediateScattering::compute_Fs_kt()		// Fs_kt is the Self intermediate scattering function
+void SelfIntermediateScatteringSpecified::compute_Fs_kt()		// Fs_kt is the Self intermediate scattering function
 {
 	if (is_wrapped_) {
 		unwrap_coordinates();
@@ -478,7 +478,7 @@ void SelfIntermediateScattering::compute_Fs_kt()		// Fs_kt is the Self intermedi
 }
 
 
-void SelfIntermediateScattering::generate_k_vectors(unsigned int const & k_squared, vector< vector< unsigned int > > & k_vectors)
+void SelfIntermediateScatteringSpecified::generate_k_vectors(unsigned int const & k_squared, vector< vector< unsigned int > > & k_vectors)
 {
     if (dimension_ == 3) {
         // I don't care if you didn't say to remove this block of code. Blocks of code commented out in a git master branch is just git incompetence.
@@ -521,7 +521,7 @@ void SelfIntermediateScattering::generate_k_vectors(unsigned int const & k_squar
 }
 
 
-void SelfIntermediateScattering::recurrsive_generate_k_vectors(unsigned int const k_squared, unsigned int const dimension,
+void SelfIntermediateScatteringSpecified::recurrsive_generate_k_vectors(unsigned int const k_squared, unsigned int const dimension,
                                                     vector< unsigned int > & k_vector_temp, vector< vector< unsigned int > > & k_vectors)
 {
     unsigned int sum_squares = 0;
@@ -547,7 +547,7 @@ void SelfIntermediateScattering::recurrsive_generate_k_vectors(unsigned int cons
 }
 
 
-inline void SelfIntermediateScattering::compute_k_vectors(unsigned int & k_squared, vector< vector< unsigned int > > & k_vectors)
+inline void SelfIntermediateScatteringSpecified::compute_k_vectors(unsigned int & k_squared, vector< vector< unsigned int > > & k_vectors)
 {
     generate_k_vectors( k_squared, k_vectors);
     unsigned int number_of_k_vectors = k_vectors.size();
@@ -559,7 +559,7 @@ inline void SelfIntermediateScattering::compute_k_vectors(unsigned int & k_squar
 }
 
 
-void SelfIntermediateScattering::write_Fs_kt()
+void SelfIntermediateScatteringSpecified::write_Fs_kt()
 {
     if (trajectory_delta_time_ == 0) {
         cerr << "WARNING: time step of simulation could not be derived from trajectory,\n";
@@ -608,7 +608,7 @@ void SelfIntermediateScattering::write_Fs_kt()
 // Function to check that all the parameters provided by the user for
 // self intermediate scattering are usable.  Ensures that the code will
 // not have with needing enough data points
-void SelfIntermediateScattering::check_parameters() throw()
+void SelfIntermediateScatteringSpecified::check_parameters() throw()
 {
     if (number_of_frames_to_average_ > end_frame_ - start_frame_) {
         cerr << "ERROR: Cannot have the number of frames to average be greater than the number supplied\n";
@@ -711,7 +711,7 @@ void SelfIntermediateScattering::check_parameters() throw()
 }
 
 
-void SelfIntermediateScattering::compute_time_array()
+void SelfIntermediateScatteringSpecified::compute_time_array()
 {
     // first time point is always zero
     time_array_indexes_.push_back(0);
@@ -739,7 +739,7 @@ void SelfIntermediateScattering::compute_time_array()
 }
 
 
-void SelfIntermediateScattering::determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
+void SelfIntermediateScatteringSpecified::determine_atom_indexes(vector < vector < unsigned int > > & atom_types_indexes,
                                                         double & average_squared_scattering_length,
                                                         size_t & number_of_atoms)
 {
@@ -765,7 +765,7 @@ void SelfIntermediateScattering::determine_atom_indexes(vector < vector < unsign
 }
 
 
-void SelfIntermediateScattering::print_status(size_t & status)
+void SelfIntermediateScatteringSpecified::print_status(size_t & status)
 {
     ++status;
     cout << "\rcurrent progress of calculating the self intermediate scattering function is: ";
